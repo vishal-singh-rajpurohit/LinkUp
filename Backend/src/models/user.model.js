@@ -1,50 +1,104 @@
-const {Schema, default: mongoose} = require('mongoose')
+const { Schema, default: mongoose } = require("mongoose");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
-
-const newSchema = new Schema({
+const newSchema = new Schema(
+  {
     userName: {
-        type: String,
-        required: true,
-        index: true
+      type: String,
+      required: true,
+      index: true,
     },
     searchTag: {
-        type: String,
-        required: true,
-        unique: true,
-        index: true
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
     },
     socketId: {
-    type: String,
-    required: true,
-    default: "0000"
+      type: String,
+      required: true,
+      default: "0000",
     },
     email: {
-        type: String,
-        unique: true,
-        required: true,
+      type: String,
+      unique: true,
+      required: true,
     },
     password: {
-        type: String,
-        required: true
+      type: String,
+      required: true,
     },
     avatar: {
-        type: String,
-        default: "defaultA"
+      type: String,
+      default: "defaultA",
     },
     theme: {
-        type: Boolean,
-        default: true
+      type: Boolean,
+      default: true,
     },
     showOnline: {
-        type: Boolean,
-        default: true
-    }
-},{
+      type: Boolean,
+      default: true,
+    },
+    refreshToken: {
+      type: String,
+      default: "",
+    },
+    securityQuestion: {
+      type: String,
+      default: null,
+    },
+    securityAnswer: {
+      type: String,
+      default: null,
+    },
+  },
+  {
     timeseries: true,
-    timestamps: true
+    timestamps: true,
+  }
+);
+
+newSchema.pre("save", async (next) => {
+  if (!this.isModified("password")) {
+    next();
+  } else {
+    this.password = await bcrypt.hash(this.password, 10);
+    next();
+  }
 });
 
+newSchema.methods.isPasswordCorect = async function (password) {
+  return await bcrypt.compare(password, this.password);
+};
 
-const User = mongoose.model('User', newSchema);
+newSchema.method.generateAccessToken = async function () {
+  return jwt.sign(
+    {
+      _id: this._id,
+      email: this.email,
+      searchTag: this.searchTag,
+    },
+    process.env.ACCESS_TOKEN_SECRET,
+    {
+      expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+    }
+  );
+};
+
+newSchema.method.generateRefreshToken = async function () {
+  return jwt.sign(
+    {
+      searchTag: this.searchTag,
+    },
+    process.env.REFRESH_TOKEN_SECRET,
+    {
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
+    }
+  );
+};
+
+const User = mongoose.model("User", newSchema);
 
 module.exports = User;

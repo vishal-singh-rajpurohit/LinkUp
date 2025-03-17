@@ -36,11 +36,11 @@ wss.on('connection', (ws) => {
 
 // ROUTERS
 const userRouter = require('./routes/user.routes');
-const userRouter = require('./routes/chat.routes');
+const chatRouter = require('./routes/chat.routes');
 
 
 app.use("/api/v1/user", userRouter);
-app.use("/api/v1/chat", chat);
+app.use("/api/v1/chat", chatRouter);
 
 
 module.exports = {server, wss}

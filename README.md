@@ -10,6 +10,13 @@
 #### <li>One time watch
 
 ###  Technologies Used:-
+### <li>Node.js and Mongodb 
+### <li>WS liberary for web socket 
+### <li>Crypto for End to End Encryption 
+### <li>Mongoose  
+### <li>Cloudinary 
+
+
 
 
 
