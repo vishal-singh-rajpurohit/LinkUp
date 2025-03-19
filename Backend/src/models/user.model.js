@@ -33,6 +33,11 @@ const newSchema = new Schema(
       type: String,
       default: "defaultA",
     },
+    online: {
+      type: Boolean,
+      default: false,
+      required: true
+    },
     theme: {
       type: Boolean,
       default: true,
@@ -60,7 +65,7 @@ const newSchema = new Schema(
   }
 );
 
-newSchema.pre("save", async (next) => {
+newSchema.pre("save", async function(next){
   if (!this.isModified("password")) {
     next();
   } else {
@@ -73,7 +78,7 @@ newSchema.methods.isPasswordCorect = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 
-newSchema.method.generateAccessToken = async function () {
+newSchema.methods.generateAccessToken = async function () {
   return jwt.sign(
     {
       _id: this._id,
@@ -87,7 +92,7 @@ newSchema.method.generateAccessToken = async function () {
   );
 };
 
-newSchema.method.generateRefreshToken = async function () {
+newSchema.methods.generateRefreshToken = async function () {
   return jwt.sign(
     {
       searchTag: this.searchTag,

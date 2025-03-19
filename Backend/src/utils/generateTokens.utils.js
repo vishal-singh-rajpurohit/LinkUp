@@ -2,10 +2,8 @@ const User = require("../models/user.model");
 const ApiError = require("../utils/ApiError.utils")
 
 
-const generateTokens = async () =>{
+const generateTokens = async (userId) =>{
     try {
-
-        const {userId} = req.body.userId;
 
         const isUser = await User.findOne({_id: userId});
 
@@ -13,8 +11,8 @@ const generateTokens = async () =>{
             throw new ApiError(400 , "User Not Found in the DataBase");
         }
 
-        const newRefreshToken = await User.generateAccessToken();
-        const newAccessToken = await User.generateRefreshToken();
+        const newAccessToken = await isUser.generateAccessToken();
+        const newRefreshToken = await isUser.generateRefreshToken();
 
         if(!newRefreshToken){
             throw new ApiError(500, "Error in newRefreshToken :" )
