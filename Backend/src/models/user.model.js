@@ -36,7 +36,7 @@ const newSchema = new Schema(
     online: {
       type: Boolean,
       default: false,
-      required: true
+      required: true,
     },
     theme: {
       type: Boolean,
@@ -65,13 +65,26 @@ const newSchema = new Schema(
   }
 );
 
-newSchema.pre("save", async function(next){
+newSchema.pre("save", async function (next) {
+  console.log("before save called");
   if (!this.isModified("password")) {
+    console.log("unmodified password");
     next();
   } else {
+    console.log("password modified");
     this.password = await bcrypt.hash(this.password, 10);
     next();
   }
+});
+
+newSchema.pre("findOneAndUpdate", async function (next) {
+  const update = this.getUpdate();
+
+  if (!update.password) {
+    return next();
+  }
+  update.password = await bcrypt.hash(update.password, 10);
+  next();
 });
 
 newSchema.methods.isPasswordCorect = async function (password) {

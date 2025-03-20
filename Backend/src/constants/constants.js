@@ -11,3 +11,9 @@ export const ChatEventEnum = Object.freeze({
   TYPING_EVENT: "typing",
   MESSAGE_DELETE_EVENT: "messageDeleted",
 });
+
+
+export const LoadLimits = Object.freeze({
+  CONTACT_LIMIT: 50,
+  CHAT_LIMIT: 100
+});

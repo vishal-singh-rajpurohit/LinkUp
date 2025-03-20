@@ -46,7 +46,6 @@ const liveCheckMailSignup = asyncHandler(async (req, resp) => {
   resp.status(200).json(new ApiResponse(200, "email is avilable", {}));
 });
 
-
 /**
  * @description this function will check given email or searchTag is already avilable or not
  */
@@ -57,25 +56,27 @@ const liveCheckTagMailLogin = asyncHandler(async (req, resp) => {
   }
 
   const isUserExists = await User.exists({
-    $or: [{
-      searchTag: searchTag
-    },{
-      email: searchTag,
-    }],
+    $or: [
+      {
+        searchTag: searchTag,
+      },
+      {
+        email: searchTag,
+      },
+    ],
   });
 
   if (!isUserExists) {
     throw new ApiError(401, "user with this email and search tag not found", {
-      errorMessege: "user with this email and search tag not found"
+      errorMessege: "user with this email and search tag not found",
     });
   }
 
   resp.status(200).json(new ApiResponse(200, "valid user", {}));
 });
 
-
 /**
- * @description signUp , logIn 
+ * @description signUp , logIn
  */
 const signUp = asyncHandler(async (req, resp) => {
   try {
@@ -100,6 +101,7 @@ const signUp = asyncHandler(async (req, resp) => {
       searchTag,
       email,
       password,
+      online: true
     });
 
     await newUser.save();
@@ -108,16 +110,20 @@ const signUp = asyncHandler(async (req, resp) => {
       throw new ApiError(501, "error while saving the user in database");
     }
 
-    const { newRefreshToken, newAccessToken } = await generateTokens(newUser._id);
+    const { newRefreshToken, newAccessToken } = await generateTokens(
+      newUser._id
+    );
 
     if (!newRefreshToken || !newAccessToken) {
       throw new ApiError(501, "new Token not found");
     }
 
-    const decodedToken = jwt.verify(newAccessToken ,process.env.ACCESS_TOKEN_SECRET);
+    const decodedToken = jwt.verify(
+      newAccessToken,
+      process.env.ACCESS_TOKEN_SECRET
+    );
 
-    console.log("tokens return to decoded")
-
+    console.log("tokens return to decoded");
 
     if (!decodedToken) {
       throw new ApiError(501, "Somthing went wrong with decoded token");
@@ -126,7 +132,7 @@ const signUp = asyncHandler(async (req, resp) => {
     const finalUser = await User.findByIdAndUpdate(decodedToken._id, {
       $set: {
         refreshToken: newRefreshToken,
-        online: false
+        online: false,
       },
     }).select("-password -refreshToken");
 
@@ -185,11 +191,14 @@ const logIn = asyncHandler(async (req, resp) => {
   }
 
   const user = await User.findOne({
-    $or:[ {
-      searchTag: searchTag,
-    }, {
-      email: searchTag,
-    }]
+    $or: [
+      {
+        searchTag: searchTag,
+      },
+      {
+        email: searchTag,
+      },
+    ],
   });
 
   if (!user) {
@@ -198,8 +207,10 @@ const logIn = asyncHandler(async (req, resp) => {
 
   const isPasswordCorrect = await user.isPasswordCorect(password);
 
-  if(!isPasswordCorrect){
-    throw new ApiError(501, "Password incorrect ", {errorMessege: "Incorrect Password"})
+  if (!isPasswordCorrect) {
+    throw new ApiError(501, "Password incorrect ", {
+      errorMessege: "Incorrect Password",
+    });
   }
 
   const { newAccessToken, newRefreshToken } = await generateTokens(user._id);
@@ -219,6 +230,7 @@ const logIn = asyncHandler(async (req, resp) => {
 
   const updatedUser = await User.findByIdAndUpdate(decodedToken._id, {
     refreshToken: newRefreshToken,
+    online: true
   }).select("-password -refreshToken");
 
   if (!updatedUser) {
@@ -234,7 +246,7 @@ const logIn = asyncHandler(async (req, resp) => {
 
 /**
  * @description authentication required before these funcions
-*/
+ */
 const logOut = asyncHandler(async (req, resp) => {
   await User.findOneAndUpdate(
     {
@@ -243,6 +255,7 @@ const logOut = asyncHandler(async (req, resp) => {
     {
       $set: {
         refreshToken: "",
+        online: false
       },
     },
     {
@@ -257,6 +270,48 @@ const logOut = asyncHandler(async (req, resp) => {
     .json(new ApiResponse(200, {}, "Logged Out"));
 });
 
+/**
+ * @description addSecurity auestion helps user when forget the password
+ */
+
+const addSecurityQnA = asyncHandler(async (req, resp) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      throw new ApiError(501, "Unautharized request", {
+        errorMessege: "Unautharized request",
+      });
+    }
+
+    const { question, answer } = req.body;
+
+    if (!question || !answer) {
+      throw new ApiError(400, "Must Provide Questions and Answers", {
+        errorMessege: "Must Provide Questions and Answers",
+      });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(user._id, {
+      securityQuestion: question,
+      securityAnswer: answer,
+    });
+
+    if (!updatedUser) {
+      throw new ApiError(400, "Error while updating question to the db", {
+        errorMessege: "Error while updating question to the db",
+      });
+    }
+
+    resp
+      .status(200)
+      .json(new ApiResponse(200, {}, "Questions added successfully"));
+  } catch (error) {
+    throw new ApiError(400, "Error while adding security ", {
+      errorMessege: "Error while adding security ",
+    });
+  }
+});
 
 // TO CONFORM
 
@@ -267,17 +322,23 @@ const forgetPasswordVerify = asyncHandler(async (req, resp, next) => {
     throw new ApiError(400, "search Tag Must Required");
   }
 
-  const isValid = await User.findOne({
-    $or: [{
-      email: searchTag,
-    },{
-      searchTag: searchTag,
-    }],
-    securityAnswer: securityAnswer,
+  const isValidUser = await User.findOne({
+    $or: [
+      {
+        searchTag: searchTag,
+      },
+      {
+        email: searchTag,
+      },
+    ],
   });
 
-  if (!isValid) {
-    throw new ApiError(401, "Invalid Answer");
+  if (!isValidUser) {
+    throw new ApiError(401, "Invalid user", {errorMessege: "Invalid User"});
+  }
+
+  if(isValidUser.securityAnswer !== securityAnswer){
+    throw new ApiError(401, "Invalid Answer", {errorMessege: "Invalid Answer"});
   }
 
   resp
@@ -287,10 +348,10 @@ const forgetPasswordVerify = asyncHandler(async (req, resp, next) => {
 });
 
 const resetPassword = asyncHandler(async (req, resp) => {
-  const allowResat = req.cookie?.allowResat;
+  const allowResat = req.cookies?.allowResat;
 
   if (!allowResat) {
-    throw new ApiError("Not Allowed To Resat");
+    throw new ApiError(401, "Not Allowed To Resat", {errorMessege: "Not Allowed To Resat" });
   }
 
   const { newPassword, conformPassword, searchTag } = req.body;
@@ -304,16 +365,23 @@ const resetPassword = asyncHandler(async (req, resp) => {
   }
 
   const isValid = await User.findOneAndUpdate({
-    $or: {
-      searchTag: searchTag,
-      email: searchTag,
-    },
+    $or: [
+      {
+        searchTag: searchTag,
+      },
+      {
+        email: searchTag,
+      },
+    ]
+  },{
     password: newPassword,
   });
 
   if (!isValid) {
     throw new ApiError(400, "Error while updating passwords");
   }
+
+  console.log("resat done");
 
   resp
     .status(200)
@@ -366,13 +434,21 @@ const updateSocketId = asyncHandler((req, resp) => {
  * @description Danger or Delete Operations in Delete account
  */
 const deleteAccount = asyncHandler(async (req, resp) => {
-  const { userId, password } = req.body;
+  const user = req.user;
 
-  if (!userId || !password) {
-    throw new ApiError(400, "User Id and Password Must Required");
+  if (!user) {
+    throw new ApiError(501, "Unautharized request ", {
+      errorMessege: "Tokens not found",
+    });
   }
 
-  const isUserExists = await User.findById(userId);
+  const { password } = req.body;
+
+  if (!password) {
+    throw new ApiError(400, "Password Must Required");
+  }
+
+  const isUserExists = await User.findById(user._id);
 
   if (!isUserExists) {
     throw new ApiError(400, "User Not Found");
@@ -381,7 +457,9 @@ const deleteAccount = asyncHandler(async (req, resp) => {
   const isPasswordCorrect = isUserExists.isPasswordCorect(password);
 
   if (!isPasswordCorrect) {
-    throw new ApiError(501, "Unauthraized request");
+    throw new ApiError(501, "Password is incorrects request", {
+      errorMessege: "Password is incorrects",
+    });
   }
 
   const deletedAccount = new DeletedAccount({
@@ -416,6 +494,7 @@ module.exports = {
   signUp,
   logIn,
   logOut,
+  addSecurityQnA,
   deleteAccount,
   forgetPasswordVerify,
   resetPassword,

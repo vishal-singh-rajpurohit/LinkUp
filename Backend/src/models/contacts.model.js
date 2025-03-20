@@ -1,40 +1,15 @@
-const { Schema, default: mongoose } = require('mongoose');
+const { Schema } = require('mongoose');
 
 
 const newSchema = new Schema({
-    contacts:[ {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true
-    }],
-    approachedBy: {
+    createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         required: true
     },
-    lastChat: {
-        type: String,
-        default: "",
-        required: true
-    },
-    blocked: {
-        type: Boolean,
-        required: true,
-        default: false
-    },
-    blockedBy: {
+    oneOnOne: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        defualt: null
-    },
-    isEncrypted: {
-        type: Boolean,
-        default: false
-    },
-    encryptedBy:[ {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        defualt: null
+        ref: "User"
     }],
     isGroup: {
         type: Boolean,
@@ -43,10 +18,9 @@ const newSchema = new Schema({
     },
     groupName: {
         type: String,
-        default: `group ${Math.random()*100}`,
         required: false
     },
-    whoCanSendMessages : {
+    whoCanSendMessage : {
         type: String,
         enum: ["ALL, ONLY_ADMINS"],
         default: "ALL"
@@ -55,12 +29,6 @@ const newSchema = new Schema({
         type: Boolean,
         default: false
     },
-    admins: [{
-        type: mongoose.Schema.Types.ObjectId,
-        default: null,
-        ref: "User",
-        required: false
-    }],
     socketId: {
         type: String,
         required: false
