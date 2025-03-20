@@ -313,8 +313,6 @@ const addSecurityQnA = asyncHandler(async (req, resp) => {
   }
 });
 
-// TO CONFORM
-
 const forgetPasswordVerify = asyncHandler(async (req, resp, next) => {
   const { searchTag, securityAnswer } = req.body;
 
