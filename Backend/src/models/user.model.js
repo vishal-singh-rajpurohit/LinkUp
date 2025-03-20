@@ -20,6 +20,10 @@ const newSchema = new Schema(
       required: true,
       default: "0000",
     },
+    contacts:[{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Contact"
+    }],
     email: {
       type: String,
       unique: true,
@@ -57,7 +61,7 @@ const newSchema = new Schema(
     securityAnswer: {
       type: String,
       default: null,
-    },
+    }
   },
   {
     timeseries: true,

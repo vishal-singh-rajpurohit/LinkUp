@@ -12,6 +12,9 @@ const generateTokens = require("../utils/generateTokens.utils");
 const { Options } = require("../constants");
 
 const User = require("../models/user.model");
+const Contact = require("../models/contacts.model");
+const ContactMember = require("../models/contactMember.model");
+const Message = require("../models/message.modal");
 const DeletedAccount = require("../models/deletedAccount.model");
 
 /**
@@ -268,6 +271,64 @@ const logOut = asyncHandler(async (req, resp) => {
     .clearCookie("refreshToken", Options)
     .clearCookie("accessToken", Options)
     .json(new ApiResponse(200, {}, "Logged Out"));
+});
+
+/**
+ * @description fetch full details is fuction serving the whole contacts and messages
+ */
+
+const getAllData = asyncHandler(async (req, resp)=>{
+  const user = req.user;
+
+  if(!user){
+    throw new ApiError(400, "User not logged in ", {errorMessege: "User not logged in "});
+  }
+
+  const WholeChats = await ContactMember.aggregate([
+    {
+      $match: {
+        userId: user._id
+      }
+    },
+    {
+      $lookup: {
+        from: "contacts",
+        localField: "contactId",
+        foreignField: "_id",
+        as: "contact"
+      }
+    },
+    {
+      $unwind: "$contact"
+    },
+    {
+      $lookup: "contactmembers",
+      localField: "contactId",
+      foreignField: "contact._id",
+      as: "contact_members"
+    },
+    {
+      $unwind: "$contact"
+    },
+    {
+      $lookup: {
+        from: "messages",
+        localField: "contactId",
+        foreignField: "_id",
+        as: "chats"
+      }
+    },
+    {
+      $unwind: "$chats"
+    },
+    {
+      $group: {
+        _id: "$_id"
+      }
+    }
+  ])
+
+  
 });
 
 /**

@@ -16,7 +16,6 @@ const newSchema = new  Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         default: null,
-        required: true
     },
     isAdmin: {
         type: Boolean,
@@ -27,5 +26,5 @@ const newSchema = new  Schema({
     timestamps: true
 });
 
-const ContactMember = mongoose.Model("ContactMember", newSchema);
+const ContactMember = mongoose.model("ContactMember", newSchema);
 module.exports = ContactMember;

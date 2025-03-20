@@ -1,4 +1,4 @@
-const { Schema } = require('mongoose');
+const { Schema, default: mongoose } = require('mongoose');
 
 
 const newSchema = new Schema({
@@ -22,7 +22,7 @@ const newSchema = new Schema({
     },
     whoCanSendMessage : {
         type: String,
-        enum: ["ALL, ONLY_ADMINS"],
+        enum: ["ALL" || "ONLY_ADMINS" || null],
         default: "ALL"
     },
     isSearchable: {
@@ -33,11 +33,11 @@ const newSchema = new Schema({
         type: String,
         required: false
     }
-}, {
+}, 
+{
     timeseries: true,
     timestamps: true
 });
-
 
 const Contact = mongoose.model("Contact", newSchema);
 

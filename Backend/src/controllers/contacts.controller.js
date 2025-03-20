@@ -4,6 +4,7 @@ const ContactMember = require("../models/contactMember.model");
 const asyncHandler = require("../utils/asyncHandler.utils");
 const ApiError = require("../utils/ApiError.utils");
 const ApiResponse = require("../utils/ApiResponse.utils");
+const { default: mongoose } = require("mongoose");
 
 const createContact = asyncHandler(async (req, resp) => {
   try {
@@ -45,74 +46,308 @@ const createContact = asyncHandler(async (req, resp) => {
         });
       }
 
+      const contacts = [user._id, userId];
+
+      for (const id of contacts) {
+        const contactMember = new ContactMember({
+          userId: id,
+          contactId: newContact._id,
+          addedBy: null,
+          isAdmin: true,
+        });
+
+        await contactMember.save();
+
+        if (!contactMember) {
+          throw new ApiError(401, "Error while adding new contact members", {
+            errorMessage: "Error while adding new contact menbers",
+          });
+        }
+      }
+
       // send the socket the new contact event
 
       //   making pipeline for this
 
+      // const contactDetails = await Contact.aggregate([
+      //   {
+      //     $match: {
+      //       _id: newContact._id,
+      //     },
+      //   },
+      //   {
+      //     $lookup: {
+      //       from: "users",
+      //       localField: "_id",
+      //       foreignField: "userId",
+      //       as: "contact_Members",
+      //     },
+      //   },
+      // ]);
+
+      const contactUserDetails = await User.findOne({ _id: userId }).select(
+        "-password -refreshToken -socketId -theme -showOnline -securityQuestion -securityAnswer"
+      );
+
+      console.log("contact user :", contactUserDetails);
+
+      if (!contactUserDetails) {
+        throw new ApiError(400, "Error while getting user details");
+      }
+
       resp
         .status(200)
         .json(
-          new ApiResponse(200, { newContact }, "Contact created successfully")
+          new ApiResponse(
+            200,
+            { NewContact: newContact, contactUser: contactUserDetails },
+            "Contact created successfully"
+          )
         );
     } else {
       resp
         .status(200)
-        .json(new ApiResponse(200, { newContact }, "Contact already existed"));
+        .json(new ApiResponse(200, {}, "Contact already existed"));
     }
   } catch (error) {
+    console.log("Error in creating contact :", error);
     throw new ApiError(400, "Error while creating contacts ", {
       errorMessage: "Must Provide user id ",
     });
   }
 });
 
-const crateGroupChat = asyncHandler(async (req, resp)=>{
-    try {
-        const user = req.user;
+const crateGroupChat = asyncHandler(async (req, resp) => {
+  try {
+    const user = req.user;
 
-        if(!user){
-            throw new ApiError(401, "Unauthraized User", {errorMessage: "Unauthraized User"});
-        }
-
-        const {contacts, groupName, whoCanSendMessage, isSearchable} = req.body;
-
-        if(contacts || groupName || whoCanSendMessage || isSearchable){
-            throw new ApiError(400, "All values must required", {errorMessage: "All values must required"});
-        }
-
-        const newGroup = new Contact({
-            createdBy: user._id,
-            isGroup: true,
-            groupName: groupName,
-            whoCanSendMessage: whoCanSendMessage,
-            isSearchable: false
-        })
-
-        await newGroup.save();
-
-        if(!newGroup){
-            throw new ApiError(400, "Error while creating new group", {errorMessage: "Error while creating new group"});
-        }
-
-        contacts.forEach(async (element) => {
-            let addedMember = new ContactMember({
-                userId: element,
-                contactId: newGroup._id,
-                addedBy: user._id
-            });
-
-            await addedMember.save();
-
-            if(!addedMember){
-                throw new ApiError(400, "Error while adding new contact member",  { errorMessage: "Error while adding new contact member" });
-            }
-        });
-
-        // Aggrigate to send the whole details about group
-        resp.status(200)
-        .json(new ApiResponse(200, {}, "Group created successfully"))
-
-    } catch (error) {
-        throw new ApiError(401, "Error while creating group chat ", {errorMessage: "Error while creating group chat "});
+    if (!user) {
+      throw new ApiError(401, "Unauthraized User", {
+        errorMessage: "Unauthraized User",
+      });
     }
+
+    const { contacts, groupName, whoCanSendMessage, isSearchable } = req.body;
+
+    if (!contacts || !groupName || !whoCanSendMessage) {
+      throw new ApiError(400, "All values must required", {
+        errorMessage: "All values must required",
+      });
+    }
+
+    const newGroup = new Contact({
+      createdBy: user._id,
+      isGroup: true,
+      groupName: groupName,
+      whoCanSendMessage: whoCanSendMessage,
+      isSearchable: false,
+    });
+
+    await newGroup.save();
+
+    if (!newGroup) {
+      throw new ApiError(400, "Error while creating new group", {
+        errorMessage: "Error while creating new group",
+      });
+    }
+
+    contacts.forEach(async (element) => {
+      let addedMember = new ContactMember({
+        userId: element,
+        contactId: newGroup._id,
+        addedBy: user._id,
+      });
+
+      await addedMember.save();
+
+      if (!addedMember) {
+        throw new ApiError(400, "Error while adding new contact member", {
+          errorMessage: "Error while adding new contact member",
+        });
+      }
+    });
+
+    let newGroupDetails = await Contact.aggregate([
+      {
+        $match: {
+          _id: new mongoose.Types.ObjectId(newGroup._id),
+        },
+      },
+      {
+        $lookup: {
+          from: "contactmembers",
+          localField: "_id",
+          foreignField: "contactId",
+          as: "user_details",
+          pipeline: [
+            {
+              $addFields: {
+                contactId: {
+                  $cond: {
+                    if: {
+                      $and: [
+                        { $ne: ["$contactId", null] },
+                        { $ne: ["$contactId", ""] },
+                      ],
+                    },
+                    then: { $toObjectId: "$contactId" },
+                    else: null,
+                  },
+                },
+              },
+            },
+          ],
+        },
+      },
+      {
+        $unwind: "$user_details",
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "user_details.userId",
+          foreignField: "_id",
+          as: "user_details.user",
+        },
+      },
+      {
+        $unwind: "$user_details.user",
+      },
+      {
+        $group: {
+          _id: "$_id",
+          oneOnOne: { $first: "$oneOnOner" },
+          isGroup: { $first: "$isGroup" },
+          whoCanSendMessage: { $first: "$whoCanSendMessage" },
+          isSearchable: { $first: "$isSearchable" },
+          createdAt: { $first: "$createdAt" },
+          updatedAt: { $first: "$updatedAt" },
+          userDetails: { $push: "$user_details.user" },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          oneOnOne: 1,
+          isGroup: 1,
+          groupName: 1,
+          whoCanSendMessage: 1,
+          "userDetails.userName": 1,
+          "userDetails.avatar": 1,
+          "userDetails.searchTag": 1,
+          "userDetails.email": 1,
+        },
+      },
+    ]);
+
+    while (newGroupDetails.length <= 0) {
+      newGroupDetails = await Contact.aggregate([
+        {
+          $match: {
+            _id: new mongoose.Types.ObjectId(newGroup._id),
+          },
+        },
+        {
+          $lookup: {
+            from: "contactmembers",
+            localField: "_id",
+            foreignField: "contactId",
+            as: "user_details",
+            pipeline: [
+              {
+                $addFields: {
+                  contactId: {
+                    $cond: {
+                      if: {
+                        $and: [
+                          { $ne: ["$contactId", null] },
+                          { $ne: ["$contactId", ""] },
+                        ],
+                      },
+                      then: { $toObjectId: "$contactId" },
+                      else: null,
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        },
+        {
+          $unwind: "$user_details",
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "user_details.userId",
+            foreignField: "_id",
+            as: "user_details.user",
+          },
+        },
+        {
+          $unwind: "$user_details.user",
+        },
+        {
+          $group: {
+            _id: "$_id",
+            oneOnOne: { $first: "$oneOnOner" },
+            isGroup: { $first: "$isGroup" },
+            whoCanSendMessage: { $first: "$whoCanSendMessage" },
+            isSearchable: { $first: "$isSearchable" },
+            createdAt: { $first: "$createdAt" },
+            updatedAt: { $first: "$updatedAt" },
+            userDetails: { $push: "$user_details.user" },
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            oneOnOne: 1,
+            isGroup: 1,
+            groupName: 1,
+            whoCanSendMessage: 1,
+            "userDetails.userName": 1,
+            "userDetails.avatar": 1,
+            "userDetails.searchTag": 1,
+            "userDetails.email": 1,
+          },
+        },
+      ]);
+    }
+
+    if (newGroupDetails.length <= 0) {
+      await Contact.findByIdAndDelete(newGroup._id);
+
+      await Contact.deleteMany({
+        _id: newGroup._id,
+      });
+
+      throw new ApiError(400, "Error while serving details ", {
+        errorMessage: "Error while serving details ",
+      });
+    }
+
+    if (!newGroupDetails) {
+      throw new ApiError(400, "Error to fetch the group details", {
+        errorMessage: "Error to fetch the group details",
+      });
+    }
+
+    resp
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { newGroupDetails: newGroupDetails },
+          "Group created successfully"
+        )
+      );
+  } catch (error) {
+    console.log("Error in creating group: ", error);
+    throw new ApiError(401, "Error while creating group chat ", {
+      errorMessage: "Error while creating group chat ",
+    });
+  }
 });
+
+module.exports = { createContact, crateGroupChat };

@@ -23,12 +23,11 @@ const auth = asyncHandler(async (req, resp, next) => {
       });
     }
 
-    console.log("decodedToken._id :", decodedToken._id)
     const user = await User.findById(decodedToken._id);
 
     if (!user) {
-      throw new ApiError(400, "User not found", {
-        errorMessage: "User not found",
+      throw new ApiError(400, "User not found with this id", {
+        errorMessage: "User not found with this id",
       });
     }
 
