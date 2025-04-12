@@ -1,0 +1,12 @@
+/* Only admins can send message */
+section.only-admins-section {
+    background: #06d8b6;
+    height: 3rem;
+    width: 100%;
+    display: flex
+;
+    justify-content: center;
+    align-items: center;
+    border-top: 1px solid black;
+    font-size: large;
+}

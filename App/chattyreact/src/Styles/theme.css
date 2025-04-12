@@ -1,0 +1,180 @@
+section#dbg1 {
+    background: #1b2b36;
+    color: white;
+}
+
+/* headers */
+.dbg2 {
+    background: #1a303d;
+    color: white;
+}
+
+/* contacts */
+.dbg3 {
+    background: #1a3543;
+    color: white;
+}
+
+/* chat box */
+/* chat top */
+.message-chat-top-dark {
+    color: white;
+}
+
+span.chat-time-dark {
+    color: white;
+}
+
+.chat-card-you {
+    background: #32a8a7;
+    color: white;
+}
+
+.chat-card-me {
+    background: #233f4c;
+    color: white;
+}
+
+/* Input message */
+input.dark-input {
+    background: #1a3543;
+    color: white;
+}
+
+.send-options-dark {
+    color: white;
+}
+
+
+
+/* ------------------------------------------------------------------------------ */
+/* Settings page */
+.theme-buttons-dark {
+    background: white;
+    color: black;
+}
+
+input.inout-password-setting-dark {
+    background: #1a3543;
+    border: none;
+    box-shadow: inset 0 0 0px 1px #ffffff70;
+    border-radius: 5px;
+    padding-left: 10px;
+}
+
+
+/* ----------------------------------------- */
+/* Header */
+
+section.Header-dark {
+    width: 7vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    background: #1b2b36;
+    color: white;
+    border: none;
+}
+
+section.chat-top-nav-dark {
+    height: 10vh;
+    background: #1b2b36;
+    color: white;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+
+/* contact */
+section.chat-contacts-dark {
+    background: #1a303d;
+    color: white;
+    height: 90vh;
+    width: 100%;
+    display: flex;
+}
+
+.contact-list-dark{
+    color: white;
+}
+
+/* chats box */
+section.main-chats-dark {
+    display: grid;
+    grid-template-columns: 3fr 6fr;
+    height: 90vh;
+    gap: 2rem;
+    background: #1a3543;
+    color: white;
+    height: 90vh;
+    gap: 2rem;
+}
+
+/* message single you and me */
+.chat-card-dark {
+    background: #32a8a7;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    max-width: 70%;
+    border-radius: 20px;
+    box-shadow: 0px 0px 4px 0px #252424;
+    padding: 0.5rem 2rem;
+}
+
+.chat-card-dark-2 {
+    background: #233f4c;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    max-width: 70%;
+    border-radius: 20px;
+    box-shadow: 0px 0px 4px 0px #252424;
+    padding: 0.5rem 2rem;
+}
+span.chat-time-dark {
+    color: white;
+}
+
+input.send-options-input-text-dark{
+    background: #1e475d;
+    padding-left: 0.4rem;
+    height: 2rem;
+    width: 100%;
+    border: none;
+}
+
+button.send-dark {
+    background: #379289;
+    color: white;
+}
+
+/* PROFILE */
+section.Profile-page-dark {
+    width: 100vw;
+    background: #1a3543;
+    color: white;
+}
+
+input.input-profile-dark {
+    border: none;
+    background: #1a3543;
+    color: white;
+}
+button.profile-page-btn-dark {
+    width: 12rem;
+    border-radius: 16px;
+    border: 1px solid solid;
+    background: white;
+    font-size: large;
+    cursor: pointer;
+    color: #264f49;
+}
+
+img.profile-Avatar-dark {
+    width: 14rem;
+    height: 14em;
+    border-radius: 99rem;
+    border: 3px solid;
+}
