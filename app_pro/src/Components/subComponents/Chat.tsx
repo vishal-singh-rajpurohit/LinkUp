@@ -1,4 +1,4 @@
-import { CiMenuKebab } from 'react-icons/ci'
+// import { CiMenuKebab } from 'react-icons/ci'
 import g from '../../assets/react.svg'
 import { MdCall, MdVideoCall } from 'react-icons/md'
 import { TiAttachmentOutline } from 'react-icons/ti'
@@ -8,13 +8,28 @@ import { Mail, MailMenu } from './Mails'
 import { FaImage } from 'react-icons/fa'
 import { NavLink } from 'react-router-dom'
 import { useRef } from 'react'
+import { useAppSelector } from '../../app/hooks'
 
 export const ChatArea = () => {
+    const room = useAppSelector((state) => state.temp.selectedContact)
+
     return (
         <section className="hidden w-full h-[100vh] md:flex items-center justify-center">
             <section className="hidden flex-col gap-[1rem] items-center pt-2 w-[90%] h-[98%] rounded-lg md:flex">
-                <ChatTop />
-                <MailBox />
+                {
+                    room ? (
+                        <>
+                            <ChatTop />
+                            <MailBox />
+                        </>
+                    ) :
+                        (
+                            <section className='w-full h-full flex justify-center items-center overflow-y-hidden rounded-sm bg-[#1F2937] '>
+                                <p className="">Select Contact to start talking</p>
+                            </section>
+                        )
+                }
+
             </section>
         </section>
     )
@@ -50,7 +65,6 @@ export const ChatTop = () => {
 }
 
 export const MailBox = () => {
-
     return (
         <section className='w-full h-full overflow-y-scroll rounded-sm bg-[#1F2937]  grid grid-rows-[9fr_1fr] py-1.5 px-1'>
             <ChatBox />
@@ -69,10 +83,10 @@ const MailOptions = () => {
                     <div className="w-full h-full flex items-center justify-center pl-2">
                         <input type="text" placeholder='write a message....' className="w-full h-full outline-0 text-sm text-gray-2 00 font-serif" />
                     </div>
-                    <div className="h-full w-full flex items-center justify-between gap-2 ">
+                    <div className="h-full w-full flex items-center justify-center gap-2 ">
                         <TiAttachmentOutline size={20} cursor={'pointer'} />
                         <BsEmojiWink size={18} cursor={'pointer'} />
-                        <button className="bg-[#00F0FF] h-full w-[1.5rem] flex items-center justify-center rounded-sm c cursor-pointer md:w-[4rem] md:h-[2rem]"><RiSendPlaneFill className='lg:text-[25px]' /> </button>
+                        <button className="bg-[#00F0FF] h-[2rem] w-[2rem] flex items-center justify-center rounded-sm c cursor-pointer md:w-[4rem] md:h-[2rem]"><RiSendPlaneFill className='lg:text-[25px]' /> </button>
                     </div>
                 </div>
             </section>
@@ -119,7 +133,7 @@ const ChatBox = () => {
 
     return (
         <section className="h-full overflow-y-auto flex flex-col gap-5 p-1 pb-4" style={{ scrollbarWidth: 'none' }}>
-            <MailMenu mailRef={mailOptions}/>
+            <MailMenu mailRef={mailOptions} />
             <Mail mailOptions={mailOptions} />
             <Mail mailOptions={mailOptions} />
             <Mail mailOptions={mailOptions} />

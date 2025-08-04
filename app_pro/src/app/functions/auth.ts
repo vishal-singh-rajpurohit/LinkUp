@@ -36,7 +36,7 @@ interface message {
     isCallAccpted: string;
 }
 
-interface contact {
+export interface contactTypes {
     _id: string;
     userId: string;
     avatar: string;
@@ -55,7 +55,7 @@ interface contact {
 interface initialTypes {
     isLoggedIn: boolean;
     user: userType;
-    contacts: contact[]
+    contacts: contactTypes[]
 }
 
 const initialState: initialTypes = {
@@ -84,7 +84,7 @@ function enterAppFunc(state: initialTypes, action: PayloadAction<{ userData: ini
     }
 
     action.payload.userData.contacts.forEach((item) => {
-        const newContact: contact = {
+        const newContact: contactTypes = {
             _id: item._id,
             lastMessage: item.lastMessage,
             isBlocked: item.isBlocked,
@@ -144,7 +144,7 @@ export interface newChatTypes {
 function newContact(state: initialTypes, action: PayloadAction<{
     newChat: newChatTypes
 }>) {
-    const newContact: contact = {
+    const newContact: contactTypes = {
         _id: action.payload.newChat._id,
         lastMessage: action.payload.newChat.lastMessage,
         isBlocked: action.payload.newChat.isBlocked,
@@ -159,11 +159,8 @@ function newContact(state: initialTypes, action: PayloadAction<{
         isOnline: action.payload.newChat.member.user.online,
         messages: []
     }
-    console.log(`new contacts : ${JSON.stringify(newContact, null, 2)}`);
 
     state.contacts = [...state.contacts, newContact]
-
-    console.log(`contacts state : ${JSON.stringify(state.contacts, null, 2)}`);
 
 }
 

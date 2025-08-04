@@ -43,7 +43,7 @@ export const Mail = ({ mailOptions }: { mailOptions: React.RefObject<HTMLDivElem
           <div>12:02 pm</div>
         </div>
       </div>
-      <div ref={currMessageRef} className="hidden md:flex"><CiMenuKebab cursor={'pointer'} className="current-message" /></div>
+      <div ref={currMessageRef} className="flex"><CiMenuKebab cursor={'pointer'} className="current-message" /></div>
     </div>
   )
 }

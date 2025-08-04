@@ -1,13 +1,14 @@
 import { CiSearch, CiSettings } from 'react-icons/ci'
 import g from '../../assets/no_dp.png'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { setSearching } from '../../app/functions/triggers'
 import axios from 'axios'
 import { searching, type searchUserTypes } from '../../app/functions/temp'
 import { saveContact, type newChatTypes } from '../../app/functions/auth'
 import { getTimeDifference } from '../../helpers/timeConverter'
+import { AppContext } from '../../context/AppContext'
 
 
 const api = import.meta.env.VITE_API
@@ -20,12 +21,19 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
     time?: Date | null,
     isOnline: boolean
 }) => {
+    const context = useContext(AppContext)
+
+    if (!context) {
+        throw new Error('context not found')
+    }
+
+    const { selectToTalk } = context;
+
     const disp = useAppDispatch()
+    const router = useNavigate()
     const isSearching = useAppSelector((state) => state.triggers.searching)
     const contacts = useAppSelector((state) => state.auth.contacts)
-
     const [timer, setTimer] = useState<string>("")
-
 
     useEffect(() => {
         if (time) {
@@ -33,6 +41,15 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
             setTimer(currTime)
         }
     }, [contacts, isSearching])
+
+
+    function talk() {
+        if (window.innerWidth < 768) {
+            router(`chat?id=${_id}`)
+        } else {
+            selectToTalk(_id)
+        }
+    }
 
     async function select() {
         if (isSearching) {
@@ -48,16 +65,22 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
                     { reciverId: _id },
                     { withCredentials: true }
                 )
-                disp(saveContact({ newChat: resp.data.data.newContact }))
-                disp(setSearching({ trigger: false }))
+                disp(saveContact({ newChat: resp.data.data.newContact }));
+                disp(setSearching({ trigger: false }));
+                // disp(selectContact({ id: resp.data.data.newContact._id }))s
+                talk();
 
             } catch (error) {
                 console.log(`error saving contact ${error}`);
             }
+        } else {
+            // disp(selectContact({ id: _id }))
+            talk();
         }
     }
+
     return (
-        <div onClick={() => select()} className='bg-transparent h-[4rem] cursor-pointer hover:bg-purple-900'>
+        <div onClick={() => select()} className=' bg-transparent h-[4rem] cursor-pointer hover:bg-purple-900'>
             <div className="grid h-full grid-cols-[0.1fr_1.3fr_5.7fr_0.8fr] items-center px-1 ">
                 <div className="flex items-center">
                     <div className={`w-2 h-2 bg-green-500 rounded-2xl ${isOnline ? 'inline' : 'hidden'}`} ></div>
