@@ -5,7 +5,6 @@ const newSchema = new Schema(
     message: {
       type: String,
       trim: true,
-      required: true,
     },
     contactId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -45,6 +44,23 @@ const newSchema = new Schema(
       default: false,
       required: true,
     },
+    isCall: {
+      type: Boolean,
+      default: false
+    },
+    callType: {
+      type : String,
+      enum: ["VIDEO", "AUDIO", null],
+      default: null
+    },
+    isCallAccpted: {
+      type: Boolean,
+      default: false,
+    },
+    callReciverUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    }
   },
   {
     timeseries: true,

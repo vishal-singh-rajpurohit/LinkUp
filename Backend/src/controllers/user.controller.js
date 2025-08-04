@@ -1,9 +1,5 @@
 require("dotenv").config();
-// Live Check for email and searchTag
-// Login and Signup , Logout
-// Update SocketId after every login
-// Forget Password
-// Delete Account
+
 const jwt = require("jsonwebtoken");
 const asyncHandler = require("../utils/asyncHandler.utils");
 const ApiError = require("../utils/ApiError.utils");
@@ -12,11 +8,10 @@ const generateTokens = require("../utils/generateTokens.utils");
 const { Options } = require("../constants");
 
 const User = require("../models/user.model");
-const Contact = require("../models/contacts.model");
 const ContactMember = require("../models/contactMember.model");
-const Message = require("../models/message.modal");
 const DeletedAccount = require("../models/deletedAccount.model");
 const { default: mongoose } = require("mongoose");
+const Contact = require("../models/contacts.model");
 
 /**
  * @description these function will pre check the searchTag and Email Avilability
@@ -30,21 +25,30 @@ const liveCheckTagSignup = asyncHandler(async (req, resp) => {
   const isUserExists = await User.exists({ searchTag });
 
   if (isUserExists) {
-    throw new ApiError(401, "this search tag is not avilable");
+    throw new ApiError(401, "this search tag is not avilable", {
+      isError: false,
+      resp_message: "Search Tag Not Avilable",
+    });
   }
 
   resp.status(200).json(new ApiResponse(200, "tag is avilable", {}));
 });
+
 const liveCheckMailSignup = asyncHandler(async (req, resp) => {
   const { email } = req.body;
   if (!email) {
-    throw new ApiError(400, "Must proive email");
+    throw new ApiError(400, "Must proive email", {
+      isError: true,
+    });
   }
 
   const isUserExists = await User.exists({ email });
 
   if (isUserExists) {
-    throw new ApiError(401, "this email is not avilable");
+    throw new ApiError(401, "this email is not avilable", {
+      isError: false,
+      resp_message: "An account already existed with this email",
+    });
   }
 
   resp.status(200).json(new ApiResponse(200, "email is avilable", {}));
@@ -131,41 +135,37 @@ const signUp = asyncHandler(async (req, resp) => {
       throw new ApiError(501, "Somthing went wrong with decoded token");
     }
 
-    const finalUser = await User.findByIdAndUpdate(decodedToken._id, {
+    const updatedUser = await User.findByIdAndUpdate(decodedToken._id, {
       $set: {
         refreshToken: newRefreshToken,
         online: false,
       },
     }).select("-password -refreshToken");
 
-    if (!finalUser) {
+    if (!updatedUser) {
       throw new ApiError(501, "Error while setting refreshToken to userDB");
     }
 
-    // Direct serve normal contacts
-    const normalContacts = await User.aggregate([
+    const finalUser = await User.aggregate([
       {
         $match: {
-          isGroup: false,
-          blocked: false,
-          isEncrypted: false,
+          _id: updatedUser._id,
         },
       },
-      // {
-      //   $lookup: {
-      //     from: "User",
-      //     as: "contactsIn"
-      //   }
-      // },
       {
         $project: {
-          contacts: 1,
+          avatar: 1,
+          userName: 1,
+          searchTag: 1,
+          email: 1,
+          theme: 1,
+          showOnline: 1,
+          socketId: 1,
         },
       },
     ]);
 
-    // serve groups
-    // serve encrypted chats
+    console.log(`Final user is: ${JSON.stringify(finalUser, null, 2)}`);
 
     resp
       .status(200)
@@ -176,7 +176,6 @@ const signUp = asyncHandler(async (req, resp) => {
           201,
           {
             User: finalUser,
-            accessToken: newAccessToken
           },
           "Registration Successful"
         )
@@ -240,11 +239,48 @@ const logIn = asyncHandler(async (req, resp) => {
     throw new ApiError(400, "Error while updating user");
   }
 
+  const finalUser = await User.aggregate([
+    {
+      $match: {
+        _id: updatedUser._id,
+      },
+    },
+    {
+      $project: {
+        avatar: 1,
+        userName: 1,
+        searchTag: 1,
+        email: 1,
+        theme: 1,
+        showOnline: 1,
+        socketId: 1,
+      },
+    },
+  ]);
+
+  const contacts = await Contact.aggregate([
+    {
+      $match: {
+        oneOnOne: {
+          $in: [finalUser[0]._id],
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "messages",
+        foreignField: "contactId",
+        localField: "_id",
+        as: "messages",
+      },
+    },
+  ]);
+
   resp
     .status(201)
     .cookie("accessToken", newAccessToken, Options)
     .cookie("refreshToken", newRefreshToken, Options)
-    .json(new ApiResponse(201, { User: updatedUser, accessToken: newAccessToken }, "User logged in"));
+    .json(new ApiResponse(201, { User: finalUser[0] }, "User logged in"));
 });
 
 const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
@@ -284,7 +320,69 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
   const updatedUser = await User.findByIdAndUpdate(decodedToken._id, {
     refreshToken: newRefreshToken,
     online: true,
-  }).select("-password -refreshToken");
+  });
+
+  const finalUser = await User.aggregate([
+    {
+      $match: {
+        _id: updatedUser._id,
+      },
+    },
+    // {
+    //   $lookup: {
+    //     from: "contacts",
+    //     foreignField: "_id",
+    //     localField: "contacts",
+    //     as: "allContacts",
+    //   },
+    // },
+    // {
+    //   $unwind: "$allContacts",
+    // },
+    // {
+    //   $lookup: {
+    //     from: "users",
+    //     let: {
+    //       participentId: "$allContacts.oneOnOne",
+    //     },
+    //     pipeline: [
+    //       {
+    //         $match: {
+    //           $expr: {
+    //             $in: ["$_id", "$$participentId"],
+    //           },
+    //         },
+    //       },
+    //       {
+    //         $project: {
+    //           _id: 1,
+    //           userName: 1,
+    //           searchTag: 1,
+    //           avatar: 1,
+    //           online: 1,
+    //         },
+    //       },
+    //     ],
+    //     as: "allContacts.participents",
+    //   },
+    // },
+    {
+      $project: {
+        avatar: 1,
+        userName: 1,
+        searchTag: 1,
+        email: 1,
+        theme: 1,
+        showOnline: 1,
+        socketId: 1,
+        // "contacts.participants.searchTag": 1,
+        // "contacts.isGroup": 1,
+        // "contacts.groupName": 1,
+        // "contacts.whoCanSendMessage": 1,
+        // "contacts.lastMessage": 1,
+      },
+    },
+  ]);
 
   if (!updatedUser) {
     throw new ApiError(400, "Error while updating user");
@@ -294,7 +392,9 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
     .status(201)
     .cookie("accessToken", newAccessToken, Options)
     .cookie("refreshToken", newRefreshToken, Options)
-    .json(new ApiResponse(201, { User: updatedUser, accessToken: newAccessToken }, "User alrady logged in"));
+    .json(
+      new ApiResponse(201, { User: finalUser[0] }, "User alrady logged in")
+    );
 });
 
 /**
@@ -328,44 +428,6 @@ const logOut = asyncHandler(async (req, resp) => {
  * @param (<Schema.ObjectId>)
  * @returns <Array<Agrigation_Pipeline>
  */
-
-const userChatsPipeline = (userId) => {
-  return ContactMember.aggregate([
-    [
-      {
-        $match: {
-          userId: userId,
-        },
-      },
-      {
-        $lookup: {
-          from: "contacts",
-          localField: "contactId",
-          foreignField: "_id",
-          as: "contacts_list",
-          pipeline: [
-            {
-              $lookup: {
-                from: "messages",
-                localField: "contactId",
-                foreignField: "contactId",
-                as: "chats",
-              },
-            },
-          ],
-        },
-      },
-      {
-        $unwind: "$contact_list",
-      },
-      {
-        $match: {
-          contactId: "contact_list._id",
-        },
-      },
-    ],
-  ]);
-};
 
 const getAllAccountDetails = asyncHandler(async (req, resp) => {
   const user = req.user;
@@ -442,7 +504,7 @@ const getAllAccountDetails = asyncHandler(async (req, resp) => {
   ]);
 
   const one_on_one_chats = await ContactMember.aggregate(
-    //   [
+    // [
     //   {
     //     $match: {
     //       userId: new mongoose.Types.ObjectId(user._id),
@@ -465,6 +527,11 @@ const getAllAccountDetails = asyncHandler(async (req, resp) => {
     //     },
     //   },
     //   {
+    //     $match: {
+    //       "contact.isGroup": false,
+    //     },
+    //   },
+    //   {
     //     $addFields: {
     //       user: {
     //         $first: "$user",
@@ -478,7 +545,9 @@ const getAllAccountDetails = asyncHandler(async (req, resp) => {
     //     $addFields: {
     //       contact_name: {
     //         $cond: {
-    //           if: { $eq: ["$user.userName", "$contact.groupName"] },
+    //           if: {
+    //             $eq: ["$user.userName", "$contact.groupName"],
+    //           },
     //           then: "$contact.groupName",
     //           else: "$contact.groupName",
     //         },
@@ -516,23 +585,20 @@ const getAllAccountDetails = asyncHandler(async (req, resp) => {
     //   },
     //   {
     //     $match: {
-    //       same_: { $ne: true }, // Removes documents where same_ is false
-    //       "contact.isSecured": {"$ne": false}
-    //     },
-    //   },
-    //   {
-    //     $addFields: {
-    //       "contact_det.searchTag": "$chat_members.searchTag",
-    //       "contact_det.groupName": "$chat_members.userName",
+    //       same_: { $ne: true }, // Removes documents where same_ is true
+    //       "contact.isSecured": { $ne: true },
     //     },
     //   },
     //   {
     //     $project: {
-    //       "contact_det.oneOnOne": 1,
+    //       contact_name: 1,
     //       "contact_det.isGroup": 1,
+    //       "contact_det._id": 1,
     //       "contact_det.groupName": 1,
-    //       "contact_det.searchTag": 1,
-    //       "contact_det.searchTag": 1,
+    //       "contact_det.lastMessage": 1,
+    //       "contact_det._id": 1,
+    //       "chat_members.searchTag": 1,
+    //       "chat_members._id": 1,
     //     },
     //   },
     // ]
@@ -574,14 +640,57 @@ const getAllAccountDetails = asyncHandler(async (req, resp) => {
         },
       },
       {
+        $lookup: {
+          from: "users",
+          localField: "contact.oneOnOne",
+          foreignField: "_id",
+          as: "oneOnOne",
+        },
+      },
+      {
         $addFields: {
           contact_name: {
             $cond: {
               if: {
                 $eq: ["$user.userName", "$contact.groupName"],
               },
-              then: "$contact.groupName",
+              then: {
+                $let: {
+                  vars: {
+                    otherUser: {
+                      $first: {
+                        $filter: {
+                          input: "$oneOnOne",
+                          as: "u",
+                          cond: {
+                            $ne: ["$$u._id", "$userId"],
+                          },
+                        },
+                      },
+                    },
+                  },
+                  in: "$$otherUser.userName",
+                },
+              },
               else: "$contact.groupName",
+            },
+          },
+          contact_user_id: {
+            $let: {
+              vars: {
+                otherUser: {
+                  $first: {
+                    $filter: {
+                      input: "$oneOnOne",
+                      as: "u",
+                      cond: {
+                        $ne: ["$$u._id", "$userId"],
+                      },
+                    },
+                  },
+                },
+              },
+              in: "$$otherUser._id",
             },
           },
         },
@@ -627,9 +736,11 @@ const getAllAccountDetails = asyncHandler(async (req, resp) => {
           "contact_det.isGroup": 1,
           "contact_det._id": 1,
           "contact_det.groupName": 1,
+          "contact_det.lastMessage": 1,
           "contact_det._id": 1,
           "chat_members.searchTag": 1,
           "chat_members._id": 1,
+          contact_user_id: 1,
         },
       },
     ]
@@ -741,32 +852,32 @@ const getAllAccountDetails = asyncHandler(async (req, resp) => {
         from: "contacts",
         localField: "contactId",
         foreignField: "_id",
-        as: "contact_det"
-      }
+        as: "contact_det",
+      },
     },
     {
-      $unwind: "$contact_det"
+      $unwind: "$contact_det",
     },
     {
       $match: {
-        "contact_det.isGroup": true
-      }
+        "contact_det.isGroup": true,
+      },
     },
     {
       $lookup: {
         from: "contactmembers",
         localField: "group._id",
         foreignField: "contactId",
-        as: "contact_det.members"
-      }
+        as: "contact_det.members",
+      },
     },
     {
       $lookup: {
         from: "users",
         localField: "group.members.userId",
         foreignField: "_id",
-        as: "contact_det.members"
-      }
+        as: "contact_det.members",
+      },
     },
     {
       $project: {
@@ -777,9 +888,9 @@ const getAllAccountDetails = asyncHandler(async (req, resp) => {
         "contact_det.members._id": 1,
         "contact_det.members.userName": 1,
         "contact_det.members.searchTag": 1,
-        "contact_det.members.avatar": 1
-      }
-    }
+        "contact_det.members.avatar": 1,
+      },
+    },
   ]);
 
   if (!WholeChats) {
@@ -1040,4 +1151,4 @@ module.exports = {
   resetPassword,
   updateSocketId,
   getAllAccountDetails,
-}; 
+};

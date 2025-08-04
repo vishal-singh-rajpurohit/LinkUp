@@ -1,0 +1,66 @@
+section.contact-profile-page {
+    width: 100%;
+    display: flex
+;
+    flex-direction: column;
+    gap: 1rem;
+    max-height: 100vh;
+    overflow-y: scroll;
+}
+.contact-profile-top {
+    display: flex
+;
+    justify-content: space-between;
+    height: 5rem;
+    padding: 1rem 0;
+    align-items: center;
+    border-bottom: 1px solid;
+}
+.contact-profile-top-right {
+    display: flex
+;
+    gap: 01rem;
+}
+
+.contact-profile-details {
+    display: grid
+;
+    gap: 1rem;
+    grid-template-columns: 1fr 2fr;
+    justify-items: center;
+    align-items: center;
+}
+.cntact-profile-details-text {
+    display: flex
+;
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+}
+p.contact-profile-details-name {
+    font-size: x-large;
+}
+p.contact-profile-details-searchTag {
+    font-size: small;
+}
+img.contact-Avatar-Img {
+    height: 7rem;
+    border-radius: 999px;
+}
+.contact-profile-details {
+    display: flex
+;
+    gap: 1rem;
+    justify-items: center;
+    flex-direction: column-reverse;
+}
+
+.contact-profile-details-options-div {
+    width: 100%;
+    display: flex
+;
+    flex-direction: row;
+    justify-content: space-around;
+    border-top: 1px solid;
+    padding-top: 0.5rem;
+}

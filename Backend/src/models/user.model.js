@@ -20,10 +20,6 @@ const newSchema = new Schema(
       required: true,
       default: "0000",
     },
-    contacts:[{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Contact"
-    }],
     email: {
       type: String,
       unique: true,
@@ -35,7 +31,7 @@ const newSchema = new Schema(
     },
     avatar: {
       type: String,
-      default: "defaultA",
+      default: "",
     },
     online: {
       type: Boolean,
@@ -70,12 +66,9 @@ const newSchema = new Schema(
 );
 
 newSchema.pre("save", async function (next) {
-  console.log("before save called");
   if (!this.isModified("password")) {
-    console.log("unmodified password");
     next();
   } else {
-    console.log("password modified");
     this.password = await bcrypt.hash(this.password, 10);
     next();
   }
@@ -92,7 +85,10 @@ newSchema.pre("findOneAndUpdate", async function (next) {
 });
 
 newSchema.methods.isPasswordCorect = async function (password) {
-  return await bcrypt.compare(password, this.password);
+  const result =  await bcrypt.compare(password, this.password);
+  console.log('passowrd is ' + password  + 'result is : ' + result);
+  
+  return result
 };
 
 newSchema.methods.generateAccessToken = async function () {

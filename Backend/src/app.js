@@ -8,7 +8,7 @@ const {starterSocketIo} = require("./Socket/index")
 const app = express();
 
 app.use(express.json({ limit: "16kb" }));
-// app.use(cors());
+// app.use(cors({origin: '*'}));
 app.use(cors({ origin: process.env.CORS_ORIGIN, credentials: true }));
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
@@ -27,7 +27,6 @@ const io = new Server(server, {
 });
 
 app.set("io", io);
-
 
 // ROUTERS
 const userRouter = require("./routes/user.routes");

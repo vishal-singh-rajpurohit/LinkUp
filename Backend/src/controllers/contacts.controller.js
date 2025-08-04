@@ -18,16 +18,16 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
 
     const { reciverId } = req.body;
 
-    const reciver = await User.findById(reciverId);
-
-    if(!reciver){
-      throw new ApiError(400, "user does not exists")
-    }
-
     if (!reciverId) {
       throw new ApiError(401, "Must Provide user id", {
         errorMessage: "Unautharized request",
       });
+    }
+
+    const reciver = await User.findById(reciverId);
+
+    if (!reciver) {
+      throw new ApiError(400, "user does not exists");
     }
 
     const isAlreadyContact = await Contact.findOne({
@@ -37,19 +37,17 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
       isGroup: false,
     });
 
-    // if (isAlreadyContact) {
-    //   resp
-    //     .status(200)
-    //     .json(new ApiResponse(200, {}, "Contact already existed"));
-    //   return;
-    // }
+    if (isAlreadyContact) {
+      resp
+        .status(204)
+        .json(new ApiResponse(200, {}, "Contact already existed"));
+      return;
+    }
 
     // create new contact if not
     const newContact = new Contact({
-      createdBy: user._id,
-      oneOnOne: [user._id, reciverId],
-      groupName: reciver.userName,
       isGroup: false,
+      oneOnOne: [user._id, reciverId],
     });
 
     await newContact.save();
@@ -59,63 +57,94 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
         errorMessage: "Unable to create contact",
       });
     }
-
-    const contacts = [user._id, reciverId];
-
-    const appendInUserContacts = await User.findByIdAndUpdate(user._id, {
-      $addToSet: {
-        contacts: newContact._id,
-      },
+    // Create Members
+    const memberOne = new ContactMember({
+      userId: user._id,
+      contactId: newContact._id,
+      addedBy: user._id,
+      isArchieved: false,
+      isAdmin: true,
     });
 
-    if (!appendInUserContacts) {
-      throw new ApiError(
-        500,
-        "Internal server error , while adding new contacts",
-        {
-          errorMessage: "Internal server error , while adding new contacts",
-        }
-      );
-    }
+    await memberOne.save();
 
-    for (const id of contacts) {
-      const contactMember = new ContactMember({
-        userId: id,
-        contactId: newContact._id,
-        addedBy: null,
-        isAdmin: true,
+    // Second Member
+    const memberTwo = new ContactMember({
+      userId: reciverId,
+      contactId: newContact._id,
+      addedBy: user._id,
+      isArchieved: false,
+      isAdmin: true,
+    });
+
+    await memberTwo.save();
+
+    if (!memberOne || !memberTwo) {
+      await Contact.findByIdAndDelete(newContact._id);
+      throw new ApiError(500, "Members not created contacts", {
+        errorMessage: "Members not created contacts",
       });
-
-      await contactMember.save();
-
-      if (!contactMember) {
-        throw new ApiError(401, "Error while adding new contact members", {
-          errorMessage: "Error while adding new contact menbers",
-        });
-      }
     }
 
-    const contactUserDetails = await Contact.findOne({
-      oneOnOne: {
-        $all: [user._id, reciverId],
+    const contactUserDetails = await Contact.aggregate([
+      {
+        $match: {
+          oneOnOne: {
+            $in: [
+              user._id,
+              reciver._id,
+            ],
+          },
+        },
       },
-    });
-
-    console.log("contact user :", contactUserDetails);
+      {
+        $lookup: {
+          from: "contactmembers",
+          localField: "_id",
+          foreignField: "contactId",
+          as: "members",
+        },
+      },
+      {
+        $addFields: {
+          member: {
+            $filter: {
+              input: "$members",
+              as: "member",
+              cond: {
+                $ne: ["$$member.userId", user._id],
+              },
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          lastMessage: 1,
+          isBlocked: 1,
+          updatedAt: 1,
+          'member.avatar': 1,
+          'member.searchTag': 1,
+          'member.userName': 1,
+          'member.email': 1,
+          'member._id': 1,
+        },
+      },
+    ]);
 
     if (!contactUserDetails) {
+      await Contact.findByIdAndDelete(newContact._id);
+      await ContactMember.findByIdAndDelete(memberOne._id)
+      await ContactMember.findByIdAndDelete(memberTwo._id)
       throw new ApiError(400, "Error while getting user details");
     }
 
     resp
       .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          { NewContact: newContact, contactUser: contactUserDetails },
-          "Contact created successfully"
-        )
-      );
+      .json(new ApiResponse(200, {
+        newContact: contactUserDetails
+      }, "Contact created successfully"));
+
   } catch (error) {
     console.log("Error in creating contact :", error);
     throw new ApiError(400, "Error while creating contacts ");
@@ -388,6 +417,11 @@ const searchContacts = asyncHandler(async (req, resp) => {
         },
       },
       {
+        $match: {
+          _id: { $ne: new mongoose.Types.ObjectId(user._id) },
+        },
+      },
+      {
         $lookup: {
           from: "contacts",
           localField: "_id",
@@ -397,8 +431,10 @@ const searchContacts = asyncHandler(async (req, resp) => {
       },
       {
         $project: {
-          userName: 1,
           _id: 1,
+          avatar: 1,
+          searchTag: 1,
+          isOnline: 1,
           "contacts_list.oneOnOne": 1,
           "contacts_list.isGroup": {
             $cond: [false, "$$REMOVE", "$contacts_list.isGroup"],
@@ -420,23 +456,46 @@ const searchContacts = asyncHandler(async (req, resp) => {
       {
         $addFields: {
           already_in_contact: {
-            $cond: {
-              if: {
-                $or: [
-                  {
-                    $eq: ["$_id", new mongoose.Types.ObjectId(user._id)],
+            $gt: [
+              {
+                $size: {
+                  $filter: {
+                    input: "$contacts_list",
+                    as: "contact",
+                    cond: {
+                      $setEquals: [
+                        "$$contact.oneOnOne",
+                        ["$_id", new mongoose.Types.ObjectId(user._id)],
+                      ],
+                    },
                   },
-                  {
-                    $eq: [new mongoose.Types.ObjectId(user._id), "$_id"],
-                  },
-                ],
+                },
               },
-              then: true,
-              else: false,
-            },
+              0,
+            ],
           },
         },
       },
+      // {
+      //   $addFields: {
+      //     already_in_contact: {
+      //       $cond: {
+      //         if: {
+      //           $or: [
+      //             {
+      //               $eq: ["$_id", new mongoose.Types.ObjectId(user._id)],
+      //             },
+      //             {
+      //               $eq: [new mongoose.Types.ObjectId(user._id), "$_id"],
+      //             },
+      //           ],
+      //         },
+      //         then: true,
+      //         else: false,
+      //       },
+      //     },
+      //   },
+      // },
     ]);
 
     if (!search_Contacts) {
@@ -456,7 +515,7 @@ const searchContacts = asyncHandler(async (req, resp) => {
       .json(
         new ApiResponse(
           200,
-          { Contacts: search_Contacts },
+          { Users: search_Contacts },
           "Here are search contacts"
         )
       );
@@ -466,4 +525,3 @@ const searchContacts = asyncHandler(async (req, resp) => {
 });
 
 module.exports = { createOneOnOneChat, crateGroupChat, searchContacts };
-  

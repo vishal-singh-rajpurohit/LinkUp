@@ -7,6 +7,7 @@ const jwt = require("jsonwebtoken");
 
 const auth = asyncHandler(async (req, resp, next) => {
   try {
+    // console.log(`cookies is ${JSON.stringify(req.cookies)}`);
     const token = req.cookies?.accessToken;
 
     if (!token) {

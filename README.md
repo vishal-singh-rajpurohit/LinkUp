@@ -16,9 +16,4 @@
 ### <li>Mongoose  
 ### <li>Cloudinary 
 
-
-
-
-
-
 A full stack real-time chat application 

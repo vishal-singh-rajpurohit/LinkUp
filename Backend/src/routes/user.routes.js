@@ -35,6 +35,7 @@ userRouter.route("/add-security-answer").post(auth, addSecurityQnA);
 /**
  * @description Authentication routes forget password and resat password
  */
+
 userRouter.route("/forget-password").post(forgetPasswordVerify);
 userRouter.route("/resat-password").post(resetPassword);
 
