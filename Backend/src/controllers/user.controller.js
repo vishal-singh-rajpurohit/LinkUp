@@ -165,8 +165,6 @@ const signUp = asyncHandler(async (req, resp) => {
       },
     ]);
 
-    console.log(`Final user is: ${JSON.stringify(finalUser, null, 2)}`);
-
     resp
       .status(200)
       .cookie("accessToken", newAccessToken, Options)
@@ -262,19 +260,71 @@ const logIn = asyncHandler(async (req, resp) => {
     {
       $match: {
         oneOnOne: {
-          $in: [finalUser[0]._id],
+          $all: [user._id],
         },
       },
     },
     {
       $lookup: {
-        from: "messages",
-        foreignField: "contactId",
+        from: "contactmembers",
         localField: "_id",
+        foreignField: "contactId",
+        as: "members",
+      },
+    },
+    {
+      $addFields: {
+        member: {
+          $filter: {
+            input: "$members",
+            as: "member",
+            cond: {
+              $ne: ["$$member.userId", user._id],
+            },
+          },
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "member.userId",
+        foreignField: "_id",
+        as: "member.user",
+      },
+    },
+    {
+      $unwind: "$member.user",
+    },
+    {
+      $lookup: {
+        from: "messages",
+        localField: "_id",
+        foreignField: "contactId",
         as: "messages",
       },
     },
+    {
+      $project: {
+        lastMessage: 1,
+        isBlocked: 1,
+        updatedAt: 1,
+        socketId: 1,
+        messages: 1,
+        "member._id": 1,
+        "member.isArchieved": 1,
+        "member.user._id": 1,
+        "member.user.userName": 1,
+        "member.user.searchTag": 1,
+        "member.user.socketId": 1,
+        "member.user.email": 1,
+        "member.user.avatar": 1,
+        "member.user.online": 1,
+      },
+    },
   ]);
+
+  finalUser[0].contacts = contacts;
 
   resp
     .status(201)
@@ -328,44 +378,6 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
         _id: updatedUser._id,
       },
     },
-    // {
-    //   $lookup: {
-    //     from: "contacts",
-    //     foreignField: "_id",
-    //     localField: "contacts",
-    //     as: "allContacts",
-    //   },
-    // },
-    // {
-    //   $unwind: "$allContacts",
-    // },
-    // {
-    //   $lookup: {
-    //     from: "users",
-    //     let: {
-    //       participentId: "$allContacts.oneOnOne",
-    //     },
-    //     pipeline: [
-    //       {
-    //         $match: {
-    //           $expr: {
-    //             $in: ["$_id", "$$participentId"],
-    //           },
-    //         },
-    //       },
-    //       {
-    //         $project: {
-    //           _id: 1,
-    //           userName: 1,
-    //           searchTag: 1,
-    //           avatar: 1,
-    //           online: 1,
-    //         },
-    //       },
-    //     ],
-    //     as: "allContacts.participents",
-    //   },
-    // },
     {
       $project: {
         avatar: 1,
@@ -375,14 +387,79 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
         theme: 1,
         showOnline: 1,
         socketId: 1,
-        // "contacts.participants.searchTag": 1,
-        // "contacts.isGroup": 1,
-        // "contacts.groupName": 1,
-        // "contacts.whoCanSendMessage": 1,
-        // "contacts.lastMessage": 1,
       },
     },
   ]);
+
+  const contacts = await Contact.aggregate([
+    {
+      $match: {
+        oneOnOne: {
+          $all: [user._id],
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "contactmembers",
+        localField: "_id",
+        foreignField: "contactId",
+        as: "members",
+      },
+    },
+    {
+      $addFields: {
+        member: {
+          $filter: {
+            input: "$members",
+            as: "member",
+            cond: {
+              $ne: ["$$member.userId", user._id],
+            },
+          },
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "member.userId",
+        foreignField: "_id",
+        as: "member.user",
+      },
+    },
+    {
+      $unwind: "$member.user",
+    },
+    {
+      $lookup: {
+        from: "messages",
+        localField: "_id",
+        foreignField: "contactId",
+        as: "messages",
+      },
+    },
+    {
+      $project: {
+        lastMessage: 1,
+        isBlocked: 1,
+        updatedAt: 1,
+        socketId: 1,
+        messages: 1,
+        "member._id": 1,
+        "member.isArchieved": 1,
+        "member.user._id": 1,
+        "member.user.userName": 1,
+        "member.user.searchTag": 1,
+        "member.user.socketId": 1,
+        "member.user.email": 1,
+        "member.user.avatar": 1,
+        "member.user.online": 1,
+      },
+    },
+  ]);
+
+  finalUser[0].contacts = contacts;
 
   if (!updatedUser) {
     throw new ApiError(400, "Error while updating user");

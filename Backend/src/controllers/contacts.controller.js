@@ -32,22 +32,25 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
 
     const isAlreadyContact = await Contact.findOne({
       oneOnOne: {
-        $all: [user._id, new mongoose.Types.ObjectId(reciverId)],
+        $in: [user._id, reciver._id],
       },
       isGroup: false,
     });
 
+    console.log(`already in contact`);
+    
+
     if (isAlreadyContact) {
-      resp
-        .status(204)
-        .json(new ApiResponse(200, {}, "Contact already existed"));
-      return;
+      throw new ApiError(500, "already in contact", {
+        errorMessage: "aleady in contact",
+      });
     }
 
     // create new contact if not
     const newContact = new Contact({
       isGroup: false,
       oneOnOne: [user._id, reciverId],
+      socketId: null
     });
 
     await newContact.save();
@@ -57,6 +60,7 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
         errorMessage: "Unable to create contact",
       });
     }
+
     // Create Members
     const memberOne = new ContactMember({
       userId: user._id,
@@ -90,10 +94,7 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
       {
         $match: {
           oneOnOne: {
-            $in: [
-              user._id,
-              reciver._id,
-            ],
+            $in: [user._id, reciver._id],
           },
         },
       },
@@ -119,32 +120,51 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
         },
       },
       {
+        $lookup: {
+          from: "users",
+          localField: "member.userId",
+          foreignField: "_id",
+          as: "member.user",
+        },
+      },
+      {
+        $unwind: "$member.user",
+      },
+      {
         $project: {
           lastMessage: 1,
           isBlocked: 1,
           updatedAt: 1,
-          'member.avatar': 1,
-          'member.searchTag': 1,
-          'member.userName': 1,
-          'member.email': 1,
-          'member._id': 1,
+          socketId: 1,
+          "member._id": 1,
+          "member.isArchieved": 1,
+          "member.user._id": 1,
+          "member.user.userName": 1,
+          "member.user.searchTag": 1,
+          "member.user.socketId": 1,
+          "member.user.email": 1,
+          "member.user.avatar": 1,
+          "member.user.online": 1,
         },
       },
     ]);
 
     if (!contactUserDetails) {
       await Contact.findByIdAndDelete(newContact._id);
-      await ContactMember.findByIdAndDelete(memberOne._id)
-      await ContactMember.findByIdAndDelete(memberTwo._id)
+      await ContactMember.findByIdAndDelete(memberOne._id);
+      await ContactMember.findByIdAndDelete(memberTwo._id);
       throw new ApiError(400, "Error while getting user details");
     }
 
-    resp
-      .status(200)
-      .json(new ApiResponse(200, {
-        newContact: contactUserDetails
-      }, "Contact created successfully"));
-
+    resp.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          newContact: contactUserDetails[0],
+        },
+        "Contact created successfully"
+      )
+    );
   } catch (error) {
     console.log("Error in creating contact :", error);
     throw new ApiError(400, "Error while creating contacts ");

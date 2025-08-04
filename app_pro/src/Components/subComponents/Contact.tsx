@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react'
 import { setSearching } from '../../app/functions/triggers'
 import axios from 'axios'
 import { searching, type searchUserTypes } from '../../app/functions/temp'
+import { saveContact, type newChatTypes } from '../../app/functions/auth'
+import { getTimeDifference } from '../../helpers/timeConverter'
 
 
 const api = import.meta.env.VITE_API
@@ -15,25 +17,39 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
     searchTag: string,
     avatar: string,
     lastMessage?: string,
-    time?: string | null,
+    time?: Date | null,
     isOnline: boolean
 }) => {
     const disp = useAppDispatch()
     const isSearching = useAppSelector((state) => state.triggers.searching)
+    const contacts = useAppSelector((state) => state.auth.contacts)
 
+    const [timer, setTimer] = useState<string>("")
+
+
+    useEffect(() => {
+        if (time) {
+            const currTime: string = getTimeDifference(time)
+            setTimer(currTime)
+        }
+    }, [contacts, isSearching])
 
     async function select() {
         if (isSearching) {
             try {
-                const resp = await axios.post(`${api}/chat/save-contact`,
+
+                interface respTypes {
+                    data: {
+                        newContact: newChatTypes
+                    }
+                }
+
+                const resp = await axios.post<respTypes>(`${api}/chat/save-contact`,
                     { reciverId: _id },
                     { withCredentials: true }
                 )
+                disp(saveContact({ newChat: resp.data.data.newContact }))
                 disp(setSearching({ trigger: false }))
-
-
-                console.log(`slect result is: ${JSON.stringify(resp, null, 2)}`);
-                
 
             } catch (error) {
                 console.log(`error saving contact ${error}`);
@@ -42,7 +58,7 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
     }
     return (
         <div onClick={() => select()} className='bg-transparent h-[4rem] cursor-pointer hover:bg-purple-900'>
-            <div className="grid h-full grid-cols-[0.1fr_1.5fr_6fr_0.3fr] items-center px-3 ">
+            <div className="grid h-full grid-cols-[0.1fr_1.3fr_5.7fr_0.8fr] items-center px-1 ">
                 <div className="flex items-center">
                     <div className={`w-2 h-2 bg-green-500 rounded-2xl ${isOnline ? 'inline' : 'hidden'}`} ></div>
                 </div>
@@ -56,7 +72,7 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
                     <p className="text-sm font-serif text-gray-300 md:text-[10px]">{lastMessage || null}</p>
                 </div>
                 <div className="">
-                    <span className="">{time || null}</span>
+                    <span className="text-[10px]">{timer || ""}</span>
                 </div>
             </div>
         </div>
@@ -73,9 +89,9 @@ export const NoContacts = () => {
 
 export const ContactList = () => {
     const disp = useAppDispatch();
-    const searchUsers = useAppSelector((state) => state.temp.searchUsers)
+    const searchUsers = useAppSelector((state) => state.temp.searchUsers);
     const users = useAppSelector((state) => state.auth.contacts);
-    const isSearching = useAppSelector((state) => state.triggers.searching)
+    const isSearching = useAppSelector((state) => state.triggers.searching);
 
     const [searchQuery, setSearchQuery] = useState<string>("");
 

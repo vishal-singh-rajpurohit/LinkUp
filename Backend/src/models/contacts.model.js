@@ -26,6 +26,10 @@ const newSchema = new Schema(
       ref: "Message",
       default: null,
     },
+    socketId: {
+      type: String,
+      default: null,
+    },
   },
   {
     timeseries: true,

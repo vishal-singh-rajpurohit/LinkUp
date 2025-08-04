@@ -10,6 +10,7 @@ export interface initialRespType {
     email: string;
     theme: boolean;
     socketId: string;
+    contacts: newChatTypes[];
 }
 
 interface userType {
@@ -37,12 +38,18 @@ interface message {
 
 interface contact {
     _id: string;
+    userId: string;
     avatar: string;
+    roomId: string;
+    socketId: string;
     searchTag: string;
+    userName: string;
+    email: string;
+    isBlocked: boolean;
     lastMessage: string;
     isOnline: boolean;
-    time: string;
-    messages: message[];
+    time: Date;
+    messages?: message[];
 }
 
 interface initialTypes {
@@ -65,7 +72,6 @@ const initialState: initialTypes = {
     contacts: []
 }
 
-
 function enterAppFunc(state: initialTypes, action: PayloadAction<{ userData: initialRespType }>) {
     state.user = {
         _id: action.payload.userData._id,
@@ -76,8 +82,27 @@ function enterAppFunc(state: initialTypes, action: PayloadAction<{ userData: ini
         socketId: action.payload.userData.socketId,
         theme: action.payload.userData.theme,
     }
-    state.isLoggedIn = true
 
+    action.payload.userData.contacts.forEach((item) => {
+        const newContact: contact = {
+            _id: item._id,
+            lastMessage: item.lastMessage,
+            isBlocked: item.isBlocked,
+            roomId: item.socketId,
+            time: item.updatedAt,
+            userId: item.member.user._id,
+            avatar: item.member.user.avatar,
+            socketId: item.member.user.socketId,
+            searchTag: item.member.user.searchTag,
+            userName: item.member.user.userName,
+            email: item.member.user.email,
+            isOnline: item.member.user.online,
+            messages: []
+        }
+        state.contacts = [...state.contacts, newContact]
+    })
+
+    state.isLoggedIn = true
 
 }
 
@@ -94,18 +119,67 @@ function logOutFun(state: initialTypes) {
     state.isLoggedIn = false
 }
 
+export interface newChatTypes {
+    _id: string;
+    lastMessage: string;
+    socketId: string;
+    isBlocked: boolean;
+    updatedAt: Date;
+    messages?: [];
+    member: {
+        _id: string;
+        isArchieved: string;
+        socketId: string;
+        user: {
+            _id: string;
+            userName: string;
+            searchTag: string;
+            socketId: string;
+            online: boolean,
+            email: string;
+            avatar: string;
+        }
+    };
+}
+function newContact(state: initialTypes, action: PayloadAction<{
+    newChat: newChatTypes
+}>) {
+    const newContact: contact = {
+        _id: action.payload.newChat._id,
+        lastMessage: action.payload.newChat.lastMessage,
+        isBlocked: action.payload.newChat.isBlocked,
+        roomId: action.payload.newChat.socketId,
+        time: action.payload.newChat.updatedAt,
+        userId: action.payload.newChat.member.user._id,
+        avatar: action.payload.newChat.member.user.avatar,
+        socketId: action.payload.newChat.member.user.socketId,
+        searchTag: action.payload.newChat.member.user.searchTag,
+        userName: action.payload.newChat.member.user.userName,
+        email: action.payload.newChat.member.user.email,
+        isOnline: action.payload.newChat.member.user.online,
+        messages: []
+    }
+    console.log(`new contacts : ${JSON.stringify(newContact, null, 2)}`);
+
+    state.contacts = [...state.contacts, newContact]
+
+    console.log(`contacts state : ${JSON.stringify(state.contacts, null, 2)}`);
+
+}
+
 
 export const AuthSlice = createSlice({
     name: 'auth',
     initialState,
     reducers: {
         enterApp: enterAppFunc,
-        logOut: logOutFun
+        logOut: logOutFun,
+        saveContact: newContact
     }
 });
 
 
-export const { enterApp, logOut } = AuthSlice.actions
+export const { enterApp, logOut, saveContact } = AuthSlice.actions
 
 
 export default AuthSlice.reducer
