@@ -8,14 +8,24 @@ export interface searchUserTypes {
     isOnline: boolean
 }
 
+
+export interface groupContactTypes {
+    _id: string,
+    searchTag: string,
+    avatar: string,
+    admin?: boolean
+}
+
 interface initialStateTypes {
     searchUsers: searchUserTypes[];
     selectedContact: contactTypes | null;
+    groupContact: groupContactTypes[];
 }
 
 const initialState: initialStateTypes = {
     searchUsers: [],
-    selectedContact: null
+    selectedContact: null,
+    groupContact: []
 }
 
 function searchingFunc(state: initialStateTypes, action: PayloadAction<{ users: searchUserTypes[] }>) {
@@ -42,16 +52,58 @@ function selectConFunc(state: initialStateTypes, action: PayloadAction<{ chat: c
 }
 
 
+function addGroupContact(state: initialStateTypes, action: PayloadAction<{ user: groupContactTypes }>) {
+    let find: boolean = false;
+
+    for (let val of state.groupContact) {
+        if (val._id === action.payload.user._id) {
+            find = true
+        }
+    }
+
+    if (find) {
+        state.groupContact = state.groupContact.filter((value) => value._id !== action.payload.user._id)
+    } else {
+        state.groupContact = [action.payload.user, ...state.groupContact]
+    }
+}
+
+function addGroupAdmin(state: initialStateTypes, action: PayloadAction<{ user: groupContactTypes }>) {
+    const user = state.groupContact.filter((val) => val._id === action.payload.user._id)
+
+    console.log(`filtered user: ${JSON.stringify(user, null, 2)}`);
+
+    if (!user[0].admin) {
+        user[0].admin = true
+        const prevUser = state.groupContact.filter((val) => val._id !== action.payload.user._id)
+        state.groupContact = [...prevUser, user[0]]
+    } else if (user[0].admin) {
+        user[0].admin = false
+        const prevUser = state.groupContact.filter((val) => val._id !== action.payload.user._id)
+        state.groupContact = [...prevUser, user[0]]
+    }
+
+    console.log(`filtered user: ${JSON.stringify(state.groupContact, null, 2)}`);
+}
+
+function clearGroupCon(state: initialStateTypes) {
+    state.groupContact = []
+}
+
+
 const tempSlice = createSlice({
     name: 'temp',
     initialState: initialState,
     reducers: {
         searching: searchingFunc,
-        selectContact: selectConFunc
+        selectContact: selectConFunc,
+        appendGroupContact: addGroupContact,
+        appendGroupAdmin: addGroupAdmin,
+        clearGroupContact: clearGroupCon
     }
 })
 
 
-export const { searching, selectContact } = tempSlice.actions
+export const { searching, selectContact, appendGroupContact, clearGroupContact, appendGroupAdmin } = tempSlice.actions
 
 export default tempSlice.reducer

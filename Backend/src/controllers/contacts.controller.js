@@ -32,7 +32,7 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
 
     const isAlreadyContact = await Contact.findOne({
       oneOnOne: {
-        $in: [user._id, reciver._id],
+        $all: [user._id, reciver._id],
       },
       isGroup: false,
     });
@@ -181,7 +181,7 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
       });
     }
 
-    const { contacts, groupName, whoCanSendMessage, isSearchable } = req.body;
+    const { contacts, groupName, whoCanSendMessage } = req.body;
 
     contacts.push(user._id);
 

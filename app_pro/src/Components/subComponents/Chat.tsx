@@ -1,5 +1,5 @@
 // import { CiMenuKebab } from 'react-icons/ci'
-import g from '../../assets/react.svg'
+import g from '../../assets/no_dp.png'
 import { MdCall, MdVideoCall } from 'react-icons/md'
 import { TiAttachmentOutline } from 'react-icons/ti'
 import { RiSendPlaneFill } from 'react-icons/ri'
@@ -9,6 +9,7 @@ import { FaImage } from 'react-icons/fa'
 import { NavLink } from 'react-router-dom'
 import { useRef } from 'react'
 import { useAppSelector } from '../../app/hooks'
+import { getTimeDifference } from '../../helpers/timeConverter'
 
 export const ChatArea = () => {
     const room = useAppSelector((state) => state.temp.selectedContact)
@@ -36,19 +37,21 @@ export const ChatArea = () => {
 }
 
 export const ChatTop = () => {
+    const room = useAppSelector((state) => state.temp.selectedContact)
+    const lastOnline = getTimeDifference(room?.time || Date())
     return (
         <div className='h-[4rem] w-full cursor-pointer bg-slate-800 rounded-t-lg' >
             <div className="grid h-full w-full grid-cols-[1fr_5fr_1fr_0.3fr] items-center px-3 md:grid-cols-[1fr_7fr_1fr_0.3fr] ">
                 <div className="w-full overflow-hidden h-full flex items-center justify-center">
                     <NavLink to={'/chat/details'} className="">
                         <div className='w-[2.5rem] h-[2.5rem] flex items-center justify-center overflow-hidden rounded-[10rem] bg-amber-300 md:h-[2.5rem] md:w-[2.5rem]'>
-                            <img src={g} alt="😒" className="max-h-[2.5rem] h-full" />
+                            <img src={room?.avatar || g} alt="😒" className="max-h-[2.5rem] h-full" />
                         </div>
                     </NavLink>
                 </div>
                 <div className="w-full h-full pl-1 flex gap-0  justify-center flex-col">
-                    <p className="text-lg font-mono text-blue-100 md:text-lg">Vishal Singh</p>
-                    <p className="text-[12px] font-serif text-gray-300 md:text-sm">Last Online: 2h
+                    <p className="text-lg font-mono text-blue-100 md:text-lg">{room?.userName}</p>
+                    <p className="text-[12px] font-serif text-gray-300 md:text-sm">{room?.isOnline ? "Online" :`Last Online: ${lastOnline}`}
                         {/* <div className="w-2 h-2 bg-green-400 rounded-2xl" ></div> */}
                     </p>
                 </div>

@@ -12,7 +12,15 @@ const newSchema = new Schema(
       default: false,
       required: true,
     },
+    groupAvatar: {
+      type: String,
+      required: false,
+    },
     groupName: {
+      type: String,
+      required: false,
+    },
+    description: {
       type: String,
       required: false,
     },
