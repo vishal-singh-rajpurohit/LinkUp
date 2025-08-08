@@ -5,10 +5,13 @@ import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { useContext, useEffect, useState } from 'react'
 import { setSearching } from '../../app/functions/triggers'
 import axios from 'axios'
-import { appendGroupAdmin, appendGroupContact, searching, type groupContactTypes, type searchUserTypes } from '../../app/functions/temp'
+import { appendGroupAdmin, appendGroupContact, clearGroupContact, contactListingFunction, openGroupChat, searching, type groupContactTypes, type searchUserTypes } from '../../app/functions/temp'
 import { saveContact, type newChatTypes } from '../../app/functions/auth'
 import { getTimeDifference } from '../../helpers/timeConverter'
 import { AppContext } from '../../context/AppContext'
+import { FaArchive, FaUserFriends } from 'react-icons/fa'
+import { MdGroups } from 'react-icons/md'
+
 
 
 const api = import.meta.env.VITE_API
@@ -45,6 +48,7 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
 
     function talk() {
         if (window.innerWidth < 768) {
+            selectToTalk(_id)
             router(`chat?id=${_id}`)
         } else {
             selectToTalk(_id)
@@ -110,11 +114,11 @@ export const NoContacts = () => {
     )
 }
 
-
-const SelectContactItem = ({ _id, searchTag, avatar }: {
+const SelectContactItem = ({ _id, searchTag, avatar, userId }: {
     _id: string,
     searchTag: string,
-    avatar: string
+    avatar: string,
+    userId: string
 }) => {
     const disp = useAppDispatch()
 
@@ -123,13 +127,16 @@ const SelectContactItem = ({ _id, searchTag, avatar }: {
     const [isSelected, setIsSelected] = useState<boolean>(false)
 
     async function select(id: string) {
-        disp(appendGroupContact({ user: {
-            _id,
-            avatar,
-            searchTag,
-        } }));
+        disp(appendGroupContact({
+            user: {
+                _id,
+                userId: userId,
+                avatar,
+                searchTag,
+            }
+        }));
 
-        const sel: groupContactTypes[] = groupContact.filter((val)=> val._id == id)
+        const sel: groupContactTypes[] = groupContact.filter((val) => val._id == id)
         setIsSelected(!(Boolean(sel.length)));
     }
 
@@ -137,7 +144,7 @@ const SelectContactItem = ({ _id, searchTag, avatar }: {
         <div onClick={() => select(_id)} className={` h-[4rem] cursor-pointer ${isSelected ? 'bg-purple-950' : null} hover:bg-purple-900`}>
             <div className="grid h-full grid-cols-[0.1fr_1.3fr_5.7fr_0.8fr] items-center px-1 ">
                 <div className="flex items-center">
-                    <input type="checkbox" checked={isSelected} className="" />
+                    <input type="checkbox" checked={isSelected} className="" onChange={() => select(_id)} />
                 </div>
                 <div className="w-full overflow-hidden h-full flex items-center justify-center">
                     <div className='w-[2.5rem] h-[2.5rem] flex items-center justify-center overflow-hidden rounded-[10rem] bg-[#e4e6e7] md:h-[2rem] md:w-[2rem]'>
@@ -155,11 +162,11 @@ const SelectContactItem = ({ _id, searchTag, avatar }: {
     )
 }
 
-
-const AdminSelect = ({ _id, searchTag, avatar }: {
+const AdminSelect = ({ _id, searchTag, avatar, userId }: {
     _id: string,
     searchTag: string,
-    avatar: string
+    avatar: string,
+    userId: string
 }) => {
     const disp = useAppDispatch()
 
@@ -168,13 +175,16 @@ const AdminSelect = ({ _id, searchTag, avatar }: {
     const [isSelected, setIsSelected] = useState<boolean>(false)
 
     async function select(id: string) {
-        disp(appendGroupAdmin({ user: {
-            _id,
-            avatar,
-            searchTag,
-        } }));
+        disp(appendGroupAdmin({
+            user: {
+                _id,
+                avatar,
+                userId,
+                searchTag,
+            }
+        }));
 
-        const sel: groupContactTypes[] = groupContact.filter((val)=> val._id === id)
+        const sel: groupContactTypes[] = groupContact.filter((val) => val._id === id)
         setIsSelected((Boolean(sel.length)));
     }
 
@@ -201,35 +211,107 @@ const AdminSelect = ({ _id, searchTag, avatar }: {
 }
 
 const CreateGroupChat = () => {
-    const contacts = useAppSelector((state) => state.auth.contacts)
-    const selectedGroupContacts = useAppSelector((state) => state.temp.groupContact)
-
+    const disp = useAppDispatch();
+    const display = useAppSelector((state) => state.temp.activeGroup)
+    const contacts = useAppSelector((state) => state.auth.contacts);
+    const selectedGroupContacts = useAppSelector((state) => state.temp.groupContact);
     const [doneSelecting, setDoneSelecting] = useState<boolean>(false);
-    const [whoCanSend, setWhoCanSet] = useState<string>('anyone')
+    const [whoCanSend, setWhoCanSet] = useState<string>('anyone');
+    const [custErr, setCustErr] = useState<{
+        message: string;
+        on: number;
+    }>({
+        message: '',
+        on: 0
+    })
+    const [formData, setFormData] = useState<{
+        groupName: string;
+        description: string;
+    }>({
+        groupName: '',
+        description: ''
+    });
+
     function hideSelection() {
         if (selectedGroupContacts.length >= 2) {
             setDoneSelecting(!doneSelecting)
         }
     }
 
+    async function handleCreate() {
+        if (!formData.groupName) {
+            setCustErr({
+                message: 'must provide group name',
+                on: 2
+            })
+            return;
+        }
+        else if (!formData.description) {
+            setCustErr({
+                message: 'please enter some description',
+                on: 3
+            })
+            return;
+        }
+        else if (selectedGroupContacts.length < 2) {
+            setCustErr({
+                message: 'please add at least two members',
+                on: 4
+            })
+            return;
+        }
+
+        setCustErr({
+            message: '',
+            on: 0
+        })
+        try {
+            const resp = await axios.post(`${api}/chat/create-group-chat`, {
+                contacts: selectedGroupContacts,
+                groupName: formData.groupName,
+                description: formData.description,
+                whoCanSend: whoCanSend
+            }, {
+                withCredentials: true
+            });
+
+            console.log(`group created ${JSON.stringify(resp, null, 2)}`);
+
+            disp(clearGroupContact())
+            disp(openGroupChat({ trigger: false }))
+        } catch (error) {
+            console.log(`error while creating contact: ${error}`);
+        }
+    }
+
     return (
-        <section className="absolute flex flex-col justify-center items-center h-full w-[90%] bg-[#284f4e80]">
-            <div className=" flex flex-col items-center gap-2 h-[98%] w-full bg-[#337775] pt-3">
+        <section className={`absolute ${display ? 'flex' : 'hidden'} flex-col justify-center items-center h-full w-[90%] bg-[#284f4e80] md:w-[100%]`}>
+            <div className=" flex flex-col items-center gap-2 h-[98%] w-full bg-[#337775] pt-3 md:w-[80%]">
+                <div className="w-full flex justify-center items-center">
+                    <h3 className="uppercase text-2xl text-black font-bold underline-offset-1 underline select-none">Create Group Chat</h3>
+                </div>
                 <div className="w-full h-[6rem] flex justify-center items-center">
                     <div className="h-[4rem] w-[4rem] rounded-[50%] overflow-hidden cursor-pointer border-2 border-b-black">
                         <img src={g} alt="😁" className="w-full h-full" />
                     </div>
                 </div>
                 <div className="flex flex-col items-center gap-4 w-[90%]">
-                    <div className="flex flex-col h-[4rem] gap-1 w-[90%]">
+                    <div className="flex flex-col min-h-[4rem] gap-1 w-[90%]">
                         <label htmlFor="groupName">Group Name</label>
-                        <input type="text" name='groupName' id='groupName' className="w-full h-[2rem] text-white bg-slate-700 pl-1 rounded-sm" placeholder='Enter Group Name' />
+                        <input type="text" name='groupName' id='groupName' onChange={(e) => setFormData({ ...formData, groupName: e.target.value })} className="w-full h-[2rem] text-white bg-slate-700 pl-1 rounded-sm" placeholder='Enter Group Name' />
+                        {
+                            <p className={`text-red-500 bg-amber-200 ${custErr.on === 2 ? 'block' : 'hidden'}`}>{custErr.message}</p>
+                        }
                     </div>
-                    <div className="flex flex-col h-[4rem] gap-1 w-[90%]">
+                    <div className="flex flex-col min-h-[4rem] gap-1 w-[90%]">
                         <label htmlFor="description">Description</label>
-                        <input type="text" name='description' id='description' className="w-full h-[2rem] text-white bg-slate-700 pl-1 rounded-sm" placeholder={`Hii let's talk`} />
+                        <input type="text" name='description' id='description' className="w-full h-[2rem] text-white bg-slate-700 pl-1 rounded-sm"
+                            onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder={`Hii let's talk`} />
+                        {
+                            <p className={`text-red-500 bg-amber-200 ${custErr.on === 3 ? 'block' : 'hidden'}`}>{custErr.message}</p>
+                        }
                     </div>
-                    <div className="flex flex-col h-[4rem] gap-1 w-[90%]">
+                    <div className="flex flex-col min-h-[4rem] gap-1 w-[90%]">
                         <label htmlFor="description">who can send message?</label>
                         <select name='description' id='description' className="w-full h-[2rem] text-white bg-slate-700 pl-1 rounded-sm uppercase" onChange={(e) => setWhoCanSet(e.target.value)} >
                             <option value="anyone">anyone</option>
@@ -243,28 +325,33 @@ const CreateGroupChat = () => {
                         <div className="text-lg font-mono">select at least 2</div>
                         <button disabled={selectedGroupContacts.length < 2} onClick={hideSelection} className="px-1 bg-purple-500 disabled:bg-purple-300 disabled:text-gray-200 rounded-sm cursor-pointer">{doneSelecting ? 'select more' : 'done'}</button>
                     </div>
+                    {
+                        <p className={`text-red-500 bg-amber-200 ${custErr.on === 4 ? 'block' : 'hidden'}`}>{custErr.message}</p>
+                    }
                     <div className={`${doneSelecting ? 'hidden' : 'block'} pt-2`}>
                         {
                             contacts.map((val, idx) => (
-                                <SelectContactItem key={idx} _id={val._id} avatar={val.avatar} searchTag={val.searchTag} />
+                                <SelectContactItem key={idx} _id={val._id} avatar={val.avatar} userId={val.userId} searchTag={val.searchTag} />
                             ))
                         }
                     </div>
                 </div>
-                <div className={`w-[90%] border-t-2 border-amber-500 ${whoCanSend === 'only_admin' && doneSelecting ? 'block': 'hidden'}`}>
+                <div className={`w-[90%] border-t-2 border-amber-500 ${whoCanSend === 'only_admin' && doneSelecting ? 'block' : 'hidden'}`}>
                     <div className="flex  justify-between pt-1">
                         <div className={`text-lg font-mono `}>select group admins</div>
                     </div>
                     <div className={`pt-2`}>
                         {
                             selectedGroupContacts.map((val, idx) => (
-                                <AdminSelect key={idx} _id={val._id} avatar={val.avatar} searchTag={val.searchTag} />
+                                <AdminSelect key={idx} _id={val._id} userId={val.userId} avatar={val.avatar} searchTag={val.searchTag} />
                             ))
                         }
                     </div>
                 </div>
-                <div className="fixed bottom-[1.5vh] w-[90%] flex items-center justify-center">
-                    <button className="w-[50%] h-8 text-lg bg-blue-950 text-white cursor-pointer rounded-sm">Next</button>
+
+                <div className="fixed bottom-[1.5vh] w-[90%] gap-1 flex items-center justify-center">
+                    <button className="w-[40%] h-8 text-lg bg-blue-950 text-white cursor-pointer rounded-sm" onClick={handleCreate}>Create</button>
+                    <button className="w-[40%] h-8 text-lg bg-blue-950 text-white cursor-pointer rounded-sm" onClick={handleCreate}>Cancel</button>
                 </div>
             </div>
         </section>
@@ -275,7 +362,14 @@ export const ContactList = () => {
     const disp = useAppDispatch();
     const searchUsers = useAppSelector((state) => state.temp.searchUsers);
     const users = useAppSelector((state) => state.auth.contacts);
+    const groups = useAppSelector((state) => state.auth.groups);
     const isSearching = useAppSelector((state) => state.triggers.searching);
+    const chatType: number = useAppSelector((state) => state.temp.chatListTypes)
+
+
+    useEffect(() => {
+        console.log(`room is ${JSON.stringify(users, null, 2)}`);
+    }, [users])
 
     const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -296,6 +390,10 @@ export const ContactList = () => {
         } catch (error) {
             console.log(`error in searching: ${error}`);
         }
+    }
+
+    function setChatType(trigger: number) {
+        disp(contactListingFunction({ trigger: trigger }))
     }
 
     useEffect(() => {
@@ -319,7 +417,7 @@ export const ContactList = () => {
                             <div className="bg-green-500 text-[12px] w-[3rem] h-[1.2rem] text-center rounded-sm cursor-pointer select-none">2 new</div>
                         </div>
                         <div className="flex gap-1">
-                            <CiCirclePlus title='create group chat' className="" size={25} cursor={"pointer"} />
+                            <CiCirclePlus title='create group chat' onClick={() => disp(openGroupChat({ trigger: true }))} className="" size={25} cursor={"pointer"} />
                             <NavLink to={'/user'}><CiSettings title='profile and settings' className="" size={25} cursor={"pointer"} /></NavLink>
                         </div>
                     </div>
@@ -328,6 +426,14 @@ export const ContactList = () => {
                         <div className="w-full h-8   flex items-center gap-2 rounded-4xl pl-2  bg-[#ebebeb0d]">
                             <CiSearch />
                             <input type="text" maxLength={50} onChange={((e) => setSearchQuery(e.target.value))} placeholder="search chat" className="w-full outline-0 text-sm text-gray-300 font-serif " />
+                        </div>
+                    </div>
+                    {/* Filter */}
+                    <div className="w-[95%] flex justify-center items-center">
+                        <div className="w-full h-8 flex justify-evenly items-center gap-2 rounded-4xl pl-2  bg-[#ebebeb0d]">
+                            <div className="cursor-pointer"><FaUserFriends size={20} className={`${chatType === 1 ? 'text-green-300' : ''}`} onClick={() => setChatType(1)} /> </div>
+                            <div className="cursor-pointer"><MdGroups size={30} className={`${chatType === 2 ? 'text-green-300' : ''}`} onClick={() => setChatType(2)} /> </div>
+                            <div className="cursor-pointer"><FaArchive size={20} className={`${chatType === 3 ? 'text-green-300' : ''}`} onClick={() => setChatType(3)} /> </div>
                         </div>
                     </div>
                     {/* LIst */}
@@ -340,11 +446,22 @@ export const ContactList = () => {
                                     ))
                                 ) : <NoContacts />
                             ) : (
-                                (!users.length ? <NoContacts /> : (
-                                    users.map((user, idx) => (
-                                        <ContactItem key={idx} _id={user._id} avatar={user.avatar} searchTag={user.searchTag} lastMessage={user.lastMessage} time={user.time} isOnline={user.isOnline} />
-                                    ))
-                                ))
+                                chatType === 1 ?
+                                    (!users.length ? <NoContacts /> : (
+                                        users.map((user, idx) => (
+                                            <ContactItem key={idx} _id={user._id} avatar={user.avatar} searchTag={user.searchTag} lastMessage={user.lastMessage} time={user.time} isOnline={user.isOnline} />
+                                        ))
+                                    )) :
+                                    chatType === 2 ? (!groups.length ? <NoContacts /> : (
+                                        groups.map((user, idx) => (
+                                            <ContactItem key={idx} _id={user._id} avatar={user.avatar} searchTag={user.groupName} time={user.time} lastMessage={user.lastMessage} isOnline={false} />
+                                        ))
+                                    )) :
+                                        chatType === 3 ? (!users.length ? <NoContacts /> : (
+                                            users.map((user, idx) => (
+                                                <ContactItem key={idx} _id={user._id} avatar={user.avatar} searchTag={user.searchTag} lastMessage={user.lastMessage} time={user.time} isOnline={user.isOnline} />
+                                            ))
+                                        )) : null
                             )
                         }
                         {/* <ContactItem /> */}
@@ -354,4 +471,3 @@ export const ContactList = () => {
         </>
     )
 }
-

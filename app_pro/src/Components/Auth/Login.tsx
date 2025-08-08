@@ -46,7 +46,9 @@ const LoginForm = () => {
         { ...formData },
         { withCredentials: true }
       );
-      console.log(`resp: ${JSON.stringify(resp, null, 2)}`);
+      console.log(`resp for Login is: ${JSON.stringify(resp, null, 2)}`);
+
+
       disp(enterApp({ userData: resp.data.data.User }))
 
       router('/')

@@ -38,7 +38,6 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
     });
 
     console.log(`already in contact`);
-    
 
     if (isAlreadyContact) {
       throw new ApiError(500, "already in contact", {
@@ -50,7 +49,7 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
     const newContact = new Contact({
       isGroup: false,
       oneOnOne: [user._id, reciverId],
-      socketId: null
+      socketId: null,
     });
 
     await newContact.save();
@@ -181,22 +180,24 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
       });
     }
 
-    const { contacts, groupName, whoCanSendMessage } = req.body;
+    const { contacts, groupName, whoCanSend, description } = req.body;
 
-    contacts.push(user._id);
+    contacts.push({ userId: String(user._id), admin: true });
 
-    if (!contacts || !groupName || !whoCanSendMessage) {
+    console.log(`req body: ${JSON.stringify(contacts, null, 2)}`);
+
+    if (!groupName || !description || !whoCanSend || contacts.length < 3) {
       throw new ApiError(400, "All values must required", {
         errorMessage: "All values must required",
       });
     }
 
     const newGroup = new Contact({
-      createdBy: user._id,
       isGroup: true,
       groupName: groupName,
-      whoCanSendMessage: whoCanSendMessage,
-      isSearchable: false,
+      whoCanSend: String.prototype.toUpperCase(whoCanSend),
+      description: description,
+      createdBy: user._id,
     });
 
     await newGroup.save();
@@ -209,9 +210,10 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
 
     contacts.forEach(async (element) => {
       let addedMember = new ContactMember({
-        userId: element,
+        userId: element.userId,
         contactId: newGroup._id,
         addedBy: user._id,
+        isAdmin: element.admin ? true : false,
       });
 
       await addedMember.save();
@@ -223,10 +225,10 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
       }
     });
 
-    let newGroupDetails = await Contact.aggregate([
+    const newGroupDetails = await Contact.aggregate([
       {
         $match: {
-          _id: new mongoose.Types.ObjectId(newGroup._id),
+          _id: newGroup._id,
         },
       },
       {
@@ -234,167 +236,81 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
           from: "contactmembers",
           localField: "_id",
           foreignField: "contactId",
-          as: "user_details",
-          pipeline: [
-            {
-              $addFields: {
-                contactId: {
-                  $cond: {
-                    if: {
-                      $and: [
-                        { $ne: ["$contactId", null] },
-                        { $ne: ["$contactId", ""] },
-                      ],
-                    },
-                    then: { $toObjectId: "$contactId" },
-                    else: null,
-                  },
-                },
-              },
-            },
-          ],
+          as: "members",
         },
       },
       {
-        $unwind: "$user_details",
+        $unwind: "$members",
       },
       {
         $lookup: {
           from: "users",
-          localField: "user_details.userId",
+          localField: "members.userId",
           foreignField: "_id",
-          as: "user_details.user",
+          as: "members.user",
         },
       },
       {
-        $unwind: "$user_details.user",
+        $addFields: {
+          "members.user": {
+            $first: ["$members.user"],
+          },
+        },
       },
       {
         $group: {
           _id: "$_id",
-          oneOnOne: { $first: "$oneOnOner" },
           isGroup: { $first: "$isGroup" },
-          whoCanSendMessage: { $first: "$whoCanSendMessage" },
-          isSearchable: { $first: "$isSearchable" },
-          createdAt: { $first: "$createdAt" },
-          updatedAt: { $first: "$updatedAt" },
-          userDetails: { $push: "$user_details.user" },
+          groupName: { $first: "$groupName" },
+          avatar: { $first: "$avatar" },
+          lastMessage: { $first: "$lastMessage" },
+          whoCanSend: { $first: "$whoCanSend" },
+          description: { $first: "$description" },
+          members: {
+            $push: "$members",
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "messages",
+          localField: "contactId",
+          foreignField: "_id",
+          as: "messages",
         },
       },
       {
         $project: {
-          _id: 1,
-          oneOnOne: 1,
           isGroup: 1,
           groupName: 1,
-          whoCanSendMessage: 1,
-          "userDetails.userName": 1,
-          "userDetails.avatar": 1,
-          "userDetails.searchTag": 1,
-          "userDetails.email": 1,
+          whoCanSend: 1,
+          avatar: 1,
+          description: 1,
+          lastMessage: 1,
+          "members._id": 1,
+          "members.isAdmin": 1,
+          "members.user._id": 1,
+          "members.user.userName": 1,
+          "members.user.serachTag": 1,
+          "members.user.socketId": 1,
+          "members.user.email": 1,
+          "members.user.avatar": 1,
         },
       },
     ]);
 
-    while (newGroupDetails.length <= 0) {
-      newGroupDetails = await Contact.aggregate([
-        {
-          $match: {
-            _id: new mongoose.Types.ObjectId(newGroup._id),
-          },
-        },
-        {
-          $lookup: {
-            from: "contactmembers",
-            localField: "_id",
-            foreignField: "contactId",
-            as: "user_details",
-            pipeline: [
-              {
-                $addFields: {
-                  contactId: {
-                    $cond: {
-                      if: {
-                        $and: [
-                          { $ne: ["$contactId", null] },
-                          { $ne: ["$contactId", ""] },
-                        ],
-                      },
-                      then: { $toObjectId: "$contactId" },
-                      else: null,
-                    },
-                  },
-                },
-              },
-            ],
-          },
-        },
-        {
-          $unwind: "$user_details",
-        },
-        {
-          $lookup: {
-            from: "users",
-            localField: "user_details.userId",
-            foreignField: "_id",
-            as: "user_details.user",
-          },
-        },
-        {
-          $unwind: "$user_details.user",
-        },
-        {
-          $group: {
-            _id: "$_id",
-            oneOnOne: { $first: "$oneOnOner" },
-            isGroup: { $first: "$isGroup" },
-            whoCanSendMessage: { $first: "$whoCanSendMessage" },
-            isSearchable: { $first: "$isSearchable" },
-            createdAt: { $first: "$createdAt" },
-            updatedAt: { $first: "$updatedAt" },
-            userDetails: { $push: "$user_details.user" },
-          },
-        },
-        {
-          $project: {
-            _id: 1,
-            oneOnOne: 1,
-            isGroup: 1,
-            groupName: 1,
-            whoCanSendMessage: 1,
-            "userDetails.userName": 1,
-            "userDetails.avatar": 1,
-            "userDetails.searchTag": 1,
-            "userDetails.email": 1,
-          },
-        },
-      ]);
-    }
-
-    if (newGroupDetails.length <= 0) {
-      await Contact.findByIdAndDelete(newGroup._id);
-
-      await Contact.deleteMany({
-        _id: newGroup._id,
-      });
-
-      throw new ApiError(400, "Error while serving details ", {
-        errorMessage: "Error while serving details ",
-      });
-    }
-
     if (!newGroupDetails) {
-      throw new ApiError(400, "Error to fetch the group details", {
-        errorMessage: "Error to fetch the group details",
-      });
+      throw new ApiError(400, `group not found after creation`);
     }
+
+    console.log(JSON.stringify(newGroupDetails, null, 2));
 
     resp
       .status(200)
       .json(
         new ApiResponse(
           200,
-          { newGroupDetails: newGroupDetails },
+          { newGroupDetails: newGroupDetails[0] },
           "Group created successfully"
         )
       );
@@ -544,4 +460,49 @@ const searchContacts = asyncHandler(async (req, resp) => {
   }
 });
 
-module.exports = { createOneOnOneChat, crateGroupChat, searchContacts };
+/**
+ * @description Soft Left group and left
+ */
+
+const blockContact = asyncHandler(async (req, resp) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      throw new ApiError(501, "Unauthraized request");
+    }
+
+    const { contactId } = req.body;
+
+    if (!contactId) {
+      throw new ApiError(400, "Contact id not found");
+    }
+
+    const contact = await ContactMember.findOne({
+      userId: user._id,
+      contactId: contactId,
+    });
+
+    if (!contact) {
+      throw new ApiError(400, "contact not found");
+    }
+
+    contact.isBlocked = true;
+    await contact.save();
+
+    resp
+      .status(201)
+      .json(
+        new ApiResponse(200, { message: "blocked" }, "Blocked successfully")
+      );
+  } catch (error) {
+    throw new ApiError(500, "error in block contact");
+  }
+});
+
+module.exports = {
+  createOneOnOneChat,
+  crateGroupChat,
+  searchContacts,
+  blockContact,
+};

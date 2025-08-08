@@ -27,6 +27,11 @@ const newSchema = new Schema(
       default: false,
       required: true,
     },
+    isBlocked: {
+      type: Boolean,
+      default: false,
+      required: true,
+    },
   },
   {
     timestamps: true,

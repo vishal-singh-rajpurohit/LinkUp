@@ -326,6 +326,108 @@ const logIn = asyncHandler(async (req, resp) => {
 
   finalUser[0].contacts = contacts;
 
+  const groups = await ContactMember.aggregate([
+    {
+      $match: {
+        userId: user._id,
+        isBlocked: false,
+      },
+    },
+    {
+      $lookup: {
+        from: "contacts",
+        localField: "contactId",
+        foreignField: "_id",
+        as: "group",
+      },
+    },
+    {
+      $unwind: "$group",
+    },
+    {
+      $match: {
+        "group.isGroup": true,
+      },
+    },
+    {
+      $lookup: {
+        from: "contactmembers",
+        localField: "group._id",
+        foreignField: "contactId",
+        as: "members",
+      },
+    },
+    {
+      $unwind: "$members",
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "members.userId",
+        foreignField: "_id",
+        as: "members.user",
+      },
+    },
+    {
+      $addFields: {
+        "members.user": {
+          $first: ["$members.user"],
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$group._id",
+        isBlocked: { $first: "$isBlocked" },
+        isGroup: { $first: "$group.isGroup" },
+        groupName: { $first: "$group.groupName" },
+        avatar: { $first: "$group.avatar" },
+        lastMessage: { $first: "$group.lastMessage" },
+        isGroup: { $first: "$group.isGroup" },
+        roomId: { $first: "$group.socketId" },
+        whoCanSend: { $first: "$group.whoCanSend" },
+        description: { $first: "$group.description" },
+        updatedAt: { $first: "$group.updatedAt" },
+        members: {
+          $push: "$members",
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "messages",
+        localField: "contactId",
+        foreignField: "_id",
+        as: "messages",
+      },
+    },
+    {
+      $project: {
+        isGroup: 1,
+        isBlocked: 1,
+        groupName: 1,
+        whoCanSend: 1,
+        avatar: 1,
+        description: 1,
+        roomId: 1,
+        isGroup: 1,
+        lastMessage: 1,
+        updatedAt: 1,
+        "members._id": 1,
+        "members.isAdmin": 1,
+        "members.user._id": 1,
+        "members.user.userName": 1,
+        "members.user.searchTag": 1,
+        "members.user.socketId": 1,
+        "members.user.online": 1,
+        "members.user.email": 1,
+        "members.user.avatar": 1,
+      },
+    },
+  ]);
+
+  finalUser[0].groups = groups;
+
   resp
     .status(201)
     .cookie("accessToken", newAccessToken, Options)
@@ -371,6 +473,10 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
     refreshToken: newRefreshToken,
     online: true,
   });
+
+  if (!updatedUser) {
+    throw new ApiError(400, "Error while updating user");
+  }
 
   const finalUser = await User.aggregate([
     {
@@ -461,9 +567,107 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
 
   finalUser[0].contacts = contacts;
 
-  if (!updatedUser) {
-    throw new ApiError(400, "Error while updating user");
-  }
+  const groups = await ContactMember.aggregate([
+    {
+      $match: {
+        userId: user._id,
+        isBlocked: false,
+      },
+    },
+    {
+      $lookup: {
+        from: "contacts",
+        localField: "contactId",
+        foreignField: "_id",
+        as: "group",
+      },
+    },
+    {
+      $unwind: "$group",
+    },
+    {
+      $match: {
+        "group.isGroup": true,
+      },
+    },
+    {
+      $lookup: {
+        from: "contactmembers",
+        localField: "group._id",
+        foreignField: "contactId",
+        as: "members",
+      },
+    },
+    {
+      $unwind: "$members",
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "members.userId",
+        foreignField: "_id",
+        as: "members.user",
+      },
+    },
+    {
+      $addFields: {
+        "members.user": {
+          $first: ["$members.user"],
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$group._id",
+        isBlocked: { $first: "$isBlocked" },
+        isGroup: { $first: "$group.isGroup" },
+        groupName: { $first: "$group.groupName" },
+        avatar: { $first: "$group.avatar" },
+        lastMessage: { $first: "$group.lastMessage" },
+        isGroup: { $first: "$group.isGroup" },
+        roomId: { $first: "$group.socketId" },
+        whoCanSend: { $first: "$group.whoCanSend" },
+        description: { $first: "$group.description" },
+        updatedAt: { $first: "$group.updatedAt" },
+        members: {
+          $push: "$members",
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "messages",
+        localField: "contactId",
+        foreignField: "_id",
+        as: "messages",
+      },
+    },
+    {
+      $project: {
+        isGroup: 1,
+        isBlocked: 1,
+        groupName: 1,
+        whoCanSend: 1,
+        avatar: 1,
+        description: 1,
+        roomId: 1,
+        isGroup: 1,
+        lastMessage: 1,
+        updatedAt: 1,
+        "members._id": 1,
+        "members.isAdmin": 1,
+        "members.user._id": 1,
+        "members.user.userName": 1,
+        "members.user.searchTag": 1,
+        "members.user.socketId": 1,
+        "members.user.online": 1,
+        "members.user.email": 1,
+        "members.user.avatar": 1,
+      },
+    },
+  ]);
+
+  finalUser[0].groups = groups;
 
   resp
     .status(201)

@@ -60,7 +60,8 @@ const newSchema = new Schema(
     callReciverUserId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-    }
+    },
+    // location: {},
   },
   {
     timeseries: true,

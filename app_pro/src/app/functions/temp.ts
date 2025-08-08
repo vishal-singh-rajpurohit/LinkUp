@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import { type contactTypes } from './auth'
+import { type contactTypes, type groupType } from './auth'
 
 export interface searchUserTypes {
     _id: string;
@@ -10,28 +10,32 @@ export interface searchUserTypes {
 
 
 export interface groupContactTypes {
-    _id: string,
-    searchTag: string,
-    avatar: string,
-    admin?: boolean
+    _id: string;
+    userId: string;
+    searchTag: string;
+    avatar: string;
+    admin?: boolean;
 }
 
 interface initialStateTypes {
     searchUsers: searchUserTypes[];
+    activeGroup: boolean;
     selectedContact: contactTypes | null;
     groupContact: groupContactTypes[];
+    chatListTypes: number; // 1 -> single, 2-> group, 3 -> archieved
 }
 
 const initialState: initialStateTypes = {
     searchUsers: [],
+    activeGroup: false,
     selectedContact: null,
-    groupContact: []
+    groupContact: [],
+    chatListTypes: 1
 }
 
 function searchingFunc(state: initialStateTypes, action: PayloadAction<{ users: searchUserTypes[] }>) {
     state.searchUsers = action.payload.users
 }
-
 
 function selectConFunc(state: initialStateTypes, action: PayloadAction<{ chat: contactTypes }>) {
     state.selectedContact = {
@@ -51,6 +55,24 @@ function selectConFunc(state: initialStateTypes, action: PayloadAction<{ chat: c
     }
 }
 
+function selectGpFunc(state: initialStateTypes, action: PayloadAction<{ chat: groupType }>) {
+    state.selectedContact = {
+        _id: action.payload.chat._id,
+        avatar: action.payload.chat.avatar,
+        email: "",
+        isOnline: false,
+        lastMessage: action.payload.chat.lastMessage,
+        roomId: action.payload.chat.roomId,
+        isBlocked: false,
+        searchTag: "",
+        socketId: action.payload.chat.roomId,
+        time: action.payload.chat.time,
+        userId: "",
+        userName: action.payload.chat.groupName,
+        messages: [],
+        members: action.payload.chat.members
+    }
+}
 
 function addGroupContact(state: initialStateTypes, action: PayloadAction<{ user: groupContactTypes }>) {
     let find: boolean = false;
@@ -71,7 +93,7 @@ function addGroupContact(state: initialStateTypes, action: PayloadAction<{ user:
 function addGroupAdmin(state: initialStateTypes, action: PayloadAction<{ user: groupContactTypes }>) {
     const user = state.groupContact.filter((val) => val._id === action.payload.user._id)
 
-    console.log(`filtered user: ${JSON.stringify(user, null, 2)}`);
+    // console.log(`filtered user: ${JSON.stringify(user, null, 2)}`);
 
     if (!user[0].admin) {
         user[0].admin = true
@@ -83,11 +105,15 @@ function addGroupAdmin(state: initialStateTypes, action: PayloadAction<{ user: g
         state.groupContact = [...prevUser, user[0]]
     }
 
-    console.log(`filtered user: ${JSON.stringify(state.groupContact, null, 2)}`);
+    // console.log(`filtered user: ${JSON.stringify(state.groupContact, null, 2)}`);
 }
 
 function clearGroupCon(state: initialStateTypes) {
     state.groupContact = []
+}
+
+function changeContactTypesFunc(state: initialStateTypes, action: PayloadAction<{ trigger: number }>) {
+    state.chatListTypes = action.payload.trigger
 }
 
 
@@ -97,13 +123,18 @@ const tempSlice = createSlice({
     reducers: {
         searching: searchingFunc,
         selectContact: selectConFunc,
+        openGroupChat: (state: initialStateTypes, action: PayloadAction<{ trigger: boolean }>) => {
+            state.activeGroup = action.payload.trigger
+        },
+        selectGroup: selectGpFunc,
         appendGroupContact: addGroupContact,
         appendGroupAdmin: addGroupAdmin,
-        clearGroupContact: clearGroupCon
+        clearGroupContact: clearGroupCon,
+        contactListingFunction: changeContactTypesFunc
     }
 })
 
 
-export const { searching, selectContact, appendGroupContact, clearGroupContact, appendGroupAdmin } = tempSlice.actions
+export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction } = tempSlice.actions
 
 export default tempSlice.reducer

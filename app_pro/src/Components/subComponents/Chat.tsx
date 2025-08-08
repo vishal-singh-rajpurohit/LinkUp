@@ -6,10 +6,10 @@ import { RiSendPlaneFill } from 'react-icons/ri'
 import { BsEmojiWink } from 'react-icons/bs'
 import { Mail, MailMenu } from './Mails'
 import { FaImage } from 'react-icons/fa'
-import { NavLink } from 'react-router-dom'
 import { useRef } from 'react'
 import { useAppSelector } from '../../app/hooks'
 import { getTimeDifference } from '../../helpers/timeConverter'
+import { useNavigate } from 'react-router-dom'
 
 export const ChatArea = () => {
     const room = useAppSelector((state) => state.temp.selectedContact)
@@ -37,21 +37,26 @@ export const ChatArea = () => {
 }
 
 export const ChatTop = () => {
+    const router = useNavigate()
     const room = useAppSelector((state) => state.temp.selectedContact)
+    const chatTypes = useAppSelector((state) => state.temp.chatListTypes)
     const lastOnline = getTimeDifference(room?.time || Date())
+
+    async function getDetails() {
+        router(`/chat/details/?room_id=${room?._id}`)
+    }
+
     return (
         <div className='h-[4rem] w-full cursor-pointer bg-slate-800 rounded-t-lg' >
             <div className="grid h-full w-full grid-cols-[1fr_5fr_1fr_0.3fr] items-center px-3 md:grid-cols-[1fr_7fr_1fr_0.3fr] ">
                 <div className="w-full overflow-hidden h-full flex items-center justify-center">
-                    <NavLink to={'/chat/details'} className="">
-                        <div className='w-[2.5rem] h-[2.5rem] flex items-center justify-center overflow-hidden rounded-[10rem] bg-amber-300 md:h-[2.5rem] md:w-[2.5rem]'>
-                            <img src={room?.avatar || g} alt="😒" className="max-h-[2.5rem] h-full" />
-                        </div>
-                    </NavLink>
+                    <div onClick={getDetails} className='w-[2.5rem] h-[2.5rem] flex items-center justify-center overflow-hidden rounded-[10rem] bg-amber-300 md:h-[2.5rem] md:w-[2.5rem]'>
+                        <img src={room?.avatar || g} alt="😒" className="max-h-[2.5rem] h-full" />
+                    </div>
                 </div>
                 <div className="w-full h-full pl-1 flex gap-0  justify-center flex-col">
                     <p className="text-lg font-mono text-blue-100 md:text-lg">{room?.userName}</p>
-                    <p className="text-[12px] font-serif text-gray-300 md:text-sm">{room?.isOnline ? "Online" :`Last Online: ${lastOnline}`}
+                    <p className="text-[12px] font-serif text-gray-300 md:text-sm">{chatTypes === 2 ? `last message ${lastOnline}` : room?.isOnline ? "Online" : `Last Online: ${lastOnline}`}
                         {/* <div className="w-2 h-2 bg-green-400 rounded-2xl" ></div> */}
                     </p>
                 </div>

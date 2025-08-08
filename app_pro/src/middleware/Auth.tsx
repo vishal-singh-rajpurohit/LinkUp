@@ -67,7 +67,7 @@ export const RevAuth = ({ children }: { children: ReactNode }) => {
           headers: { "Content-Type": "application/json" },
         }
       );
-      // console.log(`logged in: ${JSON.stringify(resp, null, 2)}`);
+      console.log(`logged in: ${JSON.stringify(resp, null, 2)}`);
       disp(enterApp({ userData: resp.data.data.User }))
 
       router('/')
@@ -77,7 +77,7 @@ export const RevAuth = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  
+
   useEffect(() => {
     if (isLoggedIn) {
       router('/')

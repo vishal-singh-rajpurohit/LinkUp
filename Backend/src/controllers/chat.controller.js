@@ -12,7 +12,6 @@ const { default: mongoose } = require("mongoose");
 
 //Chats
 const sendMessage = asyncHandler(async (req, resp) => {
-
   const user = req.user;
 
   if (!user) {
@@ -21,14 +20,12 @@ const sendMessage = asyncHandler(async (req, resp) => {
     });
   }
 
-
   const { message, contactId } = req.body;
 
   if (!message || !contactId) {
     console.log("message and contact id required ", message, contactId);
     throw new ApiError(400, "message and contact id required ");
   }
-
 
   const Room = await Contacts.exists({
     _id: contactId,
@@ -38,7 +35,6 @@ const sendMessage = asyncHandler(async (req, resp) => {
     throw new ApiError(400, "Invalid Room / reciver Id / Chat does not exists");
   }
 
-  
   const saveChat = new Message({
     message: message,
     contactId: contactId,
@@ -51,11 +47,11 @@ const sendMessage = asyncHandler(async (req, resp) => {
   await saveChat.save();
 
   // Update the last message
-  const updateLastChat = await Contact.findByIdAndUpdate(
+  await Contact.findByIdAndUpdate(
     contactId,
     {
       $set: {
-        lastMessage: saveChat._id,
+        lastMessage: saveChat.message,
       },
     },
     {
@@ -101,14 +97,11 @@ const sendMessage = asyncHandler(async (req, resp) => {
 
   const recivedMessage = chats[0];
 
-
   if (!recivedMessage) {
     throw new ApiError(500, "Internal Server Error", {
       errorMessage: "Internal Server Error",
     });
   }
-
-
 
   // All the members from contact
   const members = await ContactMember.aggregate([
@@ -130,25 +123,24 @@ const sendMessage = asyncHandler(async (req, resp) => {
     });
   }
 
+  emiterSocket(
+    req,
+    contactId.toString(),
+    ChatEventEnum.MESSAGE_RECIVED_EVENT,
+    recivedMessage
+  );
 
+  for (let i = 0; i < members.length; i++) {
     emiterSocket(
       req,
-      contactId.toString(),
-      ChatEventEnum.MESSAGE_RECIVED_EVENT,
-      recivedMessage
+      members[i].userId.toString(),
+      ChatEventEnum.NOTIFY_USERS_EVENT,
+      {
+        contactId: contactId,
+        message: message,
+      }
     );
-
-    for(let i = 0; i< members.length; i++){
-      emiterSocket(
-        req,
-        members[i].userId.toString(),
-        ChatEventEnum.NOTIFY_USERS_EVENT,
-        {
-          contactId: contactId,
-          message: message
-        }
-      );
-    }
+  }
 
   resp
     .status(200)
@@ -184,26 +176,29 @@ const undoMessage = asyncHandler(async (req, resp) => {
   emiterSocket(req, contactId.toString(), "messageUndo", removeChat);
 
   console.log("chat removed");
-  
 
-  resp.status(200).json(new ApiResponse(200, {removed: removeChat}, "message removed from chat"));
+  resp
+    .status(200)
+    .json(
+      new ApiResponse(200, { removed: removeChat }, "message removed from chat")
+    );
 });
 
 const requestVideoCall = asyncHandler(async (req, resp) => {
   const user = req.user;
 
-  if(!user){
+  if (!user) {
     console.log("unautharized request: user not found");
     throw new ApiError(401, "Unautharized request");
   }
 
-  const {reciverId, contactId, Offer} = req.body;
+  const { reciverId, contactId, Offer } = req.body;
 
-  if(!Offer){
+  if (!Offer) {
     throw new ApiError(400, "RTC Offer not found");
   }
 
-  if(!reciverId || !contactId){
+  if (!reciverId || !contactId) {
     throw new ApiError(400, "reciver id and contact id required");
   }
 
@@ -214,57 +209,52 @@ const requestVideoCall = asyncHandler(async (req, resp) => {
     isCall: true,
     callType: "VIDEO",
     isCallAccpted: false,
-    callReciverUserId: reciverId
+    callReciverUserId: reciverId,
   });
 
   const savedCall = await newCall.save();
 
-  if(!savedCall){
+  if (!savedCall) {
     throw new ApiError(500, "call saved in database");
   }
 
-  emiterCall(
-    req,
-    reciverId.toString(),
-    ChatEventEnum.REQUEST_VIDEO_CALL,
-    {
-      UserId: user._id,
-      CallId: newCall._id,
-      ContactId: newCall.contactId,
-      Offer: Offer,
-      Message: "Call Request Accpted"
-    }
-  )
+  emiterCall(req, reciverId.toString(), ChatEventEnum.REQUEST_VIDEO_CALL, {
+    UserId: user._id,
+    CallId: newCall._id,
+    ContactId: newCall.contactId,
+    Offer: Offer,
+    Message: "Call Request Accpted",
+  });
 
-  resp.status(200)
-    .json(new ApiResponse(200, {
-      Call: savedCall,
-      CallId: newCall._id
-    }, "Video Call Requested"))
+  resp.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        Call: savedCall,
+        CallId: newCall._id,
+      },
+      "Video Call Requested"
+    )
+  );
 });
 
-const negosiateCall = asyncHandler(async(req, resp) =>{
+const negosiateCall = asyncHandler(async (req, resp) => {
   const user = req.user;
 
-  if(!user){
+  if (!user) {
     console.log("unautharized request: user not found");
     throw new ApiError(401, "Unautharized request");
   }
 
-  const {reciverId, contactId, Offer} = req.body;
+  const { reciverId, contactId, Offer } = req.body;
 
-  emiterCall(
-    req,
-    reciverId.toString(),
-    ChatEventEnum.REQUEST_VIDEO_CALL,
-    {
-      UserId: user._id,
-      CallId: newCall._id,
-      ContactId: contactId,
-      Offer: Offer,
-      Message: "Call Request Accpted"
-    }
-  )
+  emiterCall(req, reciverId.toString(), ChatEventEnum.REQUEST_VIDEO_CALL, {
+    UserId: user._id,
+    CallId: newCall._id,
+    ContactId: contactId,
+    Offer: Offer,
+    Message: "Call Request Accpted",
+  });
 
   // for(let i = 0; i< members.length; i++){
   //   emiterSocket(
@@ -279,30 +269,29 @@ const negosiateCall = asyncHandler(async(req, resp) =>{
   // }
 
   resp
-  .status(200)
-  .json(
-    new ApiResponse(200, { message: "NEGOSIATION DONE" }, "negosiation done")
-  );
+    .status(200)
+    .json(
+      new ApiResponse(200, { message: "NEGOSIATION DONE" }, "negosiation done")
+    );
+});
 
-})
-
-const declineVideoCall = asyncHandler(async (req, resp) =>{
+const declineVideoCall = asyncHandler(async (req, resp) => {
   const user = req.user;
 
-  if(!user){
+  if (!user) {
     console.log("unautharized request: user not found");
     throw new ApiError(401, "Unautharized request");
   }
 
-  const {callId} = req.body;
+  const { callId } = req.body;
 
-  if(!callId){
+  if (!callId) {
     throw new ApiError(400, "call Id required");
   }
 
   const requestedCall = await Message.findById(callId);
 
-  if(!requestedCall){
+  if (!requestedCall) {
     throw new ApiError(500, "Requested call not found");
   }
 
@@ -315,39 +304,42 @@ const declineVideoCall = asyncHandler(async (req, resp) =>{
     requestedCall.contactId.toString(),
     ChatEventEnum.REJECT_VIDEO_CALL,
     {
-      Message: "Call Rejected"
+      Message: "Call Rejected",
     }
-  )
+  );
 
-  resp.status(200)
-    .json(new ApiResponse(200, {
-      Call: requestedCall
-    }, "Call Declined"))
-  
+  resp.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        Call: requestedCall,
+      },
+      "Call Declined"
+    )
+  );
 });
 
-const answerVideoCall = asyncHandler(async (req, resp)=>{
+const answerVideoCall = asyncHandler(async (req, resp) => {
   const user = req.user;
 
-  if(!user){
+  if (!user) {
     console.log("unautharized request: user not found");
     throw new ApiError(401, "Unautharized request");
   }
 
-  const { callId, answer} = req.body;
+  const { callId, answer } = req.body;
 
-  if(!answer){
+  if (!answer) {
     throw new ApiError(400, "answer not found");
   }
 
-
-  if(!callId){
+  if (!callId) {
     throw new ApiError(400, "call Id required");
   }
 
   const requestedCall = await Message.findById(callId);
 
-  if(!requestedCall){
+  if (!requestedCall) {
     throw new ApiError(500, "Requested call not found");
   }
 
@@ -362,16 +354,20 @@ const answerVideoCall = asyncHandler(async (req, resp)=>{
     {
       senderId: user._id,
       answer: answer,
-      Message: "Call Accpted"
+      Message: "Call Accpted",
     }
-  )
+  );
 
-  resp.status(200)
-    .json(new ApiResponse(200, {
-      Call: requestedCall
-    }, "Call Accpted"))
-  
-})
+  resp.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        Call: requestedCall,
+      },
+      "Call Accpted"
+    )
+  );
+});
 
 const blockContact = asyncHandler(async (req, resp) => {
   const { userId, contactId } = req.body;

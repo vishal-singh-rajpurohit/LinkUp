@@ -20,19 +20,27 @@ const newSchema = new Schema(
       type: String,
       required: false,
     },
+    whoCanSend: {
+      type: String,
+      emum: ["ANYONE", "NO_ONE", "ONLY_ADMIN"],
+    },
     description: {
       type: String,
       required: false,
     },
-    isBlocked: {
-      type: Boolean,
-      default: false,
-      required: true,
-    },
+    // isBlocked: {
+    //   type: Boolean,
+    //   default: false,
+    //   required: true,
+    // },
     lastMessage: {
+      type: String,
+      default: "",
+      require: true,
+    },
+    createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Message",
-      default: null,
+      ref: "User",
     },
     socketId: {
       type: String,

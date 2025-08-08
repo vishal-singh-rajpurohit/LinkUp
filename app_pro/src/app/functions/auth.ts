@@ -11,6 +11,32 @@ export interface initialRespType {
     theme: boolean;
     socketId: string;
     contacts: newChatTypes[];
+    groups: groupsResp[];
+}
+
+interface groupsResp {
+    _id: string;
+    isGroup: boolean;
+    groupName: string;
+    avatar: string;
+    lastMessage: string;
+    whoCanSend: string;
+    roomId: string;
+    updatedAt: Date;
+    description: string;
+    members: {
+        _id: string;
+        isAdmin: boolean;
+        user: {
+            _id: string;
+            userName: string;
+            searchTag: string;
+            socketId: string;
+            email: string;
+            avatar: string;
+            online: boolean;
+        }
+    }[]
 }
 
 interface userType {
@@ -46,16 +72,46 @@ export interface contactTypes {
     userName: string;
     email: string;
     isBlocked: boolean;
+    isGroup?: boolean;
     lastMessage: string;
     isOnline: boolean;
     time: Date;
     messages?: message[];
+    members?: groupMemberTypes[];
+}
+
+
+interface groupMemberTypes {
+    _id: string;
+    isAdmin: boolean;
+    avatar: string;
+    searchTag: string;
+    userName: string;
+    isGroup?: boolean;
+    socketId: string;
+    email: string;
+    isOnline: boolean;
+}
+
+export interface groupType {
+    _id: string;
+    isGroup: boolean;
+    groupName: string;
+    avatar: string;
+    lastMessage: string;
+    whoCanSend: string;
+    description: string;
+    roomId: string;
+    time: Date;
+    members: groupMemberTypes[];
+    messages: message[];
 }
 
 interface initialTypes {
     isLoggedIn: boolean;
     user: userType;
-    contacts: contactTypes[]
+    contacts: contactTypes[];
+    groups: groupType[];
 }
 
 const initialState: initialTypes = {
@@ -69,7 +125,8 @@ const initialState: initialTypes = {
         socketId: "",
         theme: false,
     },
-    contacts: []
+    contacts: [],
+    groups: [],
 }
 
 function enterAppFunc(state: initialTypes, action: PayloadAction<{ userData: initialRespType }>) {
@@ -102,8 +159,42 @@ function enterAppFunc(state: initialTypes, action: PayloadAction<{ userData: ini
         state.contacts = [...state.contacts, newContact]
     })
 
-    state.isLoggedIn = true
 
+    action.payload.userData.groups.forEach((item) => {
+        const members: groupMemberTypes[] = []
+        item.members.forEach((mem) => {
+            const newMember: groupMemberTypes = {
+                _id: mem.user._id,
+                isAdmin: mem.isAdmin,
+                avatar: mem.user.avatar,
+                email: mem.user.email,
+                isOnline: mem.user.online,
+                searchTag: mem.user.searchTag,
+                socketId: mem.user.socketId,
+                userName: mem.user.userName
+            }
+
+            members.push(newMember)
+        })
+
+        const newContact: groupType = {
+            _id: item._id,
+            avatar: item.avatar,
+            description: item.description,
+            groupName: item.groupName,
+            isGroup: item.isGroup,
+            lastMessage: item.lastMessage,
+            roomId: item.roomId,
+            whoCanSend: item.whoCanSend,
+            time: item.updatedAt,
+            members: members,
+            messages: []
+        }
+
+        state.groups = [...state.groups, newContact]
+    })
+
+    state.isLoggedIn = true
 }
 
 function logOutFun(state: initialTypes) {
@@ -164,6 +255,15 @@ function newContact(state: initialTypes, action: PayloadAction<{
 
 }
 
+function newGroup(state: initialTypes, action: PayloadAction<{
+    newChat: groupType
+}>) {
+    const newContact: groupType = {
+        ...action.payload.newChat
+    }
+
+    state.groups = [...state.groups, newContact]
+}
 
 export const AuthSlice = createSlice({
     name: 'auth',
@@ -171,12 +271,13 @@ export const AuthSlice = createSlice({
     reducers: {
         enterApp: enterAppFunc,
         logOut: logOutFun,
-        saveContact: newContact
+        saveContact: newContact,
+        saveGroup: newGroup
     }
 });
 
 
-export const { enterApp, logOut, saveContact } = AuthSlice.actions
+export const { enterApp, logOut, saveContact, saveGroup } = AuthSlice.actions
 
 
 export default AuthSlice.reducer
