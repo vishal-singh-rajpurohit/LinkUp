@@ -1,7 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
-
-
 export interface initialRespType {
     _id: string;
     avatar: string;
@@ -11,6 +9,7 @@ export interface initialRespType {
     theme: boolean;
     socketId: string;
     contacts: newChatTypes[];
+    safe: newChatTypes[];
     groups: groupsResp[];
 }
 
@@ -72,6 +71,7 @@ export interface contactTypes {
     userName: string;
     email: string;
     isBlocked: boolean;
+    isArchieved: boolean;
     isGroup?: boolean;
     lastMessage: string;
     isOnline: boolean;
@@ -79,7 +79,6 @@ export interface contactTypes {
     messages?: message[];
     members?: groupMemberTypes[];
 }
-
 
 interface groupMemberTypes {
     _id: string;
@@ -111,6 +110,7 @@ interface initialTypes {
     isLoggedIn: boolean;
     user: userType;
     contacts: contactTypes[];
+    safer: contactTypes[];
     groups: groupType[];
 }
 
@@ -126,6 +126,7 @@ const initialState: initialTypes = {
         theme: false,
     },
     contacts: [],
+    safer: [],
     groups: [],
 }
 
@@ -148,6 +149,7 @@ function enterAppFunc(state: initialTypes, action: PayloadAction<{ userData: ini
             roomId: item.socketId,
             time: item.updatedAt,
             userId: item.member.user._id,
+            isArchieved: item.isArchieved,
             avatar: item.member.user.avatar,
             socketId: item.member.user.socketId,
             searchTag: item.member.user.searchTag,
@@ -157,6 +159,26 @@ function enterAppFunc(state: initialTypes, action: PayloadAction<{ userData: ini
             messages: []
         }
         state.contacts = [...state.contacts, newContact]
+    })
+
+    action.payload.userData.safe.forEach((item) => {
+        const newContact: contactTypes = {
+            _id: item._id,
+            lastMessage: item.lastMessage,
+            isBlocked: item.isBlocked,
+            roomId: item.socketId,
+            time: item.updatedAt,
+            userId: item.member.user._id,
+            isArchieved: item.isArchieved,
+            avatar: item.member.user.avatar,
+            socketId: item.member.user.socketId,
+            searchTag: item.member.user.searchTag,
+            userName: item.member.user.userName,
+            email: item.member.user.email,
+            isOnline: item.member.user.online,
+            messages: []
+        }
+        state.safer = [...state.safer, newContact]
     })
 
 
@@ -210,11 +232,13 @@ function logOutFun(state: initialTypes) {
     state.isLoggedIn = false
 }
 
+
 export interface newChatTypes {
     _id: string;
     lastMessage: string;
     socketId: string;
     isBlocked: boolean;
+    isArchieved: boolean;
     updatedAt: Date;
     messages?: [];
     member: {
@@ -243,6 +267,7 @@ function newContact(state: initialTypes, action: PayloadAction<{
         time: action.payload.newChat.updatedAt,
         userId: action.payload.newChat.member.user._id,
         avatar: action.payload.newChat.member.user.avatar,
+        isArchieved: false,
         socketId: action.payload.newChat.member.user.socketId,
         searchTag: action.payload.newChat.member.user.searchTag,
         userName: action.payload.newChat.member.user.userName,
@@ -265,6 +290,21 @@ function newGroup(state: initialTypes, action: PayloadAction<{
     state.groups = [...state.groups, newContact]
 }
 
+function blockFunc(state: initialTypes, action: PayloadAction<{ trigger: boolean, id: string, isGroup: boolean }>) {
+
+    if (action.payload.isGroup) {
+        state.groups = state.groups.filter((g) => g._id !== action.payload.id)
+    } else {
+        const tempContact = state.contacts.filter((con) => con._id === action.payload.id)[0]
+        tempContact.isBlocked = action.payload.trigger;
+        state.contacts = [
+            ...(state.contacts && []),
+            tempContact
+        ]
+    }
+}
+
+
 export const AuthSlice = createSlice({
     name: 'auth',
     initialState,
@@ -272,12 +312,13 @@ export const AuthSlice = createSlice({
         enterApp: enterAppFunc,
         logOut: logOutFun,
         saveContact: newContact,
-        saveGroup: newGroup
+        saveGroup: newGroup,
+        blockTrigger: blockFunc
     }
 });
 
 
-export const { enterApp, logOut, saveContact, saveGroup } = AuthSlice.actions
+export const { enterApp, logOut, saveContact, saveGroup, blockTrigger } = AuthSlice.actions
 
 
 export default AuthSlice.reducer

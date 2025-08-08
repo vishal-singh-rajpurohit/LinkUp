@@ -64,7 +64,7 @@ export const Account = () => {
                   <div className="flex items-center justify-center gap-1 text-sm"><HiLocationMarker color="#c8bfbf" />NY, New Yourk City</div>
                 </div>
               </div>
-              <div className="w-full grid  items-center justify-center grid-cols-[1fr_1fr]">
+              <div className="w-full grid items-center justify-center grid-cols-[1fr_1fr]">
                 <div className="w-full h-[5rem] flex justify-center flex-col  text-center border-t-2 border-r-2 border-gray-400">
                   <p className="text-[12px] md:text-[20px] font-bold">{user.email}</p>
                   <p className="text-[12px] md:text-[17px] ">Email</p>

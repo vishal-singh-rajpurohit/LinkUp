@@ -420,6 +420,8 @@ const unblockContact = asyncHandler(async (req, resp) => {
     throw new ApiError(400, "Error while unblocking contact");
   }
 
+  console.log('unblock called');
+
   resp.status(200).json(new ApiResponse(200, {}, "Unblocked"));
 });
 

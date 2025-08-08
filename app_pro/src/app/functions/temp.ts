@@ -116,6 +116,12 @@ function changeContactTypesFunc(state: initialStateTypes, action: PayloadAction<
     state.chatListTypes = action.payload.trigger
 }
 
+function blockFunc(state: initialStateTypes, action: PayloadAction<{ trigger: boolean }>) {
+    if (state.selectedContact?._id) {
+        state.selectedContact.isBlocked = action.payload.trigger
+    }
+}
+
 
 const tempSlice = createSlice({
     name: 'temp',
@@ -130,11 +136,12 @@ const tempSlice = createSlice({
         appendGroupContact: addGroupContact,
         appendGroupAdmin: addGroupAdmin,
         clearGroupContact: clearGroupCon,
-        contactListingFunction: changeContactTypesFunc
+        contactListingFunction: changeContactTypesFunc,
+        blockSelected: blockFunc
     }
 })
 
 
-export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction } = tempSlice.actions
+export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected } = tempSlice.actions
 
 export default tempSlice.reducer

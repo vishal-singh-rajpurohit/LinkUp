@@ -362,14 +362,10 @@ export const ContactList = () => {
     const disp = useAppDispatch();
     const searchUsers = useAppSelector((state) => state.temp.searchUsers);
     const users = useAppSelector((state) => state.auth.contacts);
+    const archUsers = useAppSelector((state)=>state.auth.safer)
     const groups = useAppSelector((state) => state.auth.groups);
     const isSearching = useAppSelector((state) => state.triggers.searching);
     const chatType: number = useAppSelector((state) => state.temp.chatListTypes)
-
-
-    useEffect(() => {
-        console.log(`room is ${JSON.stringify(users, null, 2)}`);
-    }, [users])
 
     const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -457,11 +453,11 @@ export const ContactList = () => {
                                             <ContactItem key={idx} _id={user._id} avatar={user.avatar} searchTag={user.groupName} time={user.time} lastMessage={user.lastMessage} isOnline={false} />
                                         ))
                                     )) :
-                                        chatType === 3 ? (!users.length ? <NoContacts /> : (
-                                            users.map((user, idx) => (
+                                        chatType === 3 ? (!archUsers.length ? <NoContacts /> : (
+                                            archUsers.map((user, idx) => (
                                                 <ContactItem key={idx} _id={user._id} avatar={user.avatar} searchTag={user.searchTag} lastMessage={user.lastMessage} time={user.time} isOnline={user.isOnline} />
                                             ))
-                                        )) : null
+                                        )) : <NoContacts />
                             )
                         }
                         {/* <ContactItem /> */}

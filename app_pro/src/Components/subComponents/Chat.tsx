@@ -5,11 +5,11 @@ import { TiAttachmentOutline } from 'react-icons/ti'
 import { RiSendPlaneFill } from 'react-icons/ri'
 import { BsEmojiWink } from 'react-icons/bs'
 import { Mail, MailMenu } from './Mails'
-import { FaImage } from 'react-icons/fa'
+import { FaAngleLeft, FaImage } from 'react-icons/fa'
 import { useRef } from 'react'
 import { useAppSelector } from '../../app/hooks'
 import { getTimeDifference } from '../../helpers/timeConverter'
-import { useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 
 export const ChatArea = () => {
     const room = useAppSelector((state) => state.temp.selectedContact)
@@ -48,7 +48,10 @@ export const ChatTop = () => {
 
     return (
         <div className='h-[4rem] w-full cursor-pointer bg-slate-800 rounded-t-lg' >
-            <div className="grid h-full w-full grid-cols-[1fr_5fr_1fr_0.3fr] items-center px-3 md:grid-cols-[1fr_7fr_1fr_0.3fr] ">
+            <div className="grid h-full w-full grid-cols-[0.2fr_1fr_5fr_1fr_0.3fr] items-center px-3 md:grid-cols-[0.2fr_1fr_7fr_1fr_0.3fr] ">
+                <NavLink to={'/'} >
+                    <div className="w-full flex items-center justify-center"><FaAngleLeft size={20} /></div>
+                </NavLink>
                 <div className="w-full overflow-hidden h-full flex items-center justify-center">
                     <div onClick={getDetails} className='w-[2.5rem] h-[2.5rem] flex items-center justify-center overflow-hidden rounded-[10rem] bg-amber-300 md:h-[2.5rem] md:w-[2.5rem]'>
                         <img src={room?.avatar || g} alt="😒" className="max-h-[2.5rem] h-full" />

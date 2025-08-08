@@ -3,16 +3,19 @@ import { FaAngleLeft, FaAngleRight } from "react-icons/fa"
 // import { FcSettings } from "react-icons/fc"
 import { HiLocationMarker } from "react-icons/hi"
 import { RiArchive2Line } from "react-icons/ri"
-import { NavLink } from "react-router-dom"
+import { NavLink, useNavigate } from "react-router-dom"
 import x from '../../assets/no_dp.png'
 import axios from 'axios'
-import { useAppSelector } from "../../app/hooks"
-import { useEffect } from "react"
+import { useAppDispatch, useAppSelector } from "../../app/hooks"
+import { blockTrigger } from "../../app/functions/auth"
+import { blockSelected } from "../../app/functions/temp"
 
 const env = import.meta.env.VITE_API
 
 
 const Friend = () => {
+    const router = useNavigate()
+    const disp = useAppDispatch()
     const user = useAppSelector((state) => state.auth.user)
     const contact = useAppSelector((state) => state.temp.selectedContact)
 
@@ -22,15 +25,34 @@ const Friend = () => {
                 contactId: contact?._id
             }, { withCredentials: true });
 
+            if (contact?._id) {
+                disp(blockTrigger({ id: contact._id, isGroup: contact?.isGroup || false, trigger: true }))
+                disp(blockSelected({ trigger: true }))
+            }
 
-            console.log(`blocked `);
-            
-            
+            if (contact?.isGroup) {
+                router('/')
+            }
+
         } catch (error) {
             console.log(`error in block function ${error}`);
         }
     }
+    async function ub_block() {
+        try {
+            await axios.post(`${env}/chat/un-block`, {
+                contactId: contact?._id
+            }, { withCredentials: true });
 
+            if (contact?._id) {
+                disp(blockTrigger({ id: contact._id, isGroup: false, trigger: false }))
+                disp(blockSelected({ trigger: false }))
+            }
+
+        } catch (error) {
+            console.log(`error in block function ${error}`);
+        }
+    }
 
     return (
         <section className="w-full h-[100vh] overflow-y-auto flex justify-center rounded-sm">
@@ -49,13 +71,13 @@ const Friend = () => {
                             </div>
                         </div>
                         <div className="w-full grid items-center justify-center grid-cols-[1fr_1fr]">
-                            <div className="w-full h-[5rem] text-center border-t-2 border-r-2 border-gray-400">
-                                <p className="text-[20px] font-bold">{contact?.members?.length || contact?.userId}</p>
-                                <p className="text-[17px] ">Members</p>
+                            <div className="w-full h-[5rem] flex justify-center flex-col  text-center border-t-2 border-r-2 border-gray-400">
+                                <p className="text-[12px] md:text-[20px] font-bold">{contact?.members?.length || contact?.email}</p>
+                                <p className="text-[12px] md:text-[17px] ">{contact?.isGroup ? 'Members' : 'Email'}</p>
                             </div>
-                            <div className="w-full h-[5rem] text-center border-t-2 border-l-2 border-gray-400">
-                                <p className="text-[14px] ">{contact?.email || user.email}</p>
-                                <p className="text-[14px] ">{contact?.searchTag || user.searchTag}</p>
+                            <div className="w-full h-[5rem] flex justify-center flex-col  text-center border-t-2 border-l-2 border-gray-400">
+                                <p className="text-[12px] md:text-[20px] font-bold">{contact?.email || user.email}</p>
+                                <p className="text-[12px] md:text-[17px]  ">{contact?.searchTag || user.searchTag}</p>
                             </div>
                         </div>
                     </div>
@@ -81,7 +103,7 @@ const Friend = () => {
                         ) : (
 
                             contact.isBlocked ? (
-                                <div  className="cursor-pointer w-[100%] h-[4rem] px-[5%] grid grid-cols-[1fr_8fr_1fr] gap-2 items-center justify-center hover:bg-[#4a697894]">
+                                <div onClick={() => ub_block()} className="cursor-pointer w-[100%] h-[4rem] px-[5%] grid grid-cols-[1fr_8fr_1fr] gap-2 items-center justify-center hover:bg-[#4a697894]">
                                     <div className="text-gray-300 flex items-center justify-between"><BiBlock size={20} /></div>
                                     <div className="w-full ">
                                         <div className="text-[18px] font-mono">Unblock</div>

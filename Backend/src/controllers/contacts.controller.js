@@ -500,9 +500,50 @@ const blockContact = asyncHandler(async (req, resp) => {
   }
 });
 
+const unblockContact = asyncHandler(async (req, resp) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      throw new ApiError(501, "Unauthrized Request");
+    }
+
+    const { contactId } = req.body;
+
+    if (!contactId) {
+      throw new ApiError(400, "Contact id not found");
+    }
+
+    const contact = await ContactMember.findOne({
+      userId: user._id,
+      contactId: contactId,
+    });
+
+    if (!contact) {
+      throw new ApiError(400, "contact not found");
+    }
+
+    contact.isBlocked = false;
+    await contact.save();
+
+    resp
+      .status(201)
+      .json(
+        new ApiResponse(
+          200,
+          { message: "un blocked" },
+          "Un Blocked successfully"
+        )
+      );
+  } catch (error) {
+    throw new ApiError(500, "error in unblock function");
+  }
+});
+
 module.exports = {
   createOneOnOneChat,
   crateGroupChat,
   searchContacts,
   blockContact,
+  unblockContact,
 };

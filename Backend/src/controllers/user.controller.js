@@ -256,7 +256,7 @@ const logIn = asyncHandler(async (req, resp) => {
     },
   ]);
 
-  const contacts = await Contact.aggregate([
+  let contacts = await Contact.aggregate([
     {
       $match: {
         oneOnOne: {
@@ -324,7 +324,84 @@ const logIn = asyncHandler(async (req, resp) => {
     },
   ]);
 
+  const archivedContactIds = await Contact.aggregate([
+    {
+      $match: {
+        oneOnOne: {
+          $all: [user._id],
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "contactmembers",
+        localField: "_id",
+        foreignField: "contactId",
+        as: "members",
+      },
+    },
+    {
+      $addFields: {
+        member: {
+          $filter: {
+            input: "$members",
+            as: "member",
+            cond: {
+              $ne: ["$$member.userId", user._id],
+            },
+          },
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "member.userId",
+        foreignField: "_id",
+        as: "member.user",
+      },
+    },
+    {
+      $unwind: "$member.user",
+    },
+    {
+      $lookup: {
+        from: "messages",
+        localField: "_id",
+        foreignField: "contactId",
+        as: "messages",
+      },
+    },
+    {
+      $unwind: "$members",
+    },
+    {
+      $group: {
+        _id: "$_id",
+        isArchieved: {
+          $first: "$members.isArchieved",
+        },
+      },
+    },
+    {
+      $match: {
+        isArchieved: true,
+      },
+    },
+  ]);
+
+  let archivedContacts = [];
+
+  archivedContactIds.forEach((item) => {
+    const newArchivedcontact = contacts.filter((con) => con._id === item._id);
+    if (newArchivedcontact.length) {
+      archivedContacts.push(archivedContacts);
+      contacts = contacts.filter((con) => con._id !== item._id);
+    }
+  });
+
   finalUser[0].contacts = contacts;
+  finalUser[0].safe = archivedContacts;
 
   const groups = await ContactMember.aggregate([
     {
@@ -497,7 +574,7 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
     },
   ]);
 
-  const contacts = await Contact.aggregate([
+  let contacts = await Contact.aggregate([
     {
       $match: {
         oneOnOne: {
@@ -565,7 +642,86 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
     },
   ]);
 
+  const archivedContactIds = await Contact.aggregate([
+    {
+      $match: {
+        oneOnOne: {
+          $all: [user._id],
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "contactmembers",
+        localField: "_id",
+        foreignField: "contactId",
+        as: "members",
+      },
+    },
+    {
+      $addFields: {
+        member: {
+          $filter: {
+            input: "$members",
+            as: "member",
+            cond: {
+              $ne: ["$$member.userId", user._id],
+            },
+          },
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "member.userId",
+        foreignField: "_id",
+        as: "member.user",
+      },
+    },
+    {
+      $unwind: "$member.user",
+    },
+    {
+      $lookup: {
+        from: "messages",
+        localField: "_id",
+        foreignField: "contactId",
+        as: "messages",
+      },
+    },
+    {
+      $unwind: "$members",
+    },
+    {
+      $group: {
+        _id: "$_id",
+        isArchieved: {
+          $first: "$members.isArchieved",
+        },
+      },
+    },
+    {
+      $match: {
+        isArchieved: true,
+      },
+    },
+  ]);
+
+  let archivedContacts = [];
+
+  archivedContactIds.forEach((item) => {
+    const newArchivedcontact = contacts.filter((con) => con._id.toString() === item._id.toString());
+
+    if (contacts.length) {
+      archivedContacts.push(newArchivedcontact[0]);
+      contacts = contacts.filter((con) => con._id.toString() !== item._id.toString());
+      
+    }
+  });
+
   finalUser[0].contacts = contacts;
+  finalUser[0].safe = archivedContacts;
 
   const groups = await ContactMember.aggregate([
     {
@@ -620,6 +776,7 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
       $group: {
         _id: "$group._id",
         isBlocked: { $first: "$isBlocked" },
+        isArchieved: { $first: "$isArchieved" },
         isGroup: { $first: "$group.isGroup" },
         groupName: { $first: "$group.groupName" },
         avatar: { $first: "$group.avatar" },
@@ -646,6 +803,7 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
       $project: {
         isGroup: 1,
         isBlocked: 1,
+        isArchieved: 1,
         groupName: 1,
         whoCanSend: 1,
         avatar: 1,
@@ -668,6 +826,10 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
   ]);
 
   finalUser[0].groups = groups;
+
+
+  // console.log(`final user ${JSON.stringify(finalUser, null, 2)}`);
+  
 
   resp
     .status(201)
