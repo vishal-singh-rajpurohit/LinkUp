@@ -6,7 +6,7 @@ import { useContext, useEffect, useState } from 'react'
 import { setSearching } from '../../app/functions/triggers'
 import axios from 'axios'
 import { appendGroupAdmin, appendGroupContact, clearGroupContact, contactListingFunction, openGroupChat, searching, type groupContactTypes, type searchUserTypes } from '../../app/functions/temp'
-import { saveContact, type newChatTypes } from '../../app/functions/auth'
+import { saveContact, saveGroup, type groupsResp, type newChatTypes } from '../../app/functions/auth'
 import { getTimeDifference } from '../../helpers/timeConverter'
 import { AppContext } from '../../context/AppContext'
 import { FaArchive, FaUserFriends } from 'react-icons/fa'
@@ -46,12 +46,12 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
     }, [contacts, isSearching])
 
 
-    function talk() {
+    function talk(id: string = _id) {
         if (window.innerWidth < 768) {
-            selectToTalk(_id)
-            router(`chat?id=${_id}`)
+            selectToTalk(id)
+            router(`/chat?id=${id}`)
         } else {
-            selectToTalk(_id)
+            selectToTalk(id)
         }
     }
 
@@ -71,15 +71,14 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
                 )
                 disp(saveContact({ newChat: resp.data.data.newContact }));
                 disp(setSearching({ trigger: false }));
-                // disp(selectContact({ id: resp.data.data.newContact._id }))s
-                talk();
+                talk(resp.data.data.newContact._id);
 
             } catch (error) {
                 console.log(`error saving contact ${error}`);
             }
         } else {
             // disp(selectContact({ id: _id }))
-            talk();
+            talk(_id);
         }
     }
 
@@ -210,6 +209,13 @@ const AdminSelect = ({ _id, searchTag, avatar, userId }: {
     )
 }
 
+
+interface newGroupTypes {
+    data: {
+        newGroupDetails: groupsResp
+    }
+}
+
 const CreateGroupChat = () => {
     const disp = useAppDispatch();
     const display = useAppSelector((state) => state.temp.activeGroup)
@@ -233,7 +239,7 @@ const CreateGroupChat = () => {
     });
 
     function hideSelection() {
-        if (selectedGroupContacts.length >= 2) {
+        if (selectedGroupContacts.length >= 1) {
             setDoneSelecting(!doneSelecting)
         }
     }
@@ -266,7 +272,7 @@ const CreateGroupChat = () => {
             on: 0
         })
         try {
-            const resp = await axios.post(`${api}/chat/create-group-chat`, {
+            const resp = await axios.post<newGroupTypes>(`${api}/chat/create-group-chat`, {
                 contacts: selectedGroupContacts,
                 groupName: formData.groupName,
                 description: formData.description,
@@ -275,8 +281,11 @@ const CreateGroupChat = () => {
                 withCredentials: true
             });
 
-            console.log(`group created ${JSON.stringify(resp, null, 2)}`);
 
+            console.log(`resp new group: ${JSON.stringify(resp, null, 2)}`);
+
+
+            disp(saveGroup({ newChat: resp.data.data.newGroupDetails }))
             disp(clearGroupContact())
             disp(openGroupChat({ trigger: false }))
         } catch (error) {
@@ -285,8 +294,8 @@ const CreateGroupChat = () => {
     }
 
     return (
-        <section className={`absolute ${display ? 'flex' : 'hidden'} flex-col justify-center items-center h-full w-[90%] bg-[#284f4e80] md:w-[100%]`}>
-            <div className=" flex flex-col items-center gap-2 h-[98%] w-full bg-[#337775] pt-3 md:w-[80%]">
+        <section className={`absolute ${display ? 'flex' : 'hidden'} flex-col justify-center items-center min-h-full w-[90%] bg-[#284f4e80] md:w-[100%] pb-[3rem]`}>
+            <div className=" flex flex-col items-center gap-2 min-h-[98%] w-full bg-[#337775] pt-3 md:w-[80%]">
                 <div className="w-full flex justify-center items-center">
                     <h3 className="uppercase text-2xl text-black font-bold underline-offset-1 underline select-none">Create Group Chat</h3>
                 </div>
@@ -323,7 +332,7 @@ const CreateGroupChat = () => {
                 <div className="w-[90%] border-t-2 border-amber-500">
                     <div className="flex  justify-between pt-1">
                         <div className="text-lg font-mono">select at least 2</div>
-                        <button disabled={selectedGroupContacts.length < 2} onClick={hideSelection} className="px-1 bg-purple-500 disabled:bg-purple-300 disabled:text-gray-200 rounded-sm cursor-pointer">{doneSelecting ? 'select more' : 'done'}</button>
+                        <button disabled={selectedGroupContacts.length < 1} onClick={hideSelection} className="px-1 bg-purple-500 disabled:bg-purple-300 disabled:text-gray-200 rounded-sm cursor-pointer">{doneSelecting ? 'select more' : 'done'}</button>
                     </div>
                     {
                         <p className={`text-red-500 bg-amber-200 ${custErr.on === 4 ? 'block' : 'hidden'}`}>{custErr.message}</p>
@@ -350,7 +359,13 @@ const CreateGroupChat = () => {
                 </div>
 
                 <div className="fixed bottom-[1.5vh] w-[90%] gap-1 flex items-center justify-center">
-                    <button className="w-[40%] h-8 text-lg bg-blue-950 text-white cursor-pointer rounded-sm" onClick={handleCreate}>Create</button>
+                    {
+                        (whoCanSend === 'only_admin' && !doneSelecting) ? (
+                            <button disabled={selectedGroupContacts.length < 1} className="w-[40%] h-8 text-lg bg-blue-950 text-white cursor-pointer rounded-sm" onClick={hideSelection}>select admin</button>
+                        ) : (
+                            <button className="w-[40%] h-8 text-lg bg-blue-950 text-white cursor-pointer rounded-sm" onClick={handleCreate}>Create</button>
+                        )
+                    }
                     <button className="w-[40%] h-8 text-lg bg-blue-950 text-white cursor-pointer rounded-sm" onClick={handleCreate}>Cancel</button>
                 </div>
             </div>
@@ -362,7 +377,7 @@ export const ContactList = () => {
     const disp = useAppDispatch();
     const searchUsers = useAppSelector((state) => state.temp.searchUsers);
     const users = useAppSelector((state) => state.auth.contacts);
-    const archUsers = useAppSelector((state)=>state.auth.safer)
+    const archUsers = useAppSelector((state) => state.auth.safer)
     const groups = useAppSelector((state) => state.auth.groups);
     const isSearching = useAppSelector((state) => state.triggers.searching);
     const chatType: number = useAppSelector((state) => state.temp.chatListTypes)

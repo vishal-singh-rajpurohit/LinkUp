@@ -22,7 +22,7 @@ const newSchema = new Schema(
     },
     whoCanSend: {
       type: String,
-      emum: ["ANYONE", "NO_ONE", "ONLY_ADMIN"],
+      emum: ["anyone", "no_one", "only_admin"],
     },
     description: {
       type: String,

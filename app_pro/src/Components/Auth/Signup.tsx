@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAppDispatch } from '../../app/hooks';
-import { enterApp, type initialRespType } from '../../app/functions/auth'
+import { firstEnter, type initialRespType } from '../../app/functions/auth'
 import { useNavigate } from 'react-router-dom';
 
 const api = import.meta.env.VITE_API
@@ -14,6 +14,7 @@ interface FormData {
     confirmPassword: string;
 }
 
+
 const Signup = () => {
     const disp = useAppDispatch();
     const router = useNavigate();
@@ -25,7 +26,12 @@ const Signup = () => {
         confirmPassword: '',
     });
 
-    const [errors, setErrors] = useState<string | null>(null);
+    const [errors, setErrors] = useState<{
+        type: string;
+        message: string;
+    } | null>(null);
+
+    const [pass, setPass] = useState<boolean>(false)
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({
@@ -38,8 +44,18 @@ const Signup = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        if (formData.searchTag.length < 3) {
+            setErrors({
+                message: 'search tag must be min 3 Characters',
+                type: 'tag'
+            })
+        }
+
         if (formData.password !== formData.confirmPassword) {
-            setErrors("Passwords do not match");
+            setErrors({
+                message: "Passwords do not match",
+                type: 'pass'
+            });
             return;
         }
 
@@ -54,7 +70,7 @@ const Signup = () => {
                 { withCredentials: true }
             );
             console.log(`resp: ${JSON.stringify(resp, null, 2)}`);
-            disp(enterApp({ userData: resp.data.data.User }))
+            disp(firstEnter({ userData: resp.data.data.User }))
 
             router('/')
 
@@ -62,6 +78,56 @@ const Signup = () => {
             console.log(`error in register: ${error}`);
         }
     };
+
+    useEffect(() => {
+        async function checkSearchTag() {
+            try {
+                await axios.post(`${api}/user/live-check-searchtag`, {
+                    searchTag: formData.searchTag
+                }, { withCredentials: true })
+
+                setErrors({
+                    message: '',
+                    type: ''
+                })
+                setPass(true)
+                
+            } catch (error) {
+                // console.log(`error in checking search Tag Avilability: ${JSON.stringify(error, null, 2)}`);
+                setErrors({
+                    message: "Search tag Alredy taken",
+                    type: "tag"
+                })
+                setPass(false)
+            }
+        }
+
+        async function checkEmail(){
+            try {
+                await axios.post(`${api}/user/live-check-mail`, {
+                    email: formData.email
+                }, { withCredentials: true })
+                setErrors({
+                    message: '',
+                    type: ''
+                })
+            } catch (error) {
+                setErrors({
+                    message: "this email alredy used",
+                    type: "email"
+                })
+            }
+        }
+
+        if (formData.searchTag.length > 3) {
+            checkSearchTag()
+        }
+
+        if(formData.email.length > 3 && pass)[
+            checkEmail()
+        ]
+
+    }, [formData, setFormData])
 
     return (
         <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
@@ -71,8 +137,6 @@ const Signup = () => {
             >
                 <h2 className="text-2xl font-semibold text-white mb-1">Sign Up</h2>
                 <p className="text-xl font-semibold text-white mb-6">Welcome to app</p>
-
-                {errors && <div className="text-red-400 mb-4">{errors}</div>}
 
                 <div className="mb-4">
                     <label className="block text-slate-300 mb-1" htmlFor="userName">Username</label>
@@ -99,6 +163,7 @@ const Signup = () => {
                         className="w-full px-3 py-2 rounded bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-slate-500"
                     />
                 </div>
+                {errors?.type === 'tag' && <div className="text-red-400 mb-4">{errors.message}</div>}
 
                 <div className="mb-4">
                     <label className="block text-slate-300 mb-1" htmlFor="email">Email</label>
@@ -112,6 +177,7 @@ const Signup = () => {
                         className="w-full px-3 py-2 rounded bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-slate-500"
                     />
                 </div>
+                {errors?.type === 'email' && <div className="text-red-400 mb-4">{errors.message}</div>}
 
                 <div className="mb-4">
                     <label className="block text-slate-300 mb-1" htmlFor="password">Password</label>

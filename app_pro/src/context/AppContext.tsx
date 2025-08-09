@@ -17,6 +17,7 @@ export const AppContextProvider = ({ children }: {
     const disp = useAppDispatch()
     const contacts = useAppSelector((state) => state.auth.contacts)
     const groups = useAppSelector((state) => state.auth.groups)
+    const archContacts = useAppSelector((state) => state.auth.safer)
     const chatTypes = useAppSelector((state) => state.temp.chatListTypes)
 
     function selectToTalk(id: string) {
@@ -28,6 +29,9 @@ export const AppContextProvider = ({ children }: {
         else if (chatTypes === 2) {
             const chat = groups.filter((val) => val._id === id)
             disp(selectGroup({ chat: chat[0] }))
+        } else if (chatTypes === 3) {
+            const chat = archContacts.filter((val) => val._id === id)
+            disp(selectContact({ chat: chat[0] }))
         }
     }
 

@@ -16,7 +16,7 @@ const LoginForm = () => {
   const [formData, setFormData] = useState<LoginData>({
     searchTag: '',
     password: '',
-  }); 
+  });
 
   const [error, setError] = useState<string | null>(null);
 

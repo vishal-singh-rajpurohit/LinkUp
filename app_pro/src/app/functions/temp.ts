@@ -42,6 +42,7 @@ function selectConFunc(state: initialStateTypes, action: PayloadAction<{ chat: c
         _id: action.payload.chat._id,
         lastMessage: action.payload.chat.lastMessage,
         isBlocked: action.payload.chat.isBlocked,
+        isArchieved: action.payload.chat.isArchieved,
         roomId: action.payload.chat.socketId,
         time: action.payload.chat.time,
         userId: action.payload.chat.userId,
@@ -61,9 +62,11 @@ function selectGpFunc(state: initialStateTypes, action: PayloadAction<{ chat: gr
         avatar: action.payload.chat.avatar,
         email: "",
         isOnline: false,
+        isArchieved: action.payload.chat.isArchieved,
         lastMessage: action.payload.chat.lastMessage,
         roomId: action.payload.chat.roomId,
         isBlocked: false,
+        isGroup:  action.payload.chat.isGroup,
         searchTag: "",
         socketId: action.payload.chat.roomId,
         time: action.payload.chat.time,
@@ -122,6 +125,14 @@ function blockFunc(state: initialStateTypes, action: PayloadAction<{ trigger: bo
     }
 }
 
+function clearTemo(state: initialStateTypes){
+    state.activeGroup = false;
+    state.chatListTypes = 1;
+    state.groupContact = [];
+    state.searchUsers = [];
+    state.selectedContact = null;
+}
+
 
 const tempSlice = createSlice({
     name: 'temp',
@@ -137,11 +148,12 @@ const tempSlice = createSlice({
         appendGroupAdmin: addGroupAdmin,
         clearGroupContact: clearGroupCon,
         contactListingFunction: changeContactTypesFunc,
-        blockSelected: blockFunc
+        blockSelected: blockFunc,
+        clearTemp: clearTemo
     }
 })
 
 
-export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected } = tempSlice.actions
+export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp } = tempSlice.actions
 
 export default tempSlice.reducer

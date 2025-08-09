@@ -13,9 +13,10 @@ export interface initialRespType {
     groups: groupsResp[];
 }
 
-interface groupsResp {
+export interface groupsResp {
     _id: string;
     isGroup: boolean;
+    isArchieved: boolean;
     groupName: string;
     avatar: string;
     lastMessage: string;
@@ -75,7 +76,7 @@ export interface contactTypes {
     isGroup?: boolean;
     lastMessage: string;
     isOnline: boolean;
-    time: Date;
+    time?: Date;
     messages?: message[];
     members?: groupMemberTypes[];
 }
@@ -95,6 +96,7 @@ interface groupMemberTypes {
 export interface groupType {
     _id: string;
     isGroup: boolean;
+    isArchieved: boolean;
     groupName: string;
     avatar: string;
     lastMessage: string;
@@ -128,6 +130,18 @@ const initialState: initialTypes = {
     contacts: [],
     safer: [],
     groups: [],
+}
+
+function loginFunction(state: initialTypes, action: PayloadAction<{ userData: initialRespType }>) {
+    state.user = {
+        _id: action.payload.userData._id,
+        avatar: action.payload.userData.avatar,
+        userName: action.payload.userData.userName,
+        email: action.payload.userData.email,
+        searchTag: action.payload.userData.searchTag,
+        socketId: action.payload.userData.socketId,
+        theme: action.payload.userData.theme,
+    }
 }
 
 function enterAppFunc(state: initialTypes, action: PayloadAction<{ userData: initialRespType }>) {
@@ -181,7 +195,6 @@ function enterAppFunc(state: initialTypes, action: PayloadAction<{ userData: ini
         state.safer = [...state.safer, newContact]
     })
 
-
     action.payload.userData.groups.forEach((item) => {
         const members: groupMemberTypes[] = []
         item.members.forEach((mem) => {
@@ -202,9 +215,10 @@ function enterAppFunc(state: initialTypes, action: PayloadAction<{ userData: ini
         const newContact: groupType = {
             _id: item._id,
             avatar: item.avatar,
+            isArchieved: item.isArchieved,
             description: item.description,
             groupName: item.groupName,
-            isGroup: item.isGroup,
+            isGroup: true,
             lastMessage: item.lastMessage,
             roomId: item.roomId,
             whoCanSend: item.whoCanSend,
@@ -229,7 +243,10 @@ function logOutFun(state: initialTypes) {
         socketId: "",
         theme: false,
     }
-    state.isLoggedIn = false
+    state.isLoggedIn = false;
+    state.contacts = [];
+    state.groups = [];
+    state.safer = []
 }
 
 
@@ -256,9 +273,12 @@ export interface newChatTypes {
         }
     };
 }
+
+
 function newContact(state: initialTypes, action: PayloadAction<{
     newChat: newChatTypes
 }>) {
+
     const newContact: contactTypes = {
         _id: action.payload.newChat._id,
         lastMessage: action.payload.newChat.lastMessage,
@@ -281,10 +301,40 @@ function newContact(state: initialTypes, action: PayloadAction<{
 }
 
 function newGroup(state: initialTypes, action: PayloadAction<{
-    newChat: groupType
+    newChat: groupsResp
 }>) {
+
+
+    const members: groupMemberTypes[] = []
+
+    action.payload.newChat.members.forEach((mem) => {
+        const newMember: groupMemberTypes = {
+            _id: mem.user._id,
+            isAdmin: mem.isAdmin,
+            avatar: mem.user.avatar,
+            email: mem.user.email,
+            isOnline: mem.user.online,
+            searchTag: mem.user.searchTag,
+            socketId: mem.user.socketId,
+            userName: mem.user.userName
+        }
+
+        members.push(newMember)
+    })
+
     const newContact: groupType = {
-        ...action.payload.newChat
+        _id: action.payload.newChat._id,
+        avatar: action.payload.newChat.avatar,
+        isArchieved: action.payload.newChat.isArchieved,
+        description: action.payload.newChat.description,
+        groupName: action.payload.newChat.groupName,
+        isGroup: action.payload.newChat.isGroup,
+        lastMessage: action.payload.newChat.lastMessage,
+        roomId: action.payload.newChat.roomId,
+        whoCanSend: action.payload.newChat.whoCanSend,
+        time: action.payload.newChat.updatedAt,
+        members: members,
+        messages: []
     }
 
     state.groups = [...state.groups, newContact]
@@ -304,21 +354,52 @@ function blockFunc(state: initialTypes, action: PayloadAction<{ trigger: boolean
     }
 }
 
+function archFunc(state: initialTypes, action: PayloadAction<{ _id: string }>) {
+    const newContact = state.contacts.filter((user) => user._id === action.payload._id)[0];
+
+    if (newContact) {
+        state.safer = [
+            ...state.safer,
+            newContact
+        ];
+
+        state.contacts = state.contacts.filter((user) => user._id !== action.payload._id)
+    }
+
+}
+
+function unArchFunc(state: initialTypes, action: PayloadAction<{ _id: string }>) {
+    const newContact = state.safer.filter((user) => user._id === action.payload._id)[0];
+
+    if (newContact) {
+        state.contacts = [
+            ...state.contacts,
+            newContact
+        ];
+
+        state.safer = state.safer.filter((user) => user._id !== action.payload._id)
+    }
+
+}
 
 export const AuthSlice = createSlice({
     name: 'auth',
     initialState,
     reducers: {
+        firstEnter: loginFunction,
         enterApp: enterAppFunc,
         logOut: logOutFun,
         saveContact: newContact,
         saveGroup: newGroup,
-        blockTrigger: blockFunc
+        blockTrigger: blockFunc,
+        addArchieved: archFunc,
+        removeArchieved: unArchFunc,
+
     }
 });
 
 
-export const { enterApp, logOut, saveContact, saveGroup, blockTrigger } = AuthSlice.actions
+export const { firstEnter, enterApp, logOut, saveContact, saveGroup, blockTrigger, addArchieved, removeArchieved } = AuthSlice.actions
 
 
 export default AuthSlice.reducer

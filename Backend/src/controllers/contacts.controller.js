@@ -170,6 +170,7 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
   }
 });
 
+// To Fix
 const crateGroupChat = asyncHandler(async (req, resp) => {
   try {
     const user = req.user;
@@ -184,8 +185,6 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
 
     contacts.push({ userId: String(user._id), admin: true });
 
-    console.log(`req body: ${JSON.stringify(contacts, null, 2)}`);
-
     if (!groupName || !description || !whoCanSend || contacts.length < 3) {
       throw new ApiError(400, "All values must required", {
         errorMessage: "All values must required",
@@ -195,7 +194,7 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
     const newGroup = new Contact({
       isGroup: true,
       groupName: groupName,
-      whoCanSend: String.prototype.toUpperCase(whoCanSend),
+      whoCanSend: whoCanSend,
       description: description,
       createdBy: user._id,
     });
@@ -208,7 +207,7 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
       });
     }
 
-    contacts.forEach(async (element) => {
+    for (const element of contacts) {
       let addedMember = new ContactMember({
         userId: element.userId,
         contactId: newGroup._id,
@@ -223,18 +222,35 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
           errorMessage: "Error while adding new contact member",
         });
       }
-    });
+    }
 
-    const newGroupDetails = await Contact.aggregate([
+    const newGroupDetails = await ContactMember.aggregate([
       {
         $match: {
-          _id: newGroup._id,
+          userId: user._id,
+          contactId: newGroup._id,
+        },
+      },
+      {
+        $lookup: {
+          from: "contacts",
+          localField: "contactId",
+          foreignField: "_id",
+          as: "group",
+        },
+      },
+      {
+        $unwind: "$group",
+      },
+      {
+        $match: {
+          "group.isGroup": true,
         },
       },
       {
         $lookup: {
           from: "contactmembers",
-          localField: "_id",
+          localField: "group._id",
           foreignField: "contactId",
           as: "members",
         },
@@ -259,13 +275,18 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
       },
       {
         $group: {
-          _id: "$_id",
-          isGroup: { $first: "$isGroup" },
-          groupName: { $first: "$groupName" },
-          avatar: { $first: "$avatar" },
-          lastMessage: { $first: "$lastMessage" },
-          whoCanSend: { $first: "$whoCanSend" },
-          description: { $first: "$description" },
+          _id: "$group._id",
+          isBlocked: { $first: "$isBlocked" },
+          isArchieved: { $first: "$isArchieved" },
+          isGroup: { $first: "$group.isGroup" },
+          groupName: { $first: "$group.groupName" },
+          avatar: { $first: "$group.avatar" },
+          lastMessage: { $first: "$group.lastMessage" },
+          isGroup: { $first: "$group.isGroup" },
+          roomId: { $first: "$group.socketId" },
+          whoCanSend: { $first: "$group.whoCanSend" },
+          description: { $first: "$group.description" },
+          updatedAt: { $first: "$group.updatedAt" },
           members: {
             $push: "$members",
           },
@@ -282,28 +303,33 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
       {
         $project: {
           isGroup: 1,
+          isBlocked: 1,
+          isArchieved: 1,
           groupName: 1,
           whoCanSend: 1,
           avatar: 1,
           description: 1,
+          roomId: 1,
+          isGroup: 1,
           lastMessage: 1,
+          updatedAt: 1,
           "members._id": 1,
           "members.isAdmin": 1,
           "members.user._id": 1,
           "members.user.userName": 1,
-          "members.user.serachTag": 1,
+          "members.user.searchTag": 1,
           "members.user.socketId": 1,
+          "members.user.online": 1,
           "members.user.email": 1,
           "members.user.avatar": 1,
         },
       },
     ]);
 
-    if (!newGroupDetails) {
+    // Error here
+    if (!newGroupDetails[0]) {
       throw new ApiError(400, `group not found after creation`);
     }
-
-    console.log(JSON.stringify(newGroupDetails, null, 2));
 
     resp
       .status(200)
@@ -540,10 +566,88 @@ const unblockContact = asyncHandler(async (req, resp) => {
   }
 });
 
+const archieveContact = asyncHandler(async (req, resp) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      throw new ApiError(501, "Unauthrized Request");
+    }
+
+    const { contactId } = req.body;
+
+    if (!contactId) {
+      throw new ApiError(400, "Contact id not found");
+    }
+
+    const contact = await ContactMember.findOne({
+      userId: user._id,
+      contactId: contactId,
+    });
+
+    if (!contact) {
+      throw new ApiError(400, "contact not found");
+    }
+
+    contact.isArchieved = true;
+    await contact.save();
+
+    resp
+      .status(201)
+      .json(
+        new ApiResponse(200, { message: "archieved" }, "archieved successfully")
+      );
+  } catch (error) {
+    throw new ApiError(500, "error in archieved function");
+  }
+});
+
+const unArchieveContact = asyncHandler(async (req, resp) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      throw new ApiError(501, "Unauthrized Request");
+    }
+
+    const { contactId } = req.body;
+
+    if (!contactId) {
+      throw new ApiError(400, "Contact id not found");
+    }
+
+    const contact = await ContactMember.findOne({
+      userId: user._id,
+      contactId: contactId,
+    });
+
+    if (!contact) {
+      throw new ApiError(400, "contact not found");
+    }
+
+    contact.isArchieved = false;
+    await contact.save();
+
+    resp
+      .status(201)
+      .json(
+        new ApiResponse(
+          200,
+          { message: "un archieved" },
+          "unarchieved successfully"
+        )
+      );
+  } catch (error) {
+    throw new ApiError(500, "error in unarchieved function");
+  }
+});
+
 module.exports = {
   createOneOnOneChat,
   crateGroupChat,
   searchContacts,
   blockContact,
   unblockContact,
+  archieveContact,
+  unArchieveContact,
 };

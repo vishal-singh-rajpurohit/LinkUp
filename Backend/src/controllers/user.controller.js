@@ -17,21 +17,34 @@ const Contact = require("../models/contacts.model");
  * @description these function will pre check the searchTag and Email Avilability
  */
 const liveCheckTagSignup = asyncHandler(async (req, resp) => {
+  console.log(`function called`);
   const { searchTag } = req.body;
   if (!searchTag) {
     throw new ApiError(400, "Must proive search tag");
   }
-
-  const isUserExists = await User.exists({ searchTag });
-
-  if (isUserExists) {
-    throw new ApiError(401, "this search tag is not avilable", {
-      isError: false,
-      resp_message: "Search Tag Not Avilable",
-    });
+  
+  const isUserExists = await User.findOne({ searchTag });
+  
+  console.log(`chaeck one ${JSON.stringify(isUserExists, null, 2)}`);
+  if (isUserExists?._id) {
+    console.log(`success`);
+    throw new ApiError(204,'search tag already taken', {
+      success: false,
+      message: "search tag already taken"
+    })
   }
+  console.log(`last check`);
+  
+  console.log(`tag avilable`);
+  
+  // console.log(`last check`);
 
-  resp.status(200).json(new ApiResponse(200, "tag is avilable", {}));
+  resp.status(200).json(
+    new ApiResponse(200, "tag is avilable", {
+      success: true,
+      message: "name Avilable",
+    })
+  );
 });
 
 const liveCheckMailSignup = asyncHandler(async (req, resp) => {
@@ -53,6 +66,7 @@ const liveCheckMailSignup = asyncHandler(async (req, resp) => {
 
   resp.status(200).json(new ApiResponse(200, "email is avilable", {}));
 });
+
 
 /**
  * @description this function will check given email or searchTag is already avilable or not
@@ -393,10 +407,15 @@ const logIn = asyncHandler(async (req, resp) => {
   let archivedContacts = [];
 
   archivedContactIds.forEach((item) => {
-    const newArchivedcontact = contacts.filter((con) => con._id === item._id);
-    if (newArchivedcontact.length) {
-      archivedContacts.push(archivedContacts);
-      contacts = contacts.filter((con) => con._id !== item._id);
+    const newArchivedcontact = contacts.filter(
+      (con) => con._id.toString() === item._id.toString()
+    );
+
+    if (contacts.length) {
+      archivedContacts.push(newArchivedcontact[0]);
+      contacts = contacts.filter(
+        (con) => con._id.toString() !== item._id.toString()
+      );
     }
   });
 
@@ -711,12 +730,15 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
   let archivedContacts = [];
 
   archivedContactIds.forEach((item) => {
-    const newArchivedcontact = contacts.filter((con) => con._id.toString() === item._id.toString());
+    const newArchivedcontact = contacts.filter(
+      (con) => con._id.toString() === item._id.toString()
+    );
 
     if (contacts.length) {
       archivedContacts.push(newArchivedcontact[0]);
-      contacts = contacts.filter((con) => con._id.toString() !== item._id.toString());
-      
+      contacts = contacts.filter(
+        (con) => con._id.toString() !== item._id.toString()
+      );
     }
   });
 
@@ -827,9 +849,7 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
 
   finalUser[0].groups = groups;
 
-
   // console.log(`final user ${JSON.stringify(finalUser, null, 2)}`);
-  
 
   resp
     .status(201)
@@ -851,6 +871,7 @@ const logOut = asyncHandler(async (req, resp) => {
     {
       $set: {
         refreshToken: "",
+        socketId: "",
         online: false,
       },
     },
@@ -946,248 +967,148 @@ const getAllAccountDetails = asyncHandler(async (req, resp) => {
     },
   ]);
 
-  const one_on_one_chats = await ContactMember.aggregate(
-    // [
-    //   {
-    //     $match: {
-    //       userId: new mongoose.Types.ObjectId(user._id),
-    //     },
-    //   },
-    //   {
-    //     $lookup: {
-    //       from: "users",
-    //       localField: "userId",
-    //       foreignField: "_id",
-    //       as: "user",
-    //     },
-    //   },
-    //   {
-    //     $lookup: {
-    //       from: "contacts",
-    //       localField: "contactId",
-    //       foreignField: "_id",
-    //       as: "contact",
-    //     },
-    //   },
-    //   {
-    //     $match: {
-    //       "contact.isGroup": false,
-    //     },
-    //   },
-    //   {
-    //     $addFields: {
-    //       user: {
-    //         $first: "$user",
-    //       },
-    //       contact: {
-    //         $first: "$contact",
-    //       },
-    //     },
-    //   },
-    //   {
-    //     $addFields: {
-    //       contact_name: {
-    //         $cond: {
-    //           if: {
-    //             $eq: ["$user.userName", "$contact.groupName"],
-    //           },
-    //           then: "$contact.groupName",
-    //           else: "$contact.groupName",
-    //         },
-    //       },
-    //     },
-    //   },
-    //   {
-    //     $addFields: {
-    //       contact_det: "$contact",
-    //     },
-    //   },
-    //   {
-    //     $lookup: {
-    //       from: "users",
-    //       localField: "contact.oneOnOne",
-    //       foreignField: "_id",
-    //       as: "chat_members",
-    //     },
-    //   },
-    //   {
-    //     $unwind: "$chat_members",
-    //   },
-    //   {
-    //     $addFields: {
-    //       same_: {
-    //         $cond: {
-    //           if: {
-    //             $eq: ["$chat_members._id", "$userId"],
-    //           },
-    //           then: true,
-    //           else: false,
-    //         },
-    //       },
-    //     },
-    //   },
-    //   {
-    //     $match: {
-    //       same_: { $ne: true }, // Removes documents where same_ is true
-    //       "contact.isSecured": { $ne: true },
-    //     },
-    //   },
-    //   {
-    //     $project: {
-    //       contact_name: 1,
-    //       "contact_det.isGroup": 1,
-    //       "contact_det._id": 1,
-    //       "contact_det.groupName": 1,
-    //       "contact_det.lastMessage": 1,
-    //       "contact_det._id": 1,
-    //       "chat_members.searchTag": 1,
-    //       "chat_members._id": 1,
-    //     },
-    //   },
-    // ]
-    [
-      {
-        $match: {
-          userId: new mongoose.Types.ObjectId(user._id),
+  const one_on_one_chats = await ContactMember.aggregate([
+    {
+      $match: {
+        userId: new mongoose.Types.ObjectId(user._id),
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "userId",
+        foreignField: "_id",
+        as: "user",
+      },
+    },
+    {
+      $lookup: {
+        from: "contacts",
+        localField: "contactId",
+        foreignField: "_id",
+        as: "contact",
+      },
+    },
+    {
+      $match: {
+        "contact.isGroup": false,
+      },
+    },
+    {
+      $addFields: {
+        user: {
+          $first: "$user",
+        },
+        contact: {
+          $first: "$contact",
         },
       },
-      {
-        $lookup: {
-          from: "users",
-          localField: "userId",
-          foreignField: "_id",
-          as: "user",
-        },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "contact.oneOnOne",
+        foreignField: "_id",
+        as: "oneOnOne",
       },
-      {
-        $lookup: {
-          from: "contacts",
-          localField: "contactId",
-          foreignField: "_id",
-          as: "contact",
-        },
-      },
-      {
-        $match: {
-          "contact.isGroup": false,
-        },
-      },
-      {
-        $addFields: {
-          user: {
-            $first: "$user",
-          },
-          contact: {
-            $first: "$contact",
-          },
-        },
-      },
-      {
-        $lookup: {
-          from: "users",
-          localField: "contact.oneOnOne",
-          foreignField: "_id",
-          as: "oneOnOne",
-        },
-      },
-      {
-        $addFields: {
-          contact_name: {
-            $cond: {
-              if: {
-                $eq: ["$user.userName", "$contact.groupName"],
-              },
-              then: {
-                $let: {
-                  vars: {
-                    otherUser: {
-                      $first: {
-                        $filter: {
-                          input: "$oneOnOne",
-                          as: "u",
-                          cond: {
-                            $ne: ["$$u._id", "$userId"],
-                          },
+    },
+    {
+      $addFields: {
+        contact_name: {
+          $cond: {
+            if: {
+              $eq: ["$user.userName", "$contact.groupName"],
+            },
+            then: {
+              $let: {
+                vars: {
+                  otherUser: {
+                    $first: {
+                      $filter: {
+                        input: "$oneOnOne",
+                        as: "u",
+                        cond: {
+                          $ne: ["$$u._id", "$userId"],
                         },
                       },
                     },
                   },
-                  in: "$$otherUser.userName",
                 },
+                in: "$$otherUser.userName",
               },
-              else: "$contact.groupName",
             },
+            else: "$contact.groupName",
           },
-          contact_user_id: {
-            $let: {
-              vars: {
-                otherUser: {
-                  $first: {
-                    $filter: {
-                      input: "$oneOnOne",
-                      as: "u",
-                      cond: {
-                        $ne: ["$$u._id", "$userId"],
-                      },
+        },
+        contact_user_id: {
+          $let: {
+            vars: {
+              otherUser: {
+                $first: {
+                  $filter: {
+                    input: "$oneOnOne",
+                    as: "u",
+                    cond: {
+                      $ne: ["$$u._id", "$userId"],
                     },
                   },
                 },
               },
-              in: "$$otherUser._id",
             },
+            in: "$$otherUser._id",
           },
         },
       },
-      {
-        $addFields: {
-          contact_det: "$contact",
-        },
+    },
+    {
+      $addFields: {
+        contact_det: "$contact",
       },
-      {
-        $lookup: {
-          from: "users",
-          localField: "contact.oneOnOne",
-          foreignField: "_id",
-          as: "chat_members",
-        },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "contact.oneOnOne",
+        foreignField: "_id",
+        as: "chat_members",
       },
-      {
-        $unwind: "$chat_members",
-      },
-      {
-        $addFields: {
-          same_: {
-            $cond: {
-              if: {
-                $eq: ["$chat_members._id", "$userId"],
-              },
-              then: true,
-              else: false,
+    },
+    {
+      $unwind: "$chat_members",
+    },
+    {
+      $addFields: {
+        same_: {
+          $cond: {
+            if: {
+              $eq: ["$chat_members._id", "$userId"],
             },
+            then: true,
+            else: false,
           },
         },
       },
-      {
-        $match: {
-          same_: { $ne: true }, // Removes documents where same_ is true
-          "contact.isSecured": { $ne: true },
-        },
+    },
+    {
+      $match: {
+        same_: { $ne: true }, // Removes documents where same_ is true
+        "contact.isSecured": { $ne: true },
       },
-      {
-        $project: {
-          contact_name: 1,
-          "contact_det.isGroup": 1,
-          "contact_det._id": 1,
-          "contact_det.groupName": 1,
-          "contact_det.lastMessage": 1,
-          "contact_det._id": 1,
-          "chat_members.searchTag": 1,
-          "chat_members._id": 1,
-          contact_user_id: 1,
-        },
+    },
+    {
+      $project: {
+        contact_name: 1,
+        "contact_det.isGroup": 1,
+        "contact_det._id": 1,
+        "contact_det.groupName": 1,
+        "contact_det.lastMessage": 1,
+        "contact_det._id": 1,
+        "chat_members.searchTag": 1,
+        "chat_members._id": 1,
+        contact_user_id: 1,
       },
-    ]
-  );
+    },
+  ]);
 
   const secured_chats = await ContactMember.aggregate([
     {
