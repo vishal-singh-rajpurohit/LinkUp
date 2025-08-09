@@ -170,7 +170,6 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
   }
 });
 
-// To Fix
 const crateGroupChat = asyncHandler(async (req, resp) => {
   try {
     const user = req.user;
@@ -642,6 +641,50 @@ const unArchieveContact = asyncHandler(async (req, resp) => {
   }
 });
 
+const addToGroup = asyncHandler(async (req, resp) => {
+  const user = req.user;
+
+  if (!user) {
+    throw new ApiError(501, "Unautharized request");
+  }
+
+  const { members, contactId } = req.body;
+
+  if (!contactId || !members.length) {
+    throw new ApiError(400, "members or contactId not found");
+  }
+
+  const group = await Contact.findById(contactId);
+
+  if (!group) {
+    throw new ApiError(400, "contact not found");
+  }
+
+  for (let val of members) {
+    const isExistes = await ContactMember.findOne({
+      contactId: group._id,
+      userId: val._id,
+    });
+
+    if (!isExistes) {
+      const newMember = new ContactMember({
+        addedBy: user._id,
+        userId: val._id,
+        contactId: group._id,
+        isAdmin: false,
+        isArchieved: false,
+        isBlocked: false,
+      });
+      await newMember.save()
+    }
+  }
+
+  resp.status(201).json(
+    new ApiResponse(201, {}, "Added to Chat")
+  )
+
+});
+
 module.exports = {
   createOneOnOneChat,
   crateGroupChat,
@@ -650,4 +693,5 @@ module.exports = {
   unblockContact,
   archieveContact,
   unArchieveContact,
+  addToGroup
 };

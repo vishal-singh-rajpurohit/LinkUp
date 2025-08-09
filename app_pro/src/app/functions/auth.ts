@@ -274,7 +274,6 @@ export interface newChatTypes {
     };
 }
 
-
 function newContact(state: initialTypes, action: PayloadAction<{
     newChat: newChatTypes
 }>) {

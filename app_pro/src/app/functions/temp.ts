@@ -8,7 +8,6 @@ export interface searchUserTypes {
     isOnline: boolean
 }
 
-
 export interface groupContactTypes {
     _id: string;
     userId: string;
@@ -17,20 +16,31 @@ export interface groupContactTypes {
     admin?: boolean;
 }
 
+interface temporalTypes {
+        _id: string;
+        userId:string;
+        avatar: string;
+        searchTag: string;
+}
+
 interface initialStateTypes {
     searchUsers: searchUserTypes[];
     activeGroup: boolean;
+    activeAddToGroup: boolean;
     selectedContact: contactTypes | null;
     groupContact: groupContactTypes[];
     chatListTypes: number; // 1 -> single, 2-> group, 3 -> archieved
+    tempUser: temporalTypes[]
 }
 
 const initialState: initialStateTypes = {
     searchUsers: [],
     activeGroup: false,
+    activeAddToGroup: false,
     selectedContact: null,
     groupContact: [],
-    chatListTypes: 1
+    chatListTypes: 1,
+    tempUser: [],
 }
 
 function searchingFunc(state: initialStateTypes, action: PayloadAction<{ users: searchUserTypes[] }>) {
@@ -66,7 +76,7 @@ function selectGpFunc(state: initialStateTypes, action: PayloadAction<{ chat: gr
         lastMessage: action.payload.chat.lastMessage,
         roomId: action.payload.chat.roomId,
         isBlocked: false,
-        isGroup:  action.payload.chat.isGroup,
+        isGroup: action.payload.chat.isGroup,
         searchTag: "",
         socketId: action.payload.chat.roomId,
         time: action.payload.chat.time,
@@ -125,12 +135,45 @@ function blockFunc(state: initialStateTypes, action: PayloadAction<{ trigger: bo
     }
 }
 
-function clearTemo(state: initialStateTypes){
+function clearTemo(state: initialStateTypes) {
     state.activeGroup = false;
     state.chatListTypes = 1;
     state.groupContact = [];
     state.searchUsers = [];
+    state.tempUser = [];
     state.selectedContact = null;
+}
+
+function setTemporalUser(state: initialStateTypes, action: PayloadAction<{ contacts: {
+    userId: string;
+    avatar: string;
+    searchTag: string;
+} }>) {
+    let find: boolean = false;
+    const newContact: temporalTypes = {
+        _id: action.payload.contacts.userId,
+        avatar: action.payload.contacts.avatar,
+        searchTag: action.payload.contacts.searchTag,
+        userId: action.payload.contacts.userId
+    }
+
+    for(let val of state.tempUser){
+        if(val._id === newContact._id){
+            find = true
+        }
+    }
+
+    if(find){
+        state.tempUser = [...(state.tempUser.filter((val)=>val._id !== newContact._id))];
+    }else{
+        state.tempUser = [newContact , ...state.tempUser];
+    }
+
+
+}
+
+function openAddToGroup(state: initialStateTypes, action: PayloadAction<{trigger: boolean;}>){
+    state.activeAddToGroup = action.payload.trigger
 }
 
 
@@ -149,11 +192,13 @@ const tempSlice = createSlice({
         clearGroupContact: clearGroupCon,
         contactListingFunction: changeContactTypesFunc,
         blockSelected: blockFunc,
+        setTempUser: setTemporalUser,
+        setAddGroupModal: openAddToGroup,
         clearTemp: clearTemo
     }
 })
 
 
-export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp } = tempSlice.actions
+export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal } = tempSlice.actions
 
 export default tempSlice.reducer

@@ -83,7 +83,7 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
     }
 
     return (
-        <div onClick={() => select()} className=' bg-transparent h-[4rem] cursor-pointer hover:bg-purple-900'>
+        <div onClick={() => select()} className='w-full bg-transparent h-[4rem] cursor-pointer hover:bg-purple-900'>
             <div className="grid h-full grid-cols-[0.1fr_1.3fr_5.7fr_0.8fr] items-center px-1 ">
                 <div className="flex items-center">
                     <div className={`w-2 h-2 bg-green-500 rounded-2xl ${isOnline ? 'inline' : 'hidden'}`} ></div>
