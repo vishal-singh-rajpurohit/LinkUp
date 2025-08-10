@@ -152,6 +152,7 @@ function clearTemo(state: initialStateTypes) {
 
 function setTemporalUser(state: initialStateTypes, action: PayloadAction<{
     contacts: {
+        _id: string;
         userId: string;
         avatar: string;
         searchTag: string;
@@ -159,7 +160,7 @@ function setTemporalUser(state: initialStateTypes, action: PayloadAction<{
 }>) {
     let find: boolean = false;
     const newContact: temporalTypes = {
-        _id: action.payload.contacts.userId,
+        _id: action.payload.contacts._id || action.payload.contacts.userId,
         avatar: action.payload.contacts.avatar,
         searchTag: action.payload.contacts.searchTag,
         userId: action.payload.contacts.userId

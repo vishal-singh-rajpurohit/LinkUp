@@ -32,10 +32,12 @@ app.set("io", io);
 const userRouter = require("./routes/user.routes");
 const chatRouter = require("./routes/chat.routes");
 const contactRouter = require("./routes/contacts.routes");
+const reportRoute = require("./routes/report.route");
 
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/chat", chatRouter);
 app.use("/api/v1/contact", contactRouter);
+app.use("/api/v1/report", reportRoute);
 
 
 // Start socket.io connection

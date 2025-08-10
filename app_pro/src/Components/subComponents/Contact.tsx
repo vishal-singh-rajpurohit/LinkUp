@@ -293,6 +293,11 @@ const CreateGroupChat = () => {
         }
     }
 
+    function cancel(){
+        disp(clearGroupContact())
+            disp(openGroupChat({ trigger: false }))
+    }
+
     return (
         <section className={`absolute ${display ? 'flex' : 'hidden'} flex-col justify-center items-center min-h-full w-[90%] bg-[#284f4e80] md:w-[100%] pb-[3rem]`}>
             <div className=" flex flex-col items-center gap-2 min-h-[98%] w-full bg-[#337775] pt-3 md:w-[80%]">
@@ -366,7 +371,7 @@ const CreateGroupChat = () => {
                             <button className="w-[40%] h-8 text-lg bg-blue-950 text-white cursor-pointer rounded-sm" onClick={handleCreate}>Create</button>
                         )
                     }
-                    <button className="w-[40%] h-8 text-lg bg-blue-950 text-white cursor-pointer rounded-sm" onClick={handleCreate}>Cancel</button>
+                    <button className="w-[40%] h-8 text-lg bg-blue-950 text-white cursor-pointer rounded-sm" onClick={cancel}>Cancel</button>
                 </div>
             </div>
         </section>
