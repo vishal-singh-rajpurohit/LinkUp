@@ -22,21 +22,21 @@ const liveCheckTagSignup = asyncHandler(async (req, resp) => {
   if (!searchTag) {
     throw new ApiError(400, "Must proive search tag");
   }
-  
+
   const isUserExists = await User.findOne({ searchTag });
-  
+
   console.log(`chaeck one ${JSON.stringify(isUserExists, null, 2)}`);
   if (isUserExists?._id) {
     console.log(`success`);
-    throw new ApiError(204,'search tag already taken', {
+    throw new ApiError(204, "search tag already taken", {
       success: false,
-      message: "search tag already taken"
-    })
+      message: "search tag already taken",
+    });
   }
   console.log(`last check`);
-  
+
   console.log(`tag avilable`);
-  
+
   // console.log(`last check`);
 
   resp.status(200).json(
@@ -66,7 +66,6 @@ const liveCheckMailSignup = asyncHandler(async (req, resp) => {
 
   resp.status(200).json(new ApiResponse(200, "email is avilable", {}));
 });
-
 
 /**
  * @description this function will check given email or searchTag is already avilable or not
@@ -457,6 +456,11 @@ const logIn = asyncHandler(async (req, resp) => {
       $unwind: "$members",
     },
     {
+      $match: {
+        "members.isBlocked": false,
+      },
+    },
+    {
       $lookup: {
         from: "users",
         localField: "members.userId",
@@ -778,6 +782,11 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
     },
     {
       $unwind: "$members",
+    },
+    {
+      $match: {
+        "members.isBlocked": false,
+      },
     },
     {
       $lookup: {

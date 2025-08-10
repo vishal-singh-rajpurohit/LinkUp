@@ -685,6 +685,54 @@ const addToGroup = asyncHandler(async (req, resp) => {
 
 });
 
+const kickOutFromGroup = asyncHandler(async(req, resp)=>{
+  const user = req.user;
+
+  if (!user) {
+    throw new ApiError(501, "Unautharized request");
+  }
+
+  const { contactId, memberId} = req.body;
+
+  if (!contactId || !memberId) {
+    throw new ApiError(400, "Contact Id not found");
+  }
+
+  const contact = await Contact.findById(contactId);
+
+  if(!contact){
+    throw new ApiError(400, "Contact not found")
+  }
+
+  const isUserInChat = await ContactMember.findOne({
+    userId: user._id,
+    contactId: contactId
+  })
+
+
+  if(!isUserInChat.isAdmin ){
+    throw new ApiError(400, "Not a member or not a admin")
+  }
+
+  const member = await ContactMember.findOne({
+    userId: memberId,
+    contactId: contactId,
+  })
+
+
+  if(!member._id){
+    throw new ApiError(400, "Member not found in Group")
+  }
+
+  member.isBlocked = true;
+  await member.save()
+
+
+  resp.status(201)
+  .json(new ApiResponse(201, {}, "Member Removed From Chat"))
+
+})
+
 module.exports = {
   createOneOnOneChat,
   crateGroupChat,
@@ -693,5 +741,6 @@ module.exports = {
   unblockContact,
   archieveContact,
   unArchieveContact,
-  addToGroup
+  addToGroup,
+  kickOutFromGroup
 };

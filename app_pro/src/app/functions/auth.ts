@@ -381,6 +381,17 @@ function unArchFunc(state: initialTypes, action: PayloadAction<{ _id: string }>)
 
 }
 
+
+function kickoutFunc(state: initialTypes, action: PayloadAction<{ id: string, conId: string }>) {
+    const updatedContact = state.groups.filter((group) => group._id === action.payload.conId)[0];
+
+    const updatedMember = updatedContact.members.filter((member) => member._id !== action.payload.id);
+
+    updatedContact.members = updatedMember;
+
+    state.groups = [...(state.groups.filter((val) => val._id !== action.payload.conId)), updatedContact]
+}
+
 export const AuthSlice = createSlice({
     name: 'auth',
     initialState,
@@ -393,12 +404,12 @@ export const AuthSlice = createSlice({
         blockTrigger: blockFunc,
         addArchieved: archFunc,
         removeArchieved: unArchFunc,
-
+        kickoutAuth: kickoutFunc
     }
 });
 
 
-export const { firstEnter, enterApp, logOut, saveContact, saveGroup, blockTrigger, addArchieved, removeArchieved } = AuthSlice.actions
+export const { firstEnter, enterApp, logOut, saveContact, saveGroup, blockTrigger, addArchieved, removeArchieved, kickoutAuth } = AuthSlice.actions
 
 
 export default AuthSlice.reducer

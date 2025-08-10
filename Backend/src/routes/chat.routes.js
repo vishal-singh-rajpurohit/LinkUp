@@ -1,6 +1,6 @@
 const express = require("express");
 const auth = require("../middlewares/auth.middleware")
-const { crateGroupChat, createOneOnOneChat, blockContact, unblockContact, archieveContact, unArchieveContact, addToGroup } = require("../controllers/contacts.controller");
+const { crateGroupChat, createOneOnOneChat, blockContact, unblockContact, archieveContact, unArchieveContact, addToGroup, kickOutFromGroup } = require("../controllers/contacts.controller");
 const { sendMessage, fetchPresentChat, undoMessage, requestVideoCall, declineVideoCall, answerVideoCall, negosiateCall } = require("../controllers/chat.controller");
 
 const chatRouter = express.Router();
@@ -11,6 +11,7 @@ chatRouter.route("/block-left").post(auth, blockContact);
 chatRouter.route("/un-block").post(auth, unblockContact);
 
 chatRouter.route("/add-to-group").post(auth, addToGroup);
+chatRouter.route("/kickout-from-group").post(auth, kickOutFromGroup);
 
 chatRouter.route("/archieve").post(auth, archieveContact);
 chatRouter.route("/un-archieve").post(auth, unArchieveContact);
