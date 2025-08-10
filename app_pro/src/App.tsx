@@ -23,7 +23,6 @@ function App() {
       <Route path='/user' element={<Auth ><Account /></Auth>} />
       <Route path='/user/help' element={<Auth ><Help /></Auth>} />
       <Route path='/user/find-chats' element={<Auth ><FindChat /></Auth>} />
-      <Route path='/user/archived' element={<Auth ><Archiveved /></Auth>} />
       <Route path='/user/settings' element={<Auth ><Settings /></Auth>} />
     </Routes>
   )

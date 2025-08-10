@@ -200,7 +200,7 @@ const Help = () => {
             <AddContactGroupModel open={openGroups} setOpen={setOpenGroups} />
             {/* <SuccessModal /> */}
             <section className="w-full min-h-[100vh] overflow-y-auto gap-[1rem] py-[2rem] flex justify-center rounded-sm">
-                <section className="w-[90%] h-[98%] bg-slate-800 flex  flex-col gap-2 mt-3 md:w-[98%] rounded-md pb-4">
+                <section className="w-[90%] h-[98%] bg-slate-800 flex  flex-col gap-2 mt-3 md:w-[80%] lg:w-[60%] rounded-md pb-4">
                     <section className="w-full h-[15%] bg-slate-900 grid grid-cols-[2fr_8fr] gap-2 items-center justify-center px-3 pb-2 overflow-hidden">
                         <div className="">
                             <TfiHelpAlt size={40} cursor={'pointer'} />

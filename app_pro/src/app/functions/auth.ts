@@ -39,7 +39,7 @@ export interface groupsResp {
     }[]
 }
 
-interface userType {
+export interface userType {
     _id: string;
     avatar: string;
     userName: string;
@@ -248,7 +248,6 @@ function logOutFun(state: initialTypes) {
     state.groups = [];
     state.safer = []
 }
-
 
 export interface newChatTypes {
     _id: string;
