@@ -1,10 +1,11 @@
-import { createContext } from "react";
+import { createContext, useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
 import { selectContact, selectGroup } from '../app/functions/temp'
 
 
 export interface appContextTypes {
     selectToTalk: (id: string) => void;
+    isAdmin: boolean;
 }
 
 
@@ -16,9 +17,12 @@ export const AppContextProvider = ({ children }: {
 }) => {
     const disp = useAppDispatch()
     const contacts = useAppSelector((state) => state.auth.contacts)
+    const selectedContact = useAppSelector((state) => state.temp.selectedContact)
     const groups = useAppSelector((state) => state.auth.groups)
     const archContacts = useAppSelector((state) => state.auth.safer)
     const chatTypes = useAppSelector((state) => state.temp.chatListTypes)
+    const user = useAppSelector((state) => state.auth.user)
+    const [isAdmin, setIsAdmin] = useState<boolean>(false)
 
     function selectToTalk(id: string) {
         if (chatTypes === 1) {
@@ -35,8 +39,20 @@ export const AppContextProvider = ({ children }: {
         }
     }
 
+    useEffect(() => {
+        setIsAdmin(false)
+        if (selectedContact.isGroup) {
+            selectedContact.members?.forEach((member) => {
+                if (member._id === user._id) {
+                    setIsAdmin(member.isAdmin)
+                }
+            })
+        }
+    }, [selectedContact])
+
     const data: appContextTypes = {
-        selectToTalk
+        selectToTalk,
+        isAdmin
     }
 
     return (

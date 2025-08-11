@@ -1,7 +1,8 @@
 const express = require("express");
 const auth = require("../middlewares/auth.middleware")
-const { crateGroupChat, createOneOnOneChat, blockContact, unblockContact, archieveContact, unArchieveContact, addToGroup, kickOutFromGroup } = require("../controllers/contacts.controller");
+const { crateGroupChat, createOneOnOneChat, blockContact, unblockContact, archieveContact, unArchieveContact, addToGroup, kickOutFromGroup, changeAvatar } = require("../controllers/contacts.controller");
 const { sendMessage, fetchPresentChat, undoMessage, requestVideoCall, declineVideoCall, answerVideoCall, negosiateCall } = require("../controllers/chat.controller");
+const { fileUploader } = require("../middlewares/handleFiles.middleware");
 
 const chatRouter = express.Router();
  
@@ -15,6 +16,8 @@ chatRouter.route("/kickout-from-group").post(auth, kickOutFromGroup);
 
 chatRouter.route("/archieve").post(auth, archieveContact);
 chatRouter.route("/un-archieve").post(auth, unArchieveContact);
+
+chatRouter.route("/un-archieve").post(auth, fileUploader.single('avatar'), changeAvatar);
 
 chatRouter.route("/send-msg").post(auth, sendMessage);
 chatRouter.route("/undo-msg").post(undoMessage);

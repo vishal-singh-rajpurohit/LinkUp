@@ -430,6 +430,19 @@ function setAns(state:initialTypes, action: PayloadAction<{ans: string}>){
 function setAvatar(state: initialTypes, action: PayloadAction<{avatar: string}>){
     state.user.avatar = action.payload.avatar
 }
+function setGroupAvatar(state: initialTypes, action: PayloadAction<{avatar: string; contactId: string;}>){
+    const group = state.groups.filter((gp)=>gp._id === action.payload.contactId)[0]
+
+    if(group){
+        group.avatar === action.payload.avatar;
+
+        state.groups = [
+            group,
+            ...(state.groups.filter((gp)=>gp._id !== action.payload.contactId))
+        ]
+    }
+
+}
 
 
 export const AuthSlice = createSlice({
@@ -450,13 +463,14 @@ export const AuthSlice = createSlice({
         updateEmail: setMail,
         updateName: setName,
         updateAvatar: setAvatar,
+        updateGroupAvatar: setGroupAvatar,
         setSecourityQuestion: setQuestion,
         setSecourityAnswer: setAns,
     }
 });
 
 
-export const { firstEnter, enterApp, logOut, saveContact, saveGroup, blockTrigger, addArchieved, removeArchieved, kickoutAuth, setTheme, updateEmail, updateName, updateSearchTag, updateAvatar, setSecourityQuestion, setSecourityAnswer } = AuthSlice.actions
+export const { firstEnter, enterApp, logOut, saveContact, saveGroup, blockTrigger, addArchieved, removeArchieved, kickoutAuth, setTheme, updateEmail, updateName, updateSearchTag, updateAvatar, setSecourityQuestion, setSecourityAnswer, updateGroupAvatar } = AuthSlice.actions
 
 
 export default AuthSlice.reducer

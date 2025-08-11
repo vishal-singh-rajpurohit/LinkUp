@@ -46,6 +46,9 @@ const newSchema = new Schema(
       type: String,
       default: null,
     },
+    public_id_avatar: {
+      type: String
+    }
   },
   {
     timeseries: true,

@@ -29,7 +29,7 @@ interface initialStateTypes {
     activeAddToGroup: boolean;
     kickOutGroup: boolean;
     kickOutWarning: boolean;
-    selectedContact: contactTypes | null;
+    selectedContact: contactTypes;
     groupContact: groupContactTypes[];
     chatListTypes: number; // 1 -> single, 2-> group, 3 -> archieved
     tempUser: temporalTypes[];
@@ -42,7 +42,20 @@ const initialState: initialStateTypes = {
     activeAddToGroup: false,
     kickOutGroup: false,
     kickOutWarning: false,
-    selectedContact: null,
+    selectedContact: {
+        _id: "",
+        userId: "",
+        avatar: "",
+        roomId: "",
+        socketId: "",
+        searchTag: "",
+        userName: "",
+        email: "",
+        isBlocked: false,
+        isArchieved: false,
+        lastMessage: "",
+        isOnline: false,
+    },
     groupContact: [],
     chatListTypes: 1,
     tempUser: [],
@@ -147,7 +160,20 @@ function clearTemo(state: initialStateTypes) {
     state.groupContact = [];
     state.searchUsers = [];
     state.tempUser = [];
-    state.selectedContact = null;
+    state.selectedContact = {
+        _id: "",
+        userId: "",
+        avatar: "",
+        roomId: "",
+        socketId: "",
+        searchTag: "",
+        userName: "",
+        email: "",
+        isBlocked: false,
+        isArchieved: false,
+        lastMessage: "",
+        isOnline: false,
+    }
 }
 
 function setTemporalUser(state: initialStateTypes, action: PayloadAction<{
@@ -204,6 +230,9 @@ function removeMemberFromGroup(state: initialStateTypes, action: PayloadAction<{
     }
 }
 
+function setGroupAvatar(state: initialStateTypes, action: PayloadAction<{ avatar: string; }>) {
+    if (state.selectedContact) state.selectedContact.avatar = action.payload.avatar
+}
 
 
 const tempSlice = createSlice({
@@ -227,11 +256,12 @@ const tempSlice = createSlice({
         setKickoutWarning: openKickoutWarning,
         clearTemp: clearTemo,
         setTempString: setTemproryString,
-        kickoutTemp: removeMemberFromGroup
+        kickoutTemp: removeMemberFromGroup,
+        updateSelectedAvatar: setGroupAvatar
     }
 })
 
 
-export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp } = tempSlice.actions
+export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp, updateSelectedAvatar } = tempSlice.actions
 
 export default tempSlice.reducer

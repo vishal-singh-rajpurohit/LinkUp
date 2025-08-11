@@ -675,24 +675,21 @@ const addToGroup = asyncHandler(async (req, resp) => {
         isArchieved: false,
         isBlocked: false,
       });
-      await newMember.save()
+      await newMember.save();
     }
   }
 
-  resp.status(201).json(
-    new ApiResponse(201, {}, "Added to Chat")
-  )
-
+  resp.status(201).json(new ApiResponse(201, {}, "Added to Chat"));
 });
 
-const kickOutFromGroup = asyncHandler(async(req, resp)=>{
+const kickOutFromGroup = asyncHandler(async (req, resp) => {
   const user = req.user;
 
   if (!user) {
     throw new ApiError(501, "Unautharized request");
   }
 
-  const { contactId, memberId} = req.body;
+  const { contactId, memberId } = req.body;
 
   if (!contactId || !memberId) {
     throw new ApiError(400, "Contact Id not found");
@@ -700,38 +697,92 @@ const kickOutFromGroup = asyncHandler(async(req, resp)=>{
 
   const contact = await Contact.findById(contactId);
 
-  if(!contact){
-    throw new ApiError(400, "Contact not found")
+  if (!contact) {
+    throw new ApiError(400, "Contact not found");
   }
 
   const isUserInChat = await ContactMember.findOne({
     userId: user._id,
-    contactId: contactId
-  })
+    contactId: contactId,
+  });
 
-
-  if(!isUserInChat.isAdmin ){
-    throw new ApiError(400, "Not a member or not a admin")
+  if (!isUserInChat.isAdmin) {
+    throw new ApiError(400, "Not a member or not a admin");
   }
 
   const member = await ContactMember.findOne({
     userId: memberId,
     contactId: contactId,
-  })
+  });
 
-
-  if(!member._id){
-    throw new ApiError(400, "Member not found in Group")
+  if (!member._id) {
+    throw new ApiError(400, "Member not found in Group");
   }
 
   member.isBlocked = true;
-  await member.save()
+  await member.save();
 
+  resp.status(201).json(new ApiResponse(201, {}, "Member Removed From Chat"));
+});
 
-  resp.status(201)
-  .json(new ApiResponse(201, {}, "Member Removed From Chat"))
+const changeAvatar = asyncHandler(async (req, resp) => {
+  const user = req.user;
 
-})
+  if (!user) {
+    throw new ApiError(501, "Unautharized request");
+  }
+
+  const { contactId } = req.body;
+
+  if (!contactId) {
+    throw new ApiError(501, "ContactId not found");
+  }
+
+  const myUser = await User.findById(user._id);
+
+  if (!myUser) {
+    throw new ApiError(501, "Unautharized request");
+  }
+
+  const group = await Contact.findById(contactId);
+
+  if (!group) {
+    throw new ApiError(400, "Group not found");
+  }
+
+  const isAdmin = await ContactMember.findOne({
+    userId: user._id,
+    contactId: group._id,
+  });
+
+  if (!isAdmin.isAdmin) {
+    throw new ApiError(400, "User not Admin");
+  }
+
+  const path = req.file.path;
+
+  if (!path) {
+    throw new ApiError(501, "path not found request");
+  }
+
+  if (group.public_id_avatar) {
+    await removeFromCloudinary(myUser.public_id_avatar);
+  }
+
+  const upload_resp = await uploadToCloudinary(path);
+
+  group.public_id_avatar = upload_resp.public_id;
+  group.avatar = upload_resp.url;
+
+  await group.save();
+
+  const updatedGroup = await Contact.findById(group._id)
+
+  if (!updatedGroup) {
+    throw new ApiError(501, "Internal server error contact not updated");
+  }
+  resp.status(201).json(new ApiResponse(201, { avatar: updatedUser.avatar }));
+});
 
 module.exports = {
   createOneOnOneChat,
@@ -742,5 +793,6 @@ module.exports = {
   archieveContact,
   unArchieveContact,
   addToGroup,
-  kickOutFromGroup
+  kickOutFromGroup,
+  changeAvatar
 };

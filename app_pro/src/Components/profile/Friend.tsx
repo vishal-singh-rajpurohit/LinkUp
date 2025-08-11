@@ -10,9 +10,10 @@ import { useAppDispatch, useAppSelector } from "../../app/hooks"
 import { addArchieved, blockTrigger, kickoutAuth, removeArchieved, type contactTypes } from "../../app/functions/auth"
 import { blockSelected, clearTemp, contactListingFunction, kickoutTemp, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, setTempUser } from "../../app/functions/temp"
 import { GrDown, GrUp } from "react-icons/gr"
-import { useEffect, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 import { ContactItem } from "../subComponents/Contact"
 import { GiKickScooter } from "react-icons/gi"
+import { AppContext } from "../../context/AppContext"
 
 const env = import.meta.env.VITE_API
 
@@ -31,6 +32,7 @@ const SelectContactItem = ({ searchTag, avatar, userId }: {
     async function select() {
         disp(setTempUser({
             contacts: {
+                _id: userId,
                 avatar: avatar,
                 searchTag: searchTag,
                 userId: userId
@@ -238,6 +240,14 @@ const Friend = () => {
     const contact = useAppSelector((state) => state.temp.selectedContact)
     const chatType = useAppSelector((state) => state.temp.chatListTypes)
 
+    const context = useContext(AppContext)
+
+    if(!context){
+        throw new Error('context not found')
+    }
+
+    const {isAdmin} = context;
+
     const [showMembers, setShowMembers] = useState<boolean>(false)
 
     async function block_left() {
@@ -308,8 +318,6 @@ const Friend = () => {
             console.log(`errir in archieve ${error}`);
         }
     }
-
-
 
     return (
         <>
@@ -386,7 +394,7 @@ const Friend = () => {
                         }
 
                         {
-                            contact?.isGroup &&
+                            (contact?.isGroup && isAdmin) &&
                             <div onClick={() => disp(setAddGroupModal({ trigger: true }))} className="cursor-pointer w-[100%] h-[4rem] px-[5%] grid grid-cols-[1fr_8fr_1fr] gap-2 items-center justify-center hover:bg-[#4a697894]">
                                 <div className="text-gray-300 flex items-center justify-between"><BiUserCircle size={20} /></div>
                                 <div className="w-full ">
@@ -396,7 +404,7 @@ const Friend = () => {
                             </div>
                         }
                         {
-                            contact?.isGroup &&
+                            (contact?.isGroup && isAdmin) &&
                             <div onClick={() => disp(setKickoutModal({ trigger: true }))} className="cursor-pointer w-[100%] h-[4rem] px-[5%] grid grid-cols-[1fr_8fr_1fr] gap-2 items-center justify-center hover:bg-[#4a697894]">
                                 <div className="text-gray-300 flex items-center justify-between"><GiKickScooter size={20} /></div>
                                 <div className="w-full ">
