@@ -21,13 +21,7 @@ async function uploadToCloudinary(path) {
     }
     fs.unlinkSync(path);
 
-    const url = await cloudinary.url(upload.public_id, {
-      crop: "auto",
-      gravity: "auto",
-      width: 320,
-      height: 320,
-    });
-
+    const url = await cloudinary.url(upload.public_id, { format: "webp" });
     upload.url = url;
 
     return upload;

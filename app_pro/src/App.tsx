@@ -6,10 +6,10 @@ import Friend from './Components/profile/Friend'
 import FindChat from './Components/profile/Pages/FindChat'
 import Settings from './Components/profile/Pages/Settings'
 import Help from './Components/profile/Pages/Help'
-import Archiveved from './Components/profile/Pages/Archiveved'
 import Auth, { RevAuth } from './middleware/Auth'
 import Signup from './Components/Auth/Signup'
 import LoginForm from './Components/Auth/Login'
+import {SampleCropper} from './Components/Cropper/Cropper'
 
 function App() {
 

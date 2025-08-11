@@ -4,7 +4,7 @@ import x from "../../../assets/no_dp.png"
 import { FaAngleLeft, FaRegEye } from "react-icons/fa"
 import { HiLocationMarker } from "react-icons/hi"
 import { useEffect, useRef, useState, type SetStateAction } from "react"
-import { setSecourityAnswer, setSecourityQuestion, setTheme, updateAvatar, updateEmail, updateName, updateSearchTag, type userType } from "../../../app/functions/auth"
+import { setSecourityAnswer, setSecourityQuestion, setTheme, updateEmail, updateName, updateSearchTag, type userType } from "../../../app/functions/auth"
 import { GoVerified } from "react-icons/go"
 import { AiOutlineLoading3Quarters } from "react-icons/ai"
 import { FcCancel } from "react-icons/fc"
@@ -13,6 +13,7 @@ import { DiSqllite } from "react-icons/di"
 import { MdOutlineDarkMode } from "react-icons/md"
 import { FaCircleInfo } from "react-icons/fa6"
 import axios from "axios"
+import { SampleCropper } from "../../Cropper/Cropper"
 
 const api = import.meta.env.VITE_API;
 
@@ -75,6 +76,8 @@ const Settings = () => {
   const dpRef = useRef<HTMLInputElement | null>(null)
 
   const [changeMode, setChangeMode] = useState<boolean>(false)
+  const [openEditor, setOpenEditor] = useState<boolean>(false)
+  const [tempAvatar, setTempAvatar] = useState<string>('');
   const [copyUser, setCopyUser] = useState<userType>(
     {
       _id: "",
@@ -259,30 +262,17 @@ const Settings = () => {
       }
     }
   }
-
-  async function handleAvatar(files: FileList | null) {
-    if (files && files[0]) {
-      const formData = new FormData()
-      formData.append('avatar', files[0])
-
-      try {
-        const resp = await axios.post<{
-          data:{
-            avatar: string;
-          }
-        }>(`${api}/user/update-avatar`, formData, {
-          withCredentials: true,
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        })
-
-        console.log(`done`);
-        disp(updateAvatar({avatar: resp.data.data.avatar}))
-
-      } catch (error) {
-        console.log(`form data: ${JSON.stringify(error, null, 2)}`);
+  async function handleAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] || null;
+    if (e.target.files && file) {
+      const render = new FileReader()
+      render.onload = () => {
+        if (typeof render.result === 'string') {
+          setTempAvatar(render.result)
+        }
       }
+      render.readAsDataURL(file)
+
     }
   }
 
@@ -290,8 +280,17 @@ const Settings = () => {
     dpRef.current?.click()
   }
 
+  useEffect(() => {
+    if (Boolean(tempAvatar.trim().length)) {
+      setOpenEditor(true)
+    } else {
+      setOpenEditor(false)
+    }
+  }, [tempAvatar, setTempAvatar, openEditor, setOpenAns])
+
   return (
     <>
+      <SampleCropper open={openEditor} setOpen={setOpenEditor} image={tempAvatar} setImage={setTempAvatar} />
       <AnsModel setOpen={setOpenAns} open={openAns && verifed} />
       <VerifyModel setOpen={setOpenAns} open={openAns && !verifed} />
 
@@ -304,7 +303,7 @@ const Settings = () => {
                 <div className="w-full h-auto flex flex-col gap-1 justify-center items-center">
                   <div className="bg-inherit w-[10rem] h-[10rem] rounded-[50%] overflow-hidden sha">
                     <img src={user.avatar || x} onClick={avatarClick} alt="profile picture" className="cursor-pointer w-full h-auto" />
-                    <input ref={dpRef} onChange={(e) => handleAvatar(e.target.files)} type="file" accept='image' name="db" id="" />
+                    <input ref={dpRef} onChange={(e) => handleAvatar(e)} type="file" accept='image' name="db" id="" />
                   </div>
                   <div className="w-full flex flex-col gap-0.5 items-center justify-center">
                     <p className="text-[22px] font-bold">{user.userName}</p>
