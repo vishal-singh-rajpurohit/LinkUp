@@ -8,6 +8,7 @@ export interface initialRespType {
     email: string;
     theme: boolean;
     socketId: string;
+    securityQuestion: string;
     contacts: newChatTypes[];
     safe: newChatTypes[];
     groups: groupsResp[];
@@ -47,6 +48,9 @@ export interface userType {
     email: string;
     theme: boolean;
     socketId: string;
+    question: string;
+    answer: string;
+    isVerified: boolean;
 }
 
 interface message {
@@ -125,14 +129,17 @@ const initialState: initialTypes = {
         email: "",
         searchTag: "",
         socketId: "",
+        question: "",
+        answer: "",
         theme: false,
+        isVerified: false
     },
     contacts: [],
     safer: [],
     groups: [],
 }
 
-function loginFunction(state: initialTypes, action: PayloadAction<{ userData: initialRespType }>) {
+function signFunction(state: initialTypes, action: PayloadAction<{ userData: initialRespType }>) {
     state.user = {
         _id: action.payload.userData._id,
         avatar: action.payload.userData.avatar,
@@ -141,7 +148,11 @@ function loginFunction(state: initialTypes, action: PayloadAction<{ userData: in
         searchTag: action.payload.userData.searchTag,
         socketId: action.payload.userData.socketId,
         theme: action.payload.userData.theme,
+        question: "",
+        answer: "",
+        isVerified: false
     }
+    state.isLoggedIn = true
 }
 
 function enterAppFunc(state: initialTypes, action: PayloadAction<{ userData: initialRespType }>) {
@@ -153,6 +164,9 @@ function enterAppFunc(state: initialTypes, action: PayloadAction<{ userData: ini
         searchTag: action.payload.userData.searchTag,
         socketId: action.payload.userData.socketId,
         theme: action.payload.userData.theme,
+        question: action.payload.userData.securityQuestion,
+        answer: "",
+        isVerified: false,
     }
 
     action.payload.userData.contacts.forEach((item) => {
@@ -241,7 +255,10 @@ function logOutFun(state: initialTypes) {
         email: "",
         searchTag: "",
         socketId: "",
+        question: "",
+        answer: "",
         theme: false,
+        isVerified: false
     }
     state.isLoggedIn = false;
     state.contacts = [];
@@ -380,7 +397,6 @@ function unArchFunc(state: initialTypes, action: PayloadAction<{ _id: string }>)
 
 }
 
-
 function kickoutFunc(state: initialTypes, action: PayloadAction<{ id: string, conId: string }>) {
     const updatedContact = state.groups.filter((group) => group._id === action.payload.conId)[0];
 
@@ -391,11 +407,36 @@ function kickoutFunc(state: initialTypes, action: PayloadAction<{ id: string, co
     state.groups = [...(state.groups.filter((val) => val._id !== action.payload.conId)), updatedContact]
 }
 
+function setThemeFunc(state: initialTypes) {
+    state.user.theme = !state.user.theme;
+}
+
+function setTag(state: initialTypes, action: PayloadAction<{ tag: string }>) {
+    state.user.searchTag = action.payload.tag
+}
+function setMail(state: initialTypes, action: PayloadAction<{ mail: string }>) {
+    state.user.email = action.payload.mail
+}
+function setName(state: initialTypes, action: PayloadAction<{ name: string }>) {
+    state.user.userName = action.payload.name
+}
+function setQuestion(state:initialTypes, action: PayloadAction<{q: string}>){
+    state.user.question = action.payload.q
+}
+function setAns(state:initialTypes, action: PayloadAction<{ans: string}>){
+    state.user.answer = action.payload.ans;
+    state.user.isVerified = true;
+}
+function setAvatar(state: initialTypes, action: PayloadAction<{avatar: string}>){
+    state.user.avatar = action.payload.avatar
+}
+
+
 export const AuthSlice = createSlice({
     name: 'auth',
     initialState,
     reducers: {
-        firstEnter: loginFunction,
+        firstEnter: signFunction,
         enterApp: enterAppFunc,
         logOut: logOutFun,
         saveContact: newContact,
@@ -403,12 +444,19 @@ export const AuthSlice = createSlice({
         blockTrigger: blockFunc,
         addArchieved: archFunc,
         removeArchieved: unArchFunc,
-        kickoutAuth: kickoutFunc
+        kickoutAuth: kickoutFunc,
+        setTheme: setThemeFunc,
+        updateSearchTag: setTag,
+        updateEmail: setMail,
+        updateName: setName,
+        updateAvatar: setAvatar,
+        setSecourityQuestion: setQuestion,
+        setSecourityAnswer: setAns,
     }
 });
 
 
-export const { firstEnter, enterApp, logOut, saveContact, saveGroup, blockTrigger, addArchieved, removeArchieved, kickoutAuth } = AuthSlice.actions
+export const { firstEnter, enterApp, logOut, saveContact, saveGroup, blockTrigger, addArchieved, removeArchieved, kickoutAuth, setTheme, updateEmail, updateName, updateSearchTag, updateAvatar, setSecourityQuestion, setSecourityAnswer } = AuthSlice.actions
 
 
 export default AuthSlice.reducer

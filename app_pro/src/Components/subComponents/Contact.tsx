@@ -90,7 +90,7 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
                 </div>
                 <div className="w-full overflow-hidden h-full flex items-center justify-center">
                     <div className='w-[2.5rem] h-[2.5rem] flex items-center justify-center overflow-hidden rounded-[10rem] bg-[#e4e6e7] md:h-[2rem] md:w-[2rem]'>
-                        <img src={avatar || g} alt="😒" className="max-h-[2.5rem] h-full md:max-h-[1.5rem]" />
+                        <img src={avatar || g} alt="😒" className="max-h-[2.5rem] h-full " />
                     </div>
                 </div>
                 <div className="w-full h-full pl-1 flex gap-0  justify-center flex-col">
@@ -208,7 +208,6 @@ const AdminSelect = ({ _id, searchTag, avatar, userId }: {
         </div>
     )
 }
-
 
 interface newGroupTypes {
     data: {

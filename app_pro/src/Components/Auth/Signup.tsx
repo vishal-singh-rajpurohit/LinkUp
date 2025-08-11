@@ -69,7 +69,7 @@ const Signup = () => {
                 { ...formData },
                 { withCredentials: true }
             );
-            console.log(`resp: ${JSON.stringify(resp, null, 2)}`);
+            // console.log(`resp: ${JSON.stringify(resp, null, 2)}`);
             disp(firstEnter({ userData: resp.data.data.User }))
 
             router('/')

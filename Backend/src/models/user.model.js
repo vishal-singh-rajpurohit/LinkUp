@@ -17,8 +17,8 @@ const newSchema = new Schema(
     },
     socketId: {
       type: String,
-      required: true,
       default: "0000",
+      required: true,
     },
     email: {
       type: String,
@@ -57,6 +57,11 @@ const newSchema = new Schema(
     securityAnswer: {
       type: String,
       default: null,
+    },
+    public_id_avatar: {
+      type: String,
+      default : "",
+      required: true
     }
   },
   {
