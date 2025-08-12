@@ -28,9 +28,7 @@ userRouter.route("/live-check-mail").post(liveCheckMailSignup);
 userRouter.route("/live-check-searchtag").post(liveCheckTagSignup);
 userRouter.route("/register").post(signUp);
 userRouter.route("/live-check-searchtag-login").post(liveCheckTagMailLogin);
-userRouter
-  .route("/check-user-already-loggedin")
-  .post(auth, checkAlreadyLoddedIn);
+userRouter.route("/check-user-already-loggedin").post(auth, checkAlreadyLoddedIn);
 userRouter.route("/login").post(logIn);
 userRouter.route("/logout").post(auth, logOut);
 userRouter.route("/get-chat-history").post(auth, getAllAccountDetails);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../../app/hooks';
 import { enterApp, type initialRespType } from '../../app/functions/auth';
@@ -8,6 +8,8 @@ const api = import.meta.env.VITE_API
 interface LoginData {
   searchTag: string;
   password: string;
+  latitude: string;
+  longitude: string;
 }
 
 const LoginForm = () => {
@@ -16,6 +18,8 @@ const LoginForm = () => {
   const [formData, setFormData] = useState<LoginData>({
     searchTag: '',
     password: '',
+    latitude: '',
+    longitude: ''
   });
 
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +58,18 @@ const LoginForm = () => {
       console.log(`error in login: ${error}`);
     }
   };
+
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setFormData({
+          ...formData,
+          latitude: String(position.coords.latitude),
+          longitude: String(position.coords.longitude)
+        })
+      }
+    )
+  }, [])
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">

@@ -61,7 +61,14 @@ const newSchema = new Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
-    // location: {},
+    longitude: {
+      type: String,
+      required: true
+    },
+    latitude:{
+      type: String,
+      required: true
+    }
   },
   {
     timeseries: true,

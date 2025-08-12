@@ -50,6 +50,8 @@ export const AppContextProvider = ({ children }: {
         }
     }, [selectedContact])
 
+
+
     const data: appContextTypes = {
         selectToTalk,
         isAdmin

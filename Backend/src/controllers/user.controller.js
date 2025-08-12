@@ -105,9 +105,17 @@ const liveCheckTagMailLogin = asyncHandler(async (req, resp) => {
  */
 const signUp = asyncHandler(async (req, resp) => {
   try {
-    const { userName, searchTag, email, password } = req.body;
+    const { userName, searchTag, email, password, longitude, latitude } =
+      req.body;
 
-    if (!userName || !searchTag || !email || !password) {
+    if (
+      !userName ||
+      !searchTag ||
+      !email ||
+      !password ||
+      !longitude ||
+      !latitude
+    ) {
       throw new ApiError(401, "all data must required :");
     }
 
@@ -127,6 +135,8 @@ const signUp = asyncHandler(async (req, resp) => {
       email,
       password,
       online: true,
+      longitude,
+      latitude,
     });
 
     await newUser.save();
@@ -201,9 +211,9 @@ const signUp = asyncHandler(async (req, resp) => {
 });
 
 const logIn = asyncHandler(async (req, resp) => {
-  const { searchTag, password } = req.body;
+  const { searchTag, password, longitude, latitude } = req.body;
 
-  if (!searchTag || !password) {
+  if (!searchTag || !password || !longitude || !latitude) {
     throw new ApiError(400, "All data must required");
   }
 
@@ -248,6 +258,8 @@ const logIn = asyncHandler(async (req, resp) => {
   const updatedUser = await User.findByIdAndUpdate(decodedToken._id, {
     refreshToken: newRefreshToken,
     online: true,
+    longitude,
+    latitude,
   }).select("-password -refreshToken");
 
   if (!updatedUser) {
@@ -549,6 +561,12 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
     });
   }
 
+  const { longitude, latitude } = req.body;
+
+  if (!longitude || !latitude) {
+    throw new ApiError(401, "Location not found");
+  }
+
   const isUserExists = await User.exists({
     _id: user._id,
   });
@@ -577,6 +595,8 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
   const updatedUser = await User.findByIdAndUpdate(decodedToken._id, {
     refreshToken: newRefreshToken,
     online: true,
+    longitude,
+    latitude,
   });
 
   if (!updatedUser) {
@@ -1040,7 +1060,6 @@ const setTheme = asyncHandler(async (req, resp) => {
 });
 
 const changeAvatar = asyncHandler(async (req, resp) => {
-
   const user = req.user;
 
   if (!user) {
@@ -1052,7 +1071,7 @@ const changeAvatar = asyncHandler(async (req, resp) => {
   if (!path) {
     throw new ApiError(501, "path not found request");
   }
-  
+
   const myUser = await User.findById(user._id);
 
   if (!myUser) {

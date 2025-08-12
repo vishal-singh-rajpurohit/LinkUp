@@ -12,6 +12,8 @@ interface FormData {
     email: string;
     password: string;
     confirmPassword: string;
+    latitude: string;
+    longitude: string;
 }
 
 
@@ -24,6 +26,8 @@ const Signup = () => {
         email: '',
         password: '',
         confirmPassword: '',
+        latitude: '',
+        longitude: '',
     });
 
     const [errors, setErrors] = useState<{
@@ -67,7 +71,9 @@ const Signup = () => {
             }
             const resp = await axios.post<RegisterResponse>(`${api}/user/register`,
                 { ...formData },
-                { withCredentials: true }
+                { 
+                    withCredentials: true,
+                 }
             );
             // console.log(`resp: ${JSON.stringify(resp, null, 2)}`);
             disp(firstEnter({ userData: resp.data.data.User }))
@@ -91,7 +97,7 @@ const Signup = () => {
                     type: ''
                 })
                 setPass(true)
-                
+
             } catch (error) {
                 // console.log(`error in checking search Tag Avilability: ${JSON.stringify(error, null, 2)}`);
                 setErrors({
@@ -102,7 +108,7 @@ const Signup = () => {
             }
         }
 
-        async function checkEmail(){
+        async function checkEmail() {
             try {
                 await axios.post(`${api}/user/live-check-mail`, {
                     email: formData.email
@@ -123,11 +129,23 @@ const Signup = () => {
             checkSearchTag()
         }
 
-        if(formData.email.length > 3 && pass)[
+        if (formData.email.length > 3 && pass) [
             checkEmail()
         ]
 
     }, [formData, setFormData])
+
+    useEffect(() => {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setFormData({
+                    ...formData,
+                    latitude: String(position.coords.latitude),
+                    longitude: String(position.coords.longitude)
+                })
+            }
+        )
+    }, [])
 
     return (
         <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">

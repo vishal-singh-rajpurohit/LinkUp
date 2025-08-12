@@ -31,7 +31,7 @@ const newSchema = new Schema(
     },
     avatar: {
       type: String,
-      default: "",
+      default: "0",
     },
     online: {
       type: Boolean,
@@ -60,9 +60,17 @@ const newSchema = new Schema(
     },
     public_id_avatar: {
       type: String,
-      default : "",
-      required: true
-    }
+      default: "0",
+      required: true,
+    },
+    longitude: {
+      type: String,
+      required: true,
+    },
+    latitude: {
+      type: String,
+      required: true,
+    },
   },
   {
     timeseries: true,
@@ -90,10 +98,10 @@ newSchema.pre("findOneAndUpdate", async function (next) {
 });
 
 newSchema.methods.isPasswordCorect = async function (password) {
-  const result =  await bcrypt.compare(password, this.password);
-  console.log('passowrd is ' + password  + 'result is : ' + result);
-  
-  return result
+  const result = await bcrypt.compare(password, this.password);
+  console.log("passowrd is " + password + "result is : " + result);
+
+  return result;
 };
 
 newSchema.methods.generateAccessToken = async function () {
