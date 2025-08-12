@@ -18,7 +18,7 @@ export const ChatArea = () => {
         <section className="hidden w-full h-[100vh] md:flex items-center justify-center">
             <section className="hidden flex-col gap-[1rem] items-center pt-2 w-[90%] h-[98%] rounded-lg md:flex">
                 {
-                    room ? (
+                    room._id ? (
                         <>
                             <ChatTop />
                             <MailBox />

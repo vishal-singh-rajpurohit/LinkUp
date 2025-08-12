@@ -2,7 +2,7 @@ import { CiCirclePlus, CiSearch, CiSettings } from 'react-icons/ci'
 import g from '../../assets/no_dp.png'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
-import { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useRef, useState } from 'react'
 import { setSearching } from '../../app/functions/triggers'
 import axios from 'axios'
 import { appendGroupAdmin, appendGroupContact, clearGroupContact, contactListingFunction, openGroupChat, searching, type groupContactTypes, type searchUserTypes } from '../../app/functions/temp'
@@ -11,6 +11,7 @@ import { getTimeDifference } from '../../helpers/timeConverter'
 import { AppContext } from '../../context/AppContext'
 import { FaArchive, FaUserFriends } from 'react-icons/fa'
 import { MdGroups } from 'react-icons/md'
+import { SampleCropper3 } from '../Cropper/Cropper'
 
 
 
@@ -220,19 +221,19 @@ const CreateGroupChat = () => {
     const display = useAppSelector((state) => state.temp.activeGroup)
     const contacts = useAppSelector((state) => state.auth.contacts);
     const selectedGroupContacts = useAppSelector((state) => state.temp.groupContact);
+
+    const avatarRef = useRef<HTMLInputElement | null>(null)
+    const [tempAvatar, setTempAvatar] = useState<string>("");
+    const [temp_pid, setTemp_pid] = useState<string>("");
+    const [showEditor, setShowEditor] = useState<boolean>(false);
     const [doneSelecting, setDoneSelecting] = useState<boolean>(false);
     const [whoCanSend, setWhoCanSet] = useState<string>('anyone');
-    const [custErr, setCustErr] = useState<{
-        message: string;
-        on: number;
-    }>({
+
+    const [custErr, setCustErr] = useState<{ message: string; on: number; }>({
         message: '',
         on: 0
     })
-    const [formData, setFormData] = useState<{
-        groupName: string;
-        description: string;
-    }>({
+    const [formData, setFormData] = useState<{ groupName: string; description: string; }>({
         groupName: '',
         description: ''
     });
@@ -275,7 +276,9 @@ const CreateGroupChat = () => {
                 contacts: selectedGroupContacts,
                 groupName: formData.groupName,
                 description: formData.description,
-                whoCanSend: whoCanSend
+                whoCanSend: whoCanSend,
+                avatar: tempAvatar,
+                public_id: temp_pid
             }, {
                 withCredentials: true
             });
@@ -292,88 +295,110 @@ const CreateGroupChat = () => {
         }
     }
 
-    function cancel(){
+    function cancel() {
         disp(clearGroupContact())
-            disp(openGroupChat({ trigger: false }))
+        disp(openGroupChat({ trigger: false }))
     }
 
-    return (
-        <section className={`absolute ${display ? 'flex' : 'hidden'} flex-col justify-center items-center min-h-full w-[90%] bg-[#284f4e80] md:w-[100%] pb-[3rem]`}>
-            <div className=" flex flex-col items-center gap-2 min-h-[98%] w-full bg-[#337775] pt-3 md:w-[80%]">
-                <div className="w-full flex justify-center items-center">
-                    <h3 className="uppercase text-2xl text-black font-bold underline-offset-1 underline select-none">Create Group Chat</h3>
-                </div>
-                <div className="w-full h-[6rem] flex justify-center items-center">
-                    <div className="h-[4rem] w-[4rem] rounded-[50%] overflow-hidden cursor-pointer border-2 border-b-black">
-                        <img src={g} alt="😁" className="w-full h-full" />
-                    </div>
-                </div>
-                <div className="flex flex-col items-center gap-4 w-[90%]">
-                    <div className="flex flex-col min-h-[4rem] gap-1 w-[90%]">
-                        <label htmlFor="groupName">Group Name</label>
-                        <input type="text" name='groupName' id='groupName' onChange={(e) => setFormData({ ...formData, groupName: e.target.value })} className="w-full h-[2rem] text-white bg-slate-700 pl-1 rounded-sm" placeholder='Enter Group Name' />
-                        {
-                            <p className={`text-red-500 bg-amber-200 ${custErr.on === 2 ? 'block' : 'hidden'}`}>{custErr.message}</p>
-                        }
-                    </div>
-                    <div className="flex flex-col min-h-[4rem] gap-1 w-[90%]">
-                        <label htmlFor="description">Description</label>
-                        <input type="text" name='description' id='description' className="w-full h-[2rem] text-white bg-slate-700 pl-1 rounded-sm"
-                            onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder={`Hii let's talk`} />
-                        {
-                            <p className={`text-red-500 bg-amber-200 ${custErr.on === 3 ? 'block' : 'hidden'}`}>{custErr.message}</p>
-                        }
-                    </div>
-                    <div className="flex flex-col min-h-[4rem] gap-1 w-[90%]">
-                        <label htmlFor="description">who can send message?</label>
-                        <select name='description' id='description' className="w-full h-[2rem] text-white bg-slate-700 pl-1 rounded-sm uppercase" onChange={(e) => setWhoCanSet(e.target.value)} >
-                            <option value="anyone">anyone</option>
-                            <option value="only_admin">only admin</option>
-                            <option value="no_one">on one</option>
-                        </select>
-                    </div>
-                </div>
-                <div className="w-[90%] border-t-2 border-amber-500">
-                    <div className="flex  justify-between pt-1">
-                        <div className="text-lg font-mono">select at least 2</div>
-                        <button disabled={selectedGroupContacts.length < 1} onClick={hideSelection} className="px-1 bg-purple-500 disabled:bg-purple-300 disabled:text-gray-200 rounded-sm cursor-pointer">{doneSelecting ? 'select more' : 'done'}</button>
-                    </div>
-                    {
-                        <p className={`text-red-500 bg-amber-200 ${custErr.on === 4 ? 'block' : 'hidden'}`}>{custErr.message}</p>
-                    }
-                    <div className={`${doneSelecting ? 'hidden' : 'block'} pt-2`}>
-                        {
-                            contacts.map((val, idx) => (
-                                <SelectContactItem key={idx} _id={val._id} avatar={val.avatar} userId={val.userId} searchTag={val.searchTag} />
-                            ))
-                        }
-                    </div>
-                </div>
-                <div className={`w-[90%] border-t-2 border-amber-500 ${whoCanSend === 'only_admin' && doneSelecting ? 'block' : 'hidden'}`}>
-                    <div className="flex  justify-between pt-1">
-                        <div className={`text-lg font-mono `}>select group admins</div>
-                    </div>
-                    <div className={`pt-2`}>
-                        {
-                            selectedGroupContacts.map((val, idx) => (
-                                <AdminSelect key={idx} _id={val._id} userId={val.userId} avatar={val.avatar} searchTag={val.searchTag} />
-                            ))
-                        }
-                    </div>
-                </div>
+    function clickAvatar() {
+        avatarRef.current?.click()
+    }
 
-                <div className="fixed bottom-[1.5vh] w-[90%] gap-1 flex items-center justify-center">
-                    {
-                        (whoCanSend === 'only_admin' && !doneSelecting) ? (
-                            <button disabled={selectedGroupContacts.length < 1} className="w-[40%] h-8 text-lg bg-blue-950 text-white cursor-pointer rounded-sm" onClick={hideSelection}>select admin</button>
-                        ) : (
-                            <button className="w-[40%] h-8 text-lg bg-blue-950 text-white cursor-pointer rounded-sm" onClick={handleCreate}>Create</button>
-                        )
-                    }
-                    <button className="w-[40%] h-8 text-lg bg-blue-950 text-white cursor-pointer rounded-sm" onClick={cancel}>Cancel</button>
+    function selectAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0]
+        if (e.target.files && file) {
+            const render = new FileReader()
+            render.onload = () => {
+                if (typeof render.result === 'string')
+                    setTempAvatar(render.result)
+            }
+            render.readAsDataURL(file)
+            setShowEditor(true)
+        }
+    }
+
+
+    return (
+        <>
+            <SampleCropper3 image={tempAvatar} setOpen={setShowEditor} setImage={setTempAvatar} setPiblicId={setTemp_pid} open={showEditor} />
+            <section className={`absolute ${display ? 'flex' : 'hidden'} flex-col justify-center items-center min-h-full w-[90%] bg-[#284f4e80] md:w-[100%] pb-[3rem]`}>
+                <div className=" flex flex-col items-center gap-2 min-h-[98%] w-full bg-[#337775] pt-3 md:w-[80%]">
+                    <div className="w-full flex justify-center items-center">
+                        <h3 className="uppercase text-2xl text-black font-bold underline-offset-1 underline select-none">Create Group Chat</h3>
+                    </div>
+                    <div className="w-full h-[6rem] flex justify-center items-center">
+                        <div className="h-[4rem] w-[4rem] rounded-[50%] overflow-hidden cursor-pointer border-2 border-b-black">
+                            <img src={tempAvatar || g} onClick={clickAvatar} alt="😁" className="w-full h-full" />
+                            <input type="file" ref={avatarRef} accept='image' onChange={selectAvatar} className='hidden' />
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-center gap-4 w-[90%]">
+                        <div className="flex flex-col min-h-[4rem] gap-1 w-[90%]">
+                            <label htmlFor="groupName">Group Name</label>
+                            <input type="text" name='groupName' id='groupName' onChange={(e) => setFormData({ ...formData, groupName: e.target.value })} className="w-full h-[2rem] text-white bg-slate-700 pl-1 rounded-sm" placeholder='Enter Group Name' />
+                            {
+                                <p className={`text-red-500 bg-amber-200 ${custErr.on === 2 ? 'block' : 'hidden'}`}>{custErr.message}</p>
+                            }
+                        </div>
+                        <div className="flex flex-col min-h-[4rem] gap-1 w-[90%]">
+                            <label htmlFor="description">Description</label>
+                            <input type="text" name='description' id='description' className="w-full h-[2rem] text-white bg-slate-700 pl-1 rounded-sm"
+                                onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder={`Hii let's talk`} />
+                            {
+                                <p className={`text-red-500 bg-amber-200 ${custErr.on === 3 ? 'block' : 'hidden'}`}>{custErr.message}</p>
+                            }
+                        </div>
+                        <div className="flex flex-col min-h-[4rem] gap-1 w-[90%]">
+                            <label htmlFor="description">who can send message?</label>
+                            <select name='description' id='description' className="w-full h-[2rem] text-white bg-slate-700 pl-1 rounded-sm uppercase" onChange={(e) => setWhoCanSet(e.target.value)} >
+                                <option value="anyone">anyone</option>
+                                <option value="only_admin">only admin</option>
+                                <option value="no_one">on one</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div className="w-[90%] border-t-2 border-amber-500">
+                        <div className="flex  justify-between pt-1">
+                            <div className="text-lg font-mono">select at least 2</div>
+                            <button disabled={selectedGroupContacts.length < 1} onClick={hideSelection} className="px-1 bg-purple-500 disabled:bg-purple-300 disabled:text-gray-200 rounded-sm cursor-pointer">{doneSelecting ? 'select more' : 'done'}</button>
+                        </div>
+                        {
+                            <p className={`text-red-500 bg-amber-200 ${custErr.on === 4 ? 'block' : 'hidden'}`}>{custErr.message}</p>
+                        }
+                        <div className={`${doneSelecting ? 'hidden' : 'block'} pt-2`}>
+                            {
+                                contacts.map((val, idx) => (
+                                    <SelectContactItem key={idx} _id={val._id} avatar={val.avatar} userId={val.userId} searchTag={val.searchTag} />
+                                ))
+                            }
+                        </div>
+                    </div>
+                    <div className={`w-[90%] border-t-2 border-amber-500 ${whoCanSend === 'only_admin' && doneSelecting ? 'block' : 'hidden'}`}>
+                        <div className="flex  justify-between pt-1">
+                            <div className={`text-lg font-mono `}>select group admins</div>
+                        </div>
+                        <div className={`pt-2`}>
+                            {
+                                selectedGroupContacts.map((val, idx) => (
+                                    <AdminSelect key={idx} _id={val._id} userId={val.userId} avatar={val.avatar} searchTag={val.searchTag} />
+                                ))
+                            }
+                        </div>
+                    </div>
+
+                    <div className="fixed bottom-[1.5vh] w-[90%] gap-1 flex items-center justify-center">
+                        {
+                            (whoCanSend === 'only_admin' && !doneSelecting) ? (
+                                <button disabled={selectedGroupContacts.length < 1} className="w-[40%] h-8 text-lg bg-blue-950 text-white cursor-pointer rounded-sm" onClick={hideSelection}>select admin</button>
+                            ) : (
+                                <button className="w-[40%] h-8 text-lg bg-blue-950 text-white cursor-pointer rounded-sm" onClick={handleCreate}>Create</button>
+                            )
+                        }
+                        <button className="w-[40%] h-8 text-lg bg-blue-950 text-white cursor-pointer rounded-sm" onClick={cancel}>Cancel</button>
+                    </div>
                 </div>
-            </div>
-        </section>
+            </section>
+        </>
     )
 }
 

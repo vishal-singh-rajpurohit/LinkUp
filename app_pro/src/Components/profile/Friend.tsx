@@ -10,10 +10,11 @@ import { useAppDispatch, useAppSelector } from "../../app/hooks"
 import { addArchieved, blockTrigger, kickoutAuth, removeArchieved, type contactTypes } from "../../app/functions/auth"
 import { blockSelected, clearTemp, contactListingFunction, kickoutTemp, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, setTempUser } from "../../app/functions/temp"
 import { GrDown, GrUp } from "react-icons/gr"
-import { useContext, useEffect, useState } from "react"
+import { useContext, useEffect, useRef, useState } from "react"
 import { ContactItem } from "../subComponents/Contact"
 import { GiKickScooter } from "react-icons/gi"
 import { AppContext } from "../../context/AppContext"
+import { SampleCropper2 } from "../Cropper/Cropper"
 
 const env = import.meta.env.VITE_API
 
@@ -242,13 +243,16 @@ const Friend = () => {
 
     const context = useContext(AppContext)
 
-    if(!context){
+    if (!context) {
         throw new Error('context not found')
     }
 
-    const {isAdmin} = context;
+    const { isAdmin } = context;
 
-    const [showMembers, setShowMembers] = useState<boolean>(false)
+    const [showMembers, setShowMembers] = useState<boolean>(false);
+    const [showEditor, setShowEditor] = useState<boolean>(false);
+    const [tempAvatar, setTempAvatar] = useState<string>("");
+    const avatarRef = useRef<HTMLInputElement | null>(null)
 
     async function block_left() {
         try {
@@ -319,8 +323,35 @@ const Friend = () => {
         }
     }
 
+    function clickAvatar() {
+        if (contact.isGroup && isAdmin) {
+            avatarRef.current?.click()
+        }
+    }
+
+    async function handleAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        if (e.target.files && file) {
+            const render = new FileReader()
+            render.onload = () => {
+                if (typeof render.result === 'string')
+                    setTempAvatar(render.result)
+            }
+            render.readAsDataURL(file)
+        }
+    }
+
+    useEffect(()=>{
+        if(tempAvatar){
+            setShowEditor(true)
+        }else{
+            setShowEditor(false)
+        }
+    }, [showEditor, setShowEditor, tempAvatar, setTempAvatar])
+
     return (
         <>
+            <SampleCropper2 contactId={contact._id} open={showEditor} image={tempAvatar} setImage={setTempAvatar} />
             <AddMemberModel />
             <KickoutModel />
             <section className="w-full h-[100vh] overflow-y-auto flex justify-center rounded-sm">
@@ -330,7 +361,8 @@ const Friend = () => {
                         <div className="w-full flex flex-col justify-center items-center gap-3">
                             <div className="w-full h-auto flex flex-col gap-1 justify-center items-center">
                                 <div className="bg-inherit w-[10rem] h-[10rem] rounded-[50%] overflow-hidden sha">
-                                    <img src={contact?.avatar || x} alt="profile picture" className="w-full h-auto" />
+                                    <img src={contact?.avatar || x} onClick={clickAvatar} alt="profile picture" className="w-full h-auto" />
+                                    <input type="file" accept="image" className="hide" ref={avatarRef} onChange={handleAvatar} />
                                 </div>
                                 <div className="w-full flex flex-col gap-0.5 items-center justify-center">
                                     <p className="text-[22px] font-bold">{contact?.userName}</p>

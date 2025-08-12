@@ -290,7 +290,7 @@ const Settings = () => {
 
   return (
     <>
-      <SampleCropper open={openEditor} setOpen={setOpenEditor} image={tempAvatar} setImage={setTempAvatar} />
+      <SampleCropper open={openEditor} image={tempAvatar} setImage={setTempAvatar} />
       <AnsModel setOpen={setOpenAns} open={openAns && verifed} />
       <VerifyModel setOpen={setOpenAns} open={openAns && !verifed} />
 

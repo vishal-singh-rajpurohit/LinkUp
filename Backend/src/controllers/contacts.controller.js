@@ -4,6 +4,10 @@ const ContactMember = require("../models/contactMember.model");
 const asyncHandler = require("../utils/asyncHandler.utils");
 const ApiError = require("../utils/ApiError.utils");
 const ApiResponse = require("../utils/ApiResponse.utils");
+const {
+  removeFromCloudinary,
+  uploadToCloudinary,
+} = require("../utils/cloudinary.utils");
 const { default: mongoose } = require("mongoose");
 
 const createOneOnOneChat = asyncHandler(async (req, resp) => {
@@ -180,7 +184,7 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
       });
     }
 
-    const { contacts, groupName, whoCanSend, description } = req.body;
+    const { contacts, groupName, whoCanSend, description, avatar, public_id } = req.body;
 
     contacts.push({ userId: String(user._id), admin: true });
 
@@ -196,6 +200,8 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
       whoCanSend: whoCanSend,
       description: description,
       createdBy: user._id,
+      groupAvatar: avatar,
+      public_id_avatar: public_id
     });
 
     await newGroup.save();
@@ -279,7 +285,7 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
           isArchieved: { $first: "$isArchieved" },
           isGroup: { $first: "$group.isGroup" },
           groupName: { $first: "$group.groupName" },
-          avatar: { $first: "$group.avatar" },
+          avatar: { $first: "$group.groupAvatar" },
           lastMessage: { $first: "$group.lastMessage" },
           isGroup: { $first: "$group.isGroup" },
           roomId: { $first: "$group.socketId" },
@@ -772,16 +778,50 @@ const changeAvatar = asyncHandler(async (req, resp) => {
   const upload_resp = await uploadToCloudinary(path);
 
   group.public_id_avatar = upload_resp.public_id;
-  group.avatar = upload_resp.url;
+  group.groupAvatar = upload_resp.url;
 
   await group.save();
 
-  const updatedGroup = await Contact.findById(group._id)
+  const updatedGroup = await Contact.findById(group._id);
 
   if (!updatedGroup) {
     throw new ApiError(501, "Internal server error contact not updated");
   }
-  resp.status(201).json(new ApiResponse(201, { avatar: updatedUser.avatar }));
+
+  resp
+    .status(201)
+    .json(new ApiResponse(201, { avatar: updatedGroup.groupAvatar }));
+});
+
+const upload = asyncHandler(async (req, resp) => {
+  const user = req.user;
+
+  if (!user) {
+    throw new ApiError(501, "Unautharized request");
+  }
+
+  const myUser = await User.findById(user._id);
+
+  if (!myUser) {
+    throw new ApiError(501, "Unautharized request");
+  }
+
+  const path = req.file.path;
+
+  if (!path) {
+    throw new ApiError(501, "path not found request");
+  }
+
+  const upload_resp = await uploadToCloudinary(path);
+
+  resp
+    .status(201)
+    .json(
+      new ApiResponse(201, {
+        avatar: upload_resp.url,
+        public_id: upload_resp.public_id,
+      })
+    );
 });
 
 module.exports = {
@@ -794,5 +834,6 @@ module.exports = {
   unArchieveContact,
   addToGroup,
   kickOutFromGroup,
-  changeAvatar
+  changeAvatar,
+  upload
 };

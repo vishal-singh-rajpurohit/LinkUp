@@ -434,8 +434,7 @@ function setGroupAvatar(state: initialTypes, action: PayloadAction<{avatar: stri
     const group = state.groups.filter((gp)=>gp._id === action.payload.contactId)[0]
 
     if(group){
-        group.avatar === action.payload.avatar;
-
+        group.avatar = action.payload.avatar;
         state.groups = [
             group,
             ...(state.groups.filter((gp)=>gp._id !== action.payload.contactId))
