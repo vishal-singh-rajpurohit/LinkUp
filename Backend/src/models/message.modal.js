@@ -1,74 +1,81 @@
 const { Schema, default: mongoose } = require("mongoose");
 
+const geoSchcma = new Schema({
+  longitude: {
+    type: String,
+    required: true,
+  },
+  latitude: {
+    type: String,
+    required: true,
+  },
+});
+
 const newSchema = new Schema(
   {
     message: {
       type: String,
-      trim: true,
     },
     contactId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Contact",
+      type: mongoose.Types.ObjectId,
+      ref: "Contacts",
       required: true,
     },
-    senderId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+    userId: {
+      type: mongoose.Types.ObjectId,
+      ref: "Users",
       required: true,
     },
-    containsFile: {
+    hasAttechment: {
       type: Boolean,
       required: true,
       default: false,
     },
-    fileType: {
-      type: String,
-      enum: ["IMG", "VIDEO", "DOC", "AUDIO"],
-    },
-    file: {
-      type: String,
-      default: null,
-    },
-    seen: {
+    pending: {
       type: Boolean,
+      required: true,
       default: false,
-      required: true,
     },
-    socketStatus: {
+    attechmentLink: {
+      type: String,
+      required: false,
+    },
+    attechmentType: {
+      type: String,
+      require: false,
+    },
+    attechmentId: {
+      type: mongoose.Types.ObjectId,
+      ref: "Attechments",
+    },
+    isCall: {
       type: Boolean,
       required: true,
-      default: true,
+      default: false,
+    },
+    callType: {
+      type: String,
+      required: false,
+      default: "VIDEO",
+    },
+    callId: {
+      type: mongoose.Types.ObjectId,
+      ref: "Calls",
+      required: false,
+    },
+    geoLoc: {
+      type: geoSchcma,
+      required: true,
+    },
+    refferTo: {
+      type: mongoose.Types.ObjectId,
+      ref: "messages",
     },
     isDeleted: {
       type: Boolean,
       default: false,
       required: true,
     },
-    isCall: {
-      type: Boolean,
-      default: false
-    },
-    callType: {
-      type : String,
-      enum: ["VIDEO", "AUDIO", null],
-      default: null
-    },
-    isCallAccpted: {
-      type: Boolean,
-      default: false,
-    },
-    callReciverUserId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
-    longitude: {
-      type: String,
-      required: true
-    },
-    latitude:{
-      type: String,
-      required: true
-    }
   },
   {
     timeseries: true,

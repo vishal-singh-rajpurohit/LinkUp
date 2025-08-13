@@ -282,11 +282,6 @@ const CreateGroupChat = () => {
             }, {
                 withCredentials: true
             });
-
-
-            console.log(`resp new group: ${JSON.stringify(resp, null, 2)}`);
-
-
             disp(saveGroup({ newChat: resp.data.data.newGroupDetails }))
             disp(clearGroupContact())
             disp(openGroupChat({ trigger: false }))

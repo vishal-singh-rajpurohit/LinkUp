@@ -13,7 +13,7 @@ const ChatEventEnum = Object({
   TYPING_EVENT: "typing",
   MESSAGE_DELETE_EVENT: "messageDeleted",
   SOCKET_ERROR_EVENT: "socketError",
-  
+
   REQUEST_VIDEO_CALL: "requestVideoCall",
   REJECT_VIDEO_CALL: "rejectVideoCall",
   ACCEPT_VIDEO_CALL: "acceptVideoCall",
@@ -22,12 +22,17 @@ const ChatEventEnum = Object({
   ACCEPT_AUDIO_CALL: "acceptAudioCall",
   REJECT_AUDIO_CALL: "rejectAudioCall",
   CLOSE_AUDIO_CALL: "closeAudioCall",
-
 });
 
- const LoadLimits = Object.freeze({
+
+const chatEventEnumNew = Object({
+  ONLINE_EVENT: "is_online",
+  OFFLINE_EVENT: "offline",
+})
+
+const LoadLimits = Object.freeze({
   CONTACT_LIMIT: 50,
-  CHAT_LIMIT: 100
+  CHAT_LIMIT: 100,
 });
 
-module.exports = {ChatEventEnum, LoadLimits}
+module.exports = { ChatEventEnum, chatEventEnumNew, LoadLimits };

@@ -66,7 +66,8 @@ const Signup = () => {
         try {
             interface RegisterResponse {
                 data: {
-                    User: initialRespType
+                    User: initialRespType;
+                    accessToken: string;
                 };
             }
             const resp = await axios.post<RegisterResponse>(`${api}/user/register`,
@@ -77,7 +78,7 @@ const Signup = () => {
             );
             // console.log(`resp: ${JSON.stringify(resp, null, 2)}`);
             disp(firstEnter({ userData: resp.data.data.User }))
-
+            window.localStorage.setItem("accessToken", resp.data.data.accessToken)
             router('/')
 
         } catch (error) {

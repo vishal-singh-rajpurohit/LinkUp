@@ -25,6 +25,7 @@ export interface groupsResp {
     roomId: string;
     updatedAt: Date;
     description: string;
+    messages: groupMssageType[];
     members: {
         _id: string;
         isAdmin: boolean;
@@ -53,18 +54,27 @@ export interface userType {
     isVerified: boolean;
 }
 
-interface message {
+export interface groupMssageType {
     _id: string;
-    senderId: string;
     message: string;
-    containsFile: boolean;
-    fileType: string;
-    file: string;
-    seen: string;
+    userId: string;
+    hasAttechment: boolean;
+    pending: boolean;
+    attechmentLink: string;
+    attechmentType: string;
     isCall: boolean;
     callType: string;
-    isCallAccpted: string;
+    createdAt: string;
+    sender?: senderTypes;
 }
+
+interface senderTypes {
+    _id: string;
+    searchTag: string;
+    avatar: string;
+}
+
+
 
 export interface contactTypes {
     _id: string;
@@ -81,7 +91,7 @@ export interface contactTypes {
     lastMessage: string;
     isOnline: boolean;
     time?: Date;
-    messages?: message[];
+    messages?: groupMssageType[];
     members?: groupMemberTypes[];
 }
 
@@ -109,7 +119,7 @@ export interface groupType {
     roomId: string;
     time: Date;
     members: groupMemberTypes[];
-    messages: message[];
+    messages: groupMssageType[];
 }
 
 interface initialTypes {
@@ -184,7 +194,7 @@ function enterAppFunc(state: initialTypes, action: PayloadAction<{ userData: ini
             userName: item.member.user.userName,
             email: item.member.user.email,
             isOnline: item.member.user.online,
-            messages: []
+            messages: item.messages
         }
         state.contacts = [...state.contacts, newContact]
     })
@@ -204,7 +214,7 @@ function enterAppFunc(state: initialTypes, action: PayloadAction<{ userData: ini
             userName: item.member.user.userName,
             email: item.member.user.email,
             isOnline: item.member.user.online,
-            messages: []
+            messages: item.messages
         }
         state.safer = [...state.safer, newContact]
     })
@@ -238,7 +248,7 @@ function enterAppFunc(state: initialTypes, action: PayloadAction<{ userData: ini
             whoCanSend: item.whoCanSend,
             time: item.updatedAt,
             members: members,
-            messages: []
+            messages: item.messages
         }
 
         state.groups = [...state.groups, newContact]
@@ -420,25 +430,84 @@ function setMail(state: initialTypes, action: PayloadAction<{ mail: string }>) {
 function setName(state: initialTypes, action: PayloadAction<{ name: string }>) {
     state.user.userName = action.payload.name
 }
-function setQuestion(state:initialTypes, action: PayloadAction<{q: string}>){
+function setQuestion(state: initialTypes, action: PayloadAction<{ q: string }>) {
     state.user.question = action.payload.q
 }
-function setAns(state:initialTypes, action: PayloadAction<{ans: string}>){
+function setAns(state: initialTypes, action: PayloadAction<{ ans: string }>) {
     state.user.answer = action.payload.ans;
     state.user.isVerified = true;
 }
-function setAvatar(state: initialTypes, action: PayloadAction<{avatar: string}>){
+function setAvatar(state: initialTypes, action: PayloadAction<{ avatar: string }>) {
     state.user.avatar = action.payload.avatar
 }
-function setGroupAvatar(state: initialTypes, action: PayloadAction<{avatar: string; contactId: string;}>){
-    const group = state.groups.filter((gp)=>gp._id === action.payload.contactId)[0]
+function setGroupAvatar(state: initialTypes, action: PayloadAction<{ avatar: string; contactId: string; }>) {
+    const group = state.groups.filter((gp) => gp._id === action.payload.contactId)[0]
 
-    if(group){
+    if (group) {
         group.avatar = action.payload.avatar;
         state.groups = [
             group,
-            ...(state.groups.filter((gp)=>gp._id !== action.payload.contactId))
+            ...(state.groups.filter((gp) => gp._id !== action.payload.contactId))
         ]
+    }
+
+}
+
+// Messages
+function delMessage(state: initialTypes, action: PayloadAction<{ contactId: string; messageId: string; trigger: number }>) {
+    if (action.payload.trigger === 1) {
+        const selectedContact = state.contacts.filter((con) => con._id === action.payload.contactId)[0];
+        selectedContact.messages = selectedContact.messages?.filter((msg) => msg._id !== action.payload.messageId)
+        state.contacts = [
+            ...(state.contacts.filter((con) => con._id !== action.payload.contactId)),
+            selectedContact
+        ]
+    }
+    if (action.payload.trigger === 3) {
+        const selectedContact = state.safer.filter((con) => con._id === action.payload.contactId)[0];
+        selectedContact.messages = selectedContact.messages?.filter((msg) => msg._id !== action.payload.messageId)
+        state.safer = [
+            ...(state.safer.filter((con) => con._id !== action.payload.contactId)),
+            selectedContact
+        ]
+    }
+    if (action.payload.trigger === 2) {
+        const selectedContact = state.groups.filter((con) => con._id === action.payload.contactId)[0];
+        selectedContact.messages = selectedContact.messages?.filter((msg) => msg._id !== action.payload.messageId)
+        state.groups = [
+            ...(state.groups.filter((con) => con._id !== action.payload.contactId)),
+            selectedContact
+        ]
+    }
+}
+
+// Socket events
+function setOnline(state: initialTypes, action: PayloadAction<{ contactId: string; trigger: boolean }>) {
+    const contact = state.contacts.filter((user) => user._id === action.payload.contactId);
+    console.log('contacts =>', JSON.stringify(state.contacts, null, 2));
+    if (contact[0]._id) {
+        console.log('entered');
+        let tempCon = contact[0];
+        tempCon.isOnline = action.payload.trigger;
+        tempCon.time = new Date()
+
+        state.contacts = [
+            ...(state.contacts.filter((user) => user._id !== action.payload.contactId)),
+            tempCon
+        ]
+    }
+    else {
+        const contact = state.safer.filter((user) => user._id === action.payload.contactId);
+        if (contact[0]._id) {
+            let tempCon = contact[0];
+            tempCon.isOnline = action.payload.trigger;
+            tempCon.time = new Date();
+
+            state.safer = [
+                ...(state.safer.filter((user) => user._id !== action.payload.contactId)),
+                tempCon
+            ]
+        }
     }
 
 }
@@ -465,11 +534,13 @@ export const AuthSlice = createSlice({
         updateGroupAvatar: setGroupAvatar,
         setSecourityQuestion: setQuestion,
         setSecourityAnswer: setAns,
+        removeMessage: delMessage,
+        triggerConOnline: setOnline
     }
 });
 
 
-export const { firstEnter, enterApp, logOut, saveContact, saveGroup, blockTrigger, addArchieved, removeArchieved, kickoutAuth, setTheme, updateEmail, updateName, updateSearchTag, updateAvatar, setSecourityQuestion, setSecourityAnswer, updateGroupAvatar } = AuthSlice.actions
+export const { firstEnter, enterApp, logOut, saveContact, saveGroup, blockTrigger, addArchieved, removeArchieved, kickoutAuth, setTheme, updateEmail, updateName, updateSearchTag, updateAvatar, setSecourityQuestion, setSecourityAnswer, updateGroupAvatar, removeMessage, triggerConOnline} = AuthSlice.actions
 
 
 export default AuthSlice.reducer

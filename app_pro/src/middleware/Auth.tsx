@@ -28,6 +28,7 @@ const Auth = ({ children }: { children: ReactNode }) => {
       interface RegisterResponse {
         data: {
           User: initialRespType
+          accessToken: string;
         };
       }
 
@@ -35,9 +36,10 @@ const Auth = ({ children }: { children: ReactNode }) => {
         formData,
         { withCredentials: true }
       );
-      console.log(`logged in: ${JSON.stringify(resp, null, 2)}`);
+      // console.log(`logged in: ${JSON.stringify(resp, null, 2)}`);
       disp(enterApp({ userData: resp.data.data.User }))
-
+      window.localStorage.setItem("accessToken", resp.data.data.accessToken)
+      setFormData({ latitude: '', longitude: '' })
       router('/')
 
     } catch (error) {
@@ -48,21 +50,35 @@ const Auth = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!isLoggedIn && formData.latitude) {
+      console.log('called first');
+
       checkLogIn()
     }
-  }, [formData, setFormData, isLoggedIn])
+  }, [formData, setFormData])
 
   useEffect(() => {
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        console.log('getting locaiton')
         setFormData({
           ...formData,
           latitude: String(position.coords.latitude),
           longitude: String(position.coords.longitude)
         })
-      }
+      },
     )
-  }, [formData, setFormData])
+    // Disable in Production
+    if (!formData.latitude) {
+      console.log('offline');
+
+      setFormData({
+        ...formData,
+        latitude: "Not given",
+        longitude: "Not given",
+      })
+    }
+  }, [])
 
 
 
@@ -90,7 +106,8 @@ export const RevAuth = ({ children }: { children: ReactNode }) => {
     try {
       interface RegisterResponse {
         data: {
-          User: initialRespType
+          User: initialRespType;
+          accessToken: string;
         };
       }
       const resp = await axios.post<RegisterResponse>(`${api}/user/check-user-already-loggedin`,
@@ -101,7 +118,7 @@ export const RevAuth = ({ children }: { children: ReactNode }) => {
         }
       );
       disp(enterApp({ userData: resp.data.data.User }))
-
+      window.localStorage.setItem("accessToken", resp.data.data.accessToken)
       router('/')
 
     } catch (error) {
@@ -110,13 +127,18 @@ export const RevAuth = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    // console.log('md called');
 
     if (isLoggedIn) {
       router('/')
     } else {
-      if (formData.latitude) checkLogIn()
+      if (formData.latitude) {
+        console.log('called second');
+        checkLogIn()
+      }
     }
-  }, [formData, setFormData, isLoggedIn])
+
+  }, [formData, setFormData])
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
@@ -128,7 +150,15 @@ export const RevAuth = ({ children }: { children: ReactNode }) => {
         })
       }
     )
-  }, [formData, setFormData])
+    // Disable in Production
+    if (!formData.latitude) {
+      setFormData({
+        ...formData,
+        latitude: "Not given",
+        longitude: "Not given",
+      })
+    }
+  }, [])
 
 
   return (

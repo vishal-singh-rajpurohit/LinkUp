@@ -1,5 +1,6 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import { type contactTypes, type groupType } from './auth'
+import { IoAccessibilityOutline } from "react-icons/io5";
 
 export interface searchUserTypes {
     _id: string;
@@ -23,6 +24,10 @@ interface temporalTypes {
     searchTag: string;
 }
 
+interface chatStates {
+    hasAttechments: boolean
+}
+
 interface initialStateTypes {
     searchUsers: searchUserTypes[];
     activeGroup: boolean;
@@ -34,6 +39,7 @@ interface initialStateTypes {
     chatListTypes: number; // 1 -> single, 2-> group, 3 -> archieved
     tempUser: temporalTypes[];
     tempString: string;
+    chatStates: chatStates;
 }
 
 const initialState: initialStateTypes = {
@@ -59,7 +65,10 @@ const initialState: initialStateTypes = {
     groupContact: [],
     chatListTypes: 1,
     tempUser: [],
-    tempString: ""
+    tempString: "",
+    chatStates: {
+        hasAttechments: false
+    }
 }
 
 function searchingFunc(state: initialStateTypes, action: PayloadAction<{ users: searchUserTypes[] }>) {
@@ -234,6 +243,25 @@ function setGroupAvatar(state: initialStateTypes, action: PayloadAction<{ avatar
     if (state.selectedContact) state.selectedContact.avatar = action.payload.avatar
 }
 
+// Socket Events
+function setOnline(state: initialStateTypes, action: PayloadAction<{ contactId: string; trigger: boolean }>) {
+    if (state.selectedContact._id === action.payload.contactId) {
+        state.selectedContact.isOnline = action.payload.trigger;
+        state.selectedContact.time = new Date();
+    }
+}
+
+// Chat settings
+
+function setHasAttechFunc(state: initialStateTypes, action: PayloadAction<{ trigger: boolean }>) {
+    state.chatStates.hasAttechments = action.payload.trigger;
+}
+
+function delMessage(state: initialStateTypes, action: PayloadAction<{ messageId: string }>) {
+    state.selectedContact.messages = state.selectedContact.messages?.filter((msg) => msg._id !== action.payload.messageId);
+}
+
+
 
 const tempSlice = createSlice({
     name: 'temp',
@@ -257,11 +285,14 @@ const tempSlice = createSlice({
         clearTemp: clearTemo,
         setTempString: setTemproryString,
         kickoutTemp: removeMemberFromGroup,
-        updateSelectedAvatar: setGroupAvatar
+        updateSelectedAvatar: setGroupAvatar,
+        setHasAttechments: setHasAttechFunc,
+        removeTempMessage: delMessage,
+        triggerOnline: setOnline
     }
 })
 
 
-export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp, updateSelectedAvatar } = tempSlice.actions
+export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp, updateSelectedAvatar, setHasAttechments, removeTempMessage, triggerOnline } = tempSlice.actions
 
 export default tempSlice.reducer

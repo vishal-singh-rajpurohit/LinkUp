@@ -43,7 +43,8 @@ const LoginForm = () => {
     try {
       interface RegisterResponse {
         data: {
-          User: initialRespType
+          User: initialRespType;
+          accessToken: string;
         };
       }
       const resp = await axios.post<RegisterResponse>(`${api}/user/login`,
@@ -51,7 +52,7 @@ const LoginForm = () => {
         { withCredentials: true }
       );
       disp(enterApp({ userData: resp.data.data.User }))
-
+      window.localStorage.setItem("accessToken", resp.data.data.accessToken)
       router('/')
 
     } catch (error) {
@@ -69,6 +70,14 @@ const LoginForm = () => {
         })
       }
     )
+    // Disable in Production
+    if (!formData.latitude) {
+      setFormData({
+        ...formData,
+        latitude: "Not given",
+        longitude: "Not given",
+      })
+    }
   }, [])
 
   return (

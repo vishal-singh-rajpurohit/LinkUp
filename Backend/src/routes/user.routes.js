@@ -6,7 +6,6 @@ const {
   logOut,
   logIn,
   liveCheckTagMailLogin,
-  deleteAccount,
   addSecurityQnA,
   forgetPasswordVerify,
   resetPassword,
@@ -22,11 +21,12 @@ const {
 
 const auth = require("../middlewares/auth.middleware");
 const { fileUploader } = require("../middlewares/handleFiles.middleware");
+const { Location } = require("../middlewares/location.middleware");
 const userRouter = express.Router();
 
 userRouter.route("/live-check-mail").post(liveCheckMailSignup);
 userRouter.route("/live-check-searchtag").post(liveCheckTagSignup);
-userRouter.route("/register").post(signUp);
+userRouter.route("/register").post(Location, signUp);
 userRouter.route("/live-check-searchtag-login").post(liveCheckTagMailLogin);
 userRouter.route("/check-user-already-loggedin").post(auth, checkAlreadyLoddedIn);
 userRouter.route("/login").post(logIn);
@@ -61,6 +61,6 @@ userRouter.route("/resat-password").post(resetPassword);
  * @description Danger Routes , Delete
  */
 
-userRouter.route("/delete-account").post(auth, deleteAccount);
+// userRouter.route("/delete-account").post(auth, deleteAccount);
 
 module.exports = userRouter;

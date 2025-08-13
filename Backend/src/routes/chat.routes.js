@@ -1,7 +1,7 @@
 const express = require("express");
 const auth = require("../middlewares/auth.middleware")
 const { crateGroupChat, createOneOnOneChat, blockContact, unblockContact, archieveContact, unArchieveContact, addToGroup, kickOutFromGroup, changeAvatar, upload } = require("../controllers/contacts.controller");
-const { sendMessage, fetchPresentChat, undoMessage, requestVideoCall, declineVideoCall, answerVideoCall, negosiateCall } = require("../controllers/chat.controller");
+const { sendMessage, deleteMessage} = require("../controllers/chat.controller");
 const { fileUploader } = require("../middlewares/handleFiles.middleware");
 
 const chatRouter = express.Router();
@@ -17,17 +17,12 @@ chatRouter.route("/kickout-from-group").post(auth, kickOutFromGroup);
 
 chatRouter.route("/archieve").post(auth, archieveContact);
 chatRouter.route("/un-archieve").post(auth, unArchieveContact);
-
 chatRouter.route("/update-avatar").post(auth, fileUploader.single('avatar'), changeAvatar);
 
-chatRouter.route("/send-msg").post(auth, sendMessage);
-chatRouter.route("/undo-msg").post(undoMessage);
-chatRouter.route("/get-present-chats").post(fetchPresentChat);
 
-chatRouter.route("/call/request-video-call").post(auth, requestVideoCall)
-chatRouter.route("/call/decline-video-call").post(auth, declineVideoCall)
-chatRouter.route("/call/ans-video-call").post(auth, answerVideoCall)
-chatRouter.route("/call/call-nego").post(auth, negosiateCall)
 
+// Messaging routes
+chatRouter.route("/message/send-msg").post(auth, sendMessage);
+chatRouter.route("/message/del-msg").post(auth, deleteMessage);
 
 module.exports = chatRouter;

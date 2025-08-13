@@ -9,6 +9,7 @@ const {
   uploadToCloudinary,
 } = require("../utils/cloudinary.utils");
 const { default: mongoose } = require("mongoose");
+const Message = require("../models/message.modal");
 
 const createOneOnOneChat = asyncHandler(async (req, resp) => {
   try {
@@ -330,6 +331,28 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
         },
       },
     ]);
+
+
+      const newMessage = new Message({
+        message: `${user.searchTag} Created Chat Group`,
+        contactId: newGroup._id,
+        userId: user._id,
+        pending: false,
+        hasAttechment: false,
+        attechmentType: null,
+        attechmentId: null,
+        attechmentLink: "",
+        callId: null,
+        callType: "",
+        isCall: false,
+        geoLoc: {
+          latitude: "0000",
+          longitude: "0000",
+        },
+      });
+
+
+      await newMessage.save()
 
     // Error here
     if (!newGroupDetails[0]) {

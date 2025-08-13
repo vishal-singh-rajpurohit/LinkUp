@@ -9,13 +9,13 @@ const { Options } = require("../constants");
 
 const User = require("../models/user.model");
 const ContactMember = require("../models/contactMember.model");
-const DeletedAccount = require("../models/deletedAccount.model");
 const { default: mongoose } = require("mongoose");
 const Contact = require("../models/contacts.model");
 const {
   removeFromCloudinary,
   uploadToCloudinary,
 } = require("../utils/cloudinary.utils");
+const { emiterSocket } = require("../Socket");
 
 /**
  * @description these function will pre check the searchTag and Email Avilability
@@ -173,6 +173,8 @@ const signUp = asyncHandler(async (req, resp) => {
       throw new ApiError(501, "Error while setting refreshToken to userDB");
     }
 
+    // const location = navigator.geolocation()
+
     const finalUser = await User.aggregate([
       {
         $match: {
@@ -201,6 +203,7 @@ const signUp = asyncHandler(async (req, resp) => {
           201,
           {
             User: finalUser,
+            accessToken: newAccessToken,
           },
           "Registration Successful"
         )
@@ -493,12 +496,45 @@ const logIn = asyncHandler(async (req, resp) => {
       },
     },
     {
+      $lookup: {
+        from: "messages",
+        localField: "group._id",
+        foreignField: "contactId",
+        as: "messages",
+      },
+    },
+    {
+      $unwind: "$messages",
+    },
+    {
+      $sort: {
+        "messages.createdAt": 1,
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "messages.userId",
+        foreignField: "_id",
+        as: "messages.sender",
+      },
+    },
+    {
+      $addFields: {
+        "messages.sender": {
+          $first: ["$messages.sender"],
+        },
+      },
+    },
+    {
       $group: {
         _id: "$group._id",
         isBlocked: { $first: "$isBlocked" },
+        isArchieved: { $first: "$isArchieved" },
         isGroup: { $first: "$group.isGroup" },
         groupName: { $first: "$group.groupName" },
         avatar: { $first: "$group.groupAvatar" },
+        messages: { $addToSet: "$messages" },
         lastMessage: { $first: "$group.lastMessage" },
         isGroup: { $first: "$group.isGroup" },
         roomId: { $first: "$group.socketId" },
@@ -506,22 +542,15 @@ const logIn = asyncHandler(async (req, resp) => {
         description: { $first: "$group.description" },
         updatedAt: { $first: "$group.updatedAt" },
         members: {
-          $push: "$members",
+          $addToSet: "$members",
         },
-      },
-    },
-    {
-      $lookup: {
-        from: "messages",
-        localField: "contactId",
-        foreignField: "_id",
-        as: "messages",
       },
     },
     {
       $project: {
         isGroup: 1,
         isBlocked: 1,
+        isArchieved: 1,
         groupName: 1,
         whoCanSend: 1,
         avatar: 1,
@@ -533,12 +562,25 @@ const logIn = asyncHandler(async (req, resp) => {
         "members._id": 1,
         "members.isAdmin": 1,
         "members.user._id": 1,
+        "members.user.userId": 1,
         "members.user.userName": 1,
         "members.user.searchTag": 1,
         "members.user.socketId": 1,
         "members.user.online": 1,
         "members.user.email": 1,
         "members.user.avatar": 1,
+        "messages._id": 1,
+        "messages.message": 1,
+        "messages.hasAttechment": 1,
+        "messages.pending": 1,
+        "messages.attechmentLink": 1,
+        "messages.attechmentType": 1,
+        "messages.isCall": 1,
+        "messages.callType": 1,
+        "messages.createdAt": 1,
+        "messages.sender._id": 1,
+        "messages.sender.searchTag": 1,
+        "messages.sender.avatar": 1,
       },
     },
   ]);
@@ -549,7 +591,13 @@ const logIn = asyncHandler(async (req, resp) => {
     .status(201)
     .cookie("accessToken", newAccessToken, Options)
     .cookie("refreshToken", newRefreshToken, Options)
-    .json(new ApiResponse(201, { User: finalUser[0] }, "User logged in"));
+    .json(
+      new ApiResponse(
+        201,
+        { User: finalUser[0], accessToken: newAccessToken },
+        "User logged in"
+      )
+    );
 });
 
 const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
@@ -677,7 +725,6 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
         isBlocked: 1,
         updatedAt: 1,
         socketId: 1,
-        messages: 1,
         "member._id": 1,
         "member.isArchieved": 1,
         "member.user._id": 1,
@@ -687,6 +734,16 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
         "member.user.email": 1,
         "member.user.avatar": 1,
         "member.user.online": 1,
+        "messages._id": 1,
+        "messages.userId": 1,
+        "messages.message": 1,
+        "messages.hasAttechment": 1,
+        "messages.pending": 1,
+        "messages.attechmentLink": 1,
+        "messages.attechmentType": 1,
+        "messages.isCall": 1,
+        "messages.callType": 1,
+        "messages.createdAt": 1,
       },
     },
   ]);
@@ -830,6 +887,37 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
       },
     },
     {
+      $lookup: {
+        from: "messages",
+        localField: "group._id",
+        foreignField: "contactId",
+        as: "messages",
+      },
+    },
+    {
+      $unwind: "$messages",
+    },
+    {
+      $sort: {
+        "messages.createdAt": 1,
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "messages.userId",
+        foreignField: "_id",
+        as: "messages.sender",
+      },
+    },
+    {
+      $addFields: {
+        "messages.sender": {
+          $first: ["$messages.sender"],
+        },
+      },
+    },
+    {
       $group: {
         _id: "$group._id",
         isBlocked: { $first: "$isBlocked" },
@@ -837,6 +925,7 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
         isGroup: { $first: "$group.isGroup" },
         groupName: { $first: "$group.groupName" },
         avatar: { $first: "$group.groupAvatar" },
+        messages: { $addToSet: "$messages" },
         lastMessage: { $first: "$group.lastMessage" },
         isGroup: { $first: "$group.isGroup" },
         roomId: { $first: "$group.socketId" },
@@ -844,16 +933,8 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
         description: { $first: "$group.description" },
         updatedAt: { $first: "$group.updatedAt" },
         members: {
-          $push: "$members",
+          $addToSet: "$members",
         },
-      },
-    },
-    {
-      $lookup: {
-        from: "messages",
-        localField: "contactId",
-        foreignField: "_id",
-        as: "messages",
       },
     },
     {
@@ -878,20 +959,37 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
         "members.user.online": 1,
         "members.user.email": 1,
         "members.user.avatar": 1,
+        "messages._id": 1,
+        "messages.userId": 1,
+        "messages.message": 1,
+        "messages.hasAttechment": 1,
+        "messages.pending": 1,
+        "messages.attechmentLink": 1,
+        "messages.attechmentType": 1,
+        "messages.isCall": 1,
+        "messages.callType": 1,
+        "messages.createdAt": 1,
+        "messages.sender._id": 1,
+        "messages.sender.searchTag": 1,
+        "messages.sender.avatar": 1,
       },
     },
   ]);
 
   finalUser[0].groups = groups;
 
-  // console.log(`final user ${JSON.stringify(finalUser, null, 2)}`);
+  // console.log(`final user ${JSON.stringify(finalUser[0].groups, null, 2)}`);
 
   resp
     .status(201)
     .cookie("accessToken", newAccessToken, Options)
     .cookie("refreshToken", newRefreshToken, Options)
     .json(
-      new ApiResponse(201, { User: finalUser[0] }, "User alrady logged in")
+      new ApiResponse(
+        201,
+        { User: finalUser[0], accessToken: newAccessToken },
+        "User alrady logged in"
+      )
     );
 });
 
@@ -1699,59 +1797,59 @@ const updateSocketId = asyncHandler((req, resp) => {
 /**
  * @description Danger or Delete Operations in Delete account
  */
-const deleteAccount = asyncHandler(async (req, resp) => {
-  const user = req.user;
+// const deleteAccount = asyncHandler(async (req, resp) => {
+//   const user = req.user;
 
-  if (!user) {
-    throw new ApiError(501, "Unautharized request ", {
-      errorMessege: "Tokens not found",
-    });
-  }
+//   if (!user) {
+//     throw new ApiError(501, "Unautharized request ", {
+//       errorMessege: "Tokens not found",
+//     });
+//   }
 
-  const { password } = req.body;
+//   const { password } = req.body;
 
-  if (!password) {
-    throw new ApiError(400, "Password Must Required");
-  }
+//   if (!password) {
+//     throw new ApiError(400, "Password Must Required");
+//   }
 
-  const isUserExists = await User.findById(user._id);
+//   const isUserExists = await User.findById(user._id);
 
-  if (!isUserExists) {
-    throw new ApiError(400, "User Not Found");
-  }
+//   if (!isUserExists) {
+//     throw new ApiError(400, "User Not Found");
+//   }
 
-  const isPasswordCorrect = isUserExists.isPasswordCorect(password);
+//   const isPasswordCorrect = isUserExists.isPasswordCorect(password);
 
-  if (!isPasswordCorrect) {
-    throw new ApiError(501, "Password is incorrects request", {
-      errorMessege: "Password is incorrects",
-    });
-  }
+//   if (!isPasswordCorrect) {
+//     throw new ApiError(501, "Password is incorrects request", {
+//       errorMessege: "Password is incorrects",
+//     });
+//   }
 
-  const deletedAccount = new DeletedAccount({
-    userName: isUserExists.userName,
-    searchTag: isUserExists.searchTag,
-    email: isUserExists.email,
-    avatar: isUserExists.avatar,
-  });
+//   const deletedAccount = new DeletedAccount({
+//     userName: isUserExists.userName,
+//     searchTag: isUserExists.searchTag,
+//     email: isUserExists.email,
+//     avatar: isUserExists.avatar,
+//   });
 
-  await deletedAccount.save();
+//   await deletedAccount.save();
 
-  if (!deletedAccount) {
-    throw new ApiError(400, "Error while deleting the account");
-  }
+//   if (!deletedAccount) {
+//     throw new ApiError(400, "Error while deleting the account");
+//   }
 
-  const del = await User.findByIdAndDelete(isUserExists._id);
-  if (!del) {
-    throw new ApiError(400, "Error while deleting the account");
-  }
+//   const del = await User.findByIdAndDelete(isUserExists._id);
+//   if (!del) {
+//     throw new ApiError(400, "Error while deleting the account");
+//   }
 
-  resp
-    .status(200)
-    .clearCookie("accessToken", Options)
-    .clearCookie("refreshToken", Options)
-    .json(new ApiResponse(200, {}, "User Deleted Successfully"));
-});
+//   resp
+//     .status(200)
+//     .clearCookie("accessToken", Options)
+//     .clearCookie("refreshToken", Options)
+//     .json(new ApiResponse(200, {}, "User Deleted Successfully"));
+// });
 
 module.exports = {
   liveCheckTagSignup,
@@ -1767,7 +1865,6 @@ module.exports = {
   setTheme,
   sendAns,
   addSecurityQnA,
-  deleteAccount,
   forgetPasswordVerify,
   resetPassword,
   updateSocketId,
