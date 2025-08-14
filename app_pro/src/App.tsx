@@ -9,8 +9,6 @@ import Help from './Components/profile/Pages/Help'
 import Auth, { RevAuth } from './middleware/Auth'
 import Signup from './Components/Auth/Signup'
 import LoginForm from './Components/Auth/Login'
-import {SampleCropper} from './Components/Cropper/Cropper'
-
 function App() {
 
   return (

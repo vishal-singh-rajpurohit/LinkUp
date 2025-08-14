@@ -64,7 +64,7 @@ export interface groupMssageType {
     attechmentType: string;
     isCall: boolean;
     callType: string;
-    createdAt: string;
+    createdAt: Date;
     sender?: senderTypes;
 }
 
@@ -527,9 +527,9 @@ function cickOutMember(state: initialTypes, action: PayloadAction<{ newChat: gro
         members.push(newMember)
     })
 
-    const toUpdate = state.groups.filter((con)=>con._id === action.payload.newChat._id)
+    const toUpdate = state.groups.filter((con) => con._id === action.payload.newChat._id)
 
-    if(toUpdate[0]){
+    if (toUpdate[0]) {
         console.log(`Update found`);
         toUpdate[0].members = members;
         state.groups = [
@@ -540,10 +540,60 @@ function cickOutMember(state: initialTypes, action: PayloadAction<{ newChat: gro
 
 }
 
-function kickedMeOut(state: initialTypes, action: PayloadAction<{groupId: string}>){
-    state.groups = state.groups.filter((gp)=>gp._id !== action.payload.groupId)
+function kickedMeOut(state: initialTypes, action: PayloadAction<{ groupId: string }>) {
+    state.groups = state.groups.filter((gp) => gp._id !== action.payload.groupId)
 }
 
+function newMessage(state: initialTypes, action: PayloadAction<{ newMsg: groupMssageType, contactId: string }>) {
+    const toUpdateContact = state.contacts.filter((val) => val._id === action.payload.contactId);
+    // Checking in groups
+    if (toUpdateContact.length) {
+        toUpdateContact[0].messages = [
+            ...(toUpdateContact[0].messages || []),
+            action.payload.newMsg
+        ]
+
+        state.contacts = [
+            ...(toUpdateContact),
+            ...(state.contacts.filter((val)=>val._id !== action.payload.contactId)),
+        ]
+    }
+    else {
+        const toUpdateContact = state.groups.filter((val) => val._id === action.payload.contactId)
+        // Checking in groups
+        if (toUpdateContact.length) {
+            toUpdateContact[0].messages = [
+                ...(toUpdateContact[0].messages),
+                action.payload.newMsg
+            ]
+
+            state.groups = [
+                ...(toUpdateContact),
+                ...(state.groups.filter((val)=>val._id !== action.payload.contactId)),
+            ]
+
+        }
+        else {
+            const toUpdateContact = state.safer.filter((val) => val._id === action.payload.contactId)
+            // Checking in Archieved
+            if (toUpdateContact.length) {
+                toUpdateContact[0].messages = [
+                    ...(toUpdateContact[0].messages || []),
+                    action.payload.newMsg
+                ]
+
+                state.contacts = [
+                    ...(toUpdateContact),
+                    ...(state.safer.filter((val)=>val._id !== action.payload.contactId)),
+                ]
+            }
+            else {
+                throw new Error('Invalid contact id')
+            }
+        }
+    }
+
+}
 
 export const AuthSlice = createSlice({
     name: 'auth',
@@ -569,12 +619,13 @@ export const AuthSlice = createSlice({
         removeMessage: delMessage,
         triggerConOnline: setOnline,
         kickOutAuth: cickOutMember,
-        kickedMeAuth: kickedMeOut
+        kickedMeAuth: kickedMeOut,
+        messageRecived: newMessage
     }
 });
 
 
-export const { firstEnter, enterApp, logOut, saveContact, saveGroup, blockTrigger, addArchieved, removeArchieved, kickoutAuth, setTheme, updateEmail, updateName, updateSearchTag, updateAvatar, setSecourityQuestion, setSecourityAnswer, updateGroupAvatar, removeMessage, triggerConOnline, kickOutAuth, kickedMeAuth } = AuthSlice.actions
+export const { firstEnter, enterApp, logOut, saveContact, saveGroup, blockTrigger, addArchieved, removeArchieved, kickoutAuth, setTheme, updateEmail, updateName, updateSearchTag, updateAvatar, setSecourityQuestion, setSecourityAnswer, updateGroupAvatar, removeMessage, triggerConOnline, kickOutAuth, kickedMeAuth, messageRecived } = AuthSlice.actions
 
 
 export default AuthSlice.reducer

@@ -5,6 +5,7 @@ import { removeTempMessage, setTempString } from "../../app/functions/temp";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import axios from "axios";
 import { removeMessage } from "../../app/functions/auth";
+import { getTimeDifference } from "../../helpers/timeConverter";
 
 const api = import.meta.env.VITE_API;
 
@@ -15,16 +16,26 @@ export const Mail = (
     avatar,
     message,
     _id,
-    senderTag
+    senderTag,
+    time = null
   }: {
     mailOptions: React.RefObject<HTMLDivElement | null>;
     message: string;
     _id: string;
     avatar: string;
     senderTag: string;
+    time: Date | null
   }) => {
   const disp = useAppDispatch()
   const currMessageRef = useRef<HTMLDivElement | null>(null)
+  const [timer, setTimer] = useState<string>("")
+
+  useEffect(() => {
+    if (time) {
+      const currTime: string = getTimeDifference(time)
+      setTimer(currTime)
+    }
+  }, [time])
 
   useEffect(() => {
     disp(setTempString({ text: _id }))
@@ -60,7 +71,7 @@ export const Mail = (
       <div className="min-h-7 max-w-[80%]">
         <div className="bg-[#334155] text-[#F8FAFC] p-1 rounded-md "><div className="text-[10px]">{senderTag}</div>{message}</div>
         <div className="text-[10px]">
-          <div>12:02 pm</div>
+          <div>{timer}</div>
         </div>
       </div>
       <div ref={currMessageRef} className="flex"><CiMenuKebab cursor={'pointer'} className="current-message" /></div>
@@ -74,20 +85,31 @@ export const MailMe = (
     avatar,
     message,
     _id,
-    senderTag
+    senderTag,
+    time = null
   }: {
     mailOptions: React.RefObject<HTMLDivElement | null>;
     message?: string;
     _id: string;
     avatar?: string;
     senderTag?: string;
+    time: Date | null;
   }) => {
   const disp = useAppDispatch()
-  const currMessageRef = useRef<HTMLDivElement | null>(null)
+  const currMessageRef = useRef<HTMLDivElement | null>(null);
+  const [timer, setTimer] = useState<string>("")
+
+  useEffect(() => {
+    if (time) {
+      const currTime: string = getTimeDifference(time)
+      setTimer(currTime)
+    }
+  }, [time])
 
   useEffect(() => {
     disp(setTempString({ text: _id }))
     const currMessageEl = currMessageRef.current;
+
 
     if (currMessageEl) {
       const handleClick = (e: MouseEvent) => {
@@ -112,7 +134,7 @@ export const MailMe = (
     <div className={`flex gap-2 text-white flex-row-reverse `}>
       <div className="">
         <div className='w-[1.r3em] h-[1.3rem] flex items-center shadow-[0_0_10px_#00F0FF55] justify-center overflow-hidden rounded-[16px] font-[#0F172A] bg-amber-300 md:h-[1.5rem] md:w-[1.5rem]'>
-          <img src={g} alt="😒" className="max-h-[1.5rem] h-full" />
+          <img src={avatar || g} alt="😒" className="max-h-[1.5rem] h-full" />
         </div>
       </div>
       <div className="min-h-6 max-w-[80%] ">
@@ -123,7 +145,7 @@ export const MailMe = (
           </div>
         </div>
         <div className="text-[10px]">
-          <div>12:02 pm</div>
+          <div>{timer}</div>
         </div>
       </div>
       <div ref={currMessageRef} className="flex"><CiMenuKebab cursor={'pointer'} className="current-message" /></div>
@@ -138,7 +160,7 @@ export const MailMenu = ({ mailRef }: { mailRef: React.RefObject<HTMLDivElement 
   const disp = useAppDispatch()
   const messageId = useAppSelector((state) => state.temp.tempString)
   const contact = useAppSelector((state) => state.temp.selectedContact)
-  const user = useAppSelector((state)=>state.auth.user)
+  const user = useAppSelector((state) => state.auth.user)
   const chatType = useAppSelector((state) => state.temp.chatListTypes)
 
   async function undoMessage() {
@@ -156,10 +178,10 @@ export const MailMenu = ({ mailRef }: { mailRef: React.RefObject<HTMLDivElement 
       disp(removeMessage({ contactId: contact._id, messageId: resp.data.data.removedId, trigger: chatType }))
       disp(removeTempMessage({ messageId: resp.data.data.removedId }))
 
-      if(mailRef.current) mailRef.current.style.display = "none"
+      if (mailRef.current) mailRef.current.style.display = "none"
 
     } catch (error) {
-       disp(setTempString({ text: "" }));
+      disp(setTempString({ text: "" }));
       console.log(`error in undo message: ${error}`);
     }
   }

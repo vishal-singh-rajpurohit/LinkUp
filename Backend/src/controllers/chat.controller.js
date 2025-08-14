@@ -70,6 +70,8 @@ const sendMessage = asyncHandler(async (req, resp) => {
 
   if (!newMessage.pending) {
     if (!contact.isGroup) {
+      // If not an group chat than you have to send details of message along with userId
+
       const reciver = await Contact.aggregate([
         {
           $match: {
@@ -139,12 +141,19 @@ const sendMessage = asyncHandler(async (req, resp) => {
         },
       ]);
 
-      if (reciver) {
+      emiterSocket(req, myUser.socketId, chatEventEnumNew.NEW_MESSAGE, {
+        newMessage: newMessage,
+        contactId: contact._id,
+      });
+      if (reciver.length) {
         // Working on this
-        emiterSocket(req, reciver[0].socketId, chatEventEnumNew.NEW_MESSAGE, {message: newMessage.message})
+        emiterSocket(req, reciver[0].socketId, chatEventEnumNew.NEW_MESSAGE, {
+          newMessage: newMessage,
+          contactId: contact._id,
+        });
       }
     } else {
-      const myIo = req.app.get('io');
+      // IF Group Chat
       const recivers = await Contact.aggregate([
         {
           $match: {
@@ -166,7 +175,7 @@ const sendMessage = asyncHandler(async (req, resp) => {
                 input: "$members",
                 as: "member",
                 cond: {
-                  $ne: ["$$member.userId", user._id],
+                  $ne: ["$$member.userId", myUser._id],
                 },
               },
             },
@@ -184,46 +193,58 @@ const sendMessage = asyncHandler(async (req, resp) => {
           $unwind: "$member.user",
         },
         {
+          $match: {
+            "member.user.online": true,
+          },
+        },
+        {
           $group: {
             _id: "$_id",
             member: {
-              $first: "$member.user",
+              $addToSet: "$member.user",
             },
           },
         },
         {
-          $group: {
-            _id: "$_id",
-            userId: {
-              $first: "$member._id",
-            },
-            isOnline: {
-              $first: "$member.online",
-            },
-            socketId: {
-              $first: "$member.socketId",
-            },
-          },
-        },
-        {
-          $match: {
-            isOnline: true,
+          $project: {
+            "member._id": 1,
+            "member.socketId": 1,
+            "member.avatar": 1,
+            "member.searchTag": 1,
           },
         },
       ]);
 
-      myIo.to(contact._id).emit(chatEventEnumNew.NEW_MESSAGE, {message: newMessage.message})
-
-      recivers.forEach((reciver)=>{
-        myIo.to(reciver.socketId).emit(chatEventEnumNew.NEW_MESSAGE, {message: newMessage.message})
-      })
+      const messageObject = {
+        _id: newMessage._id,
+        message: newMessage.message,
+        hasAttechment: newMessage.hasAttechment,
+        pending: newMessage.pending,
+        attechmentLink: newMessage.attechmentLink,
+        attechmentType: newMessage.attechmentType,
+        isCall: newMessage.isCall,
+        callType: newMessage.callType,
+        createdAt: newMessage.createdAt,
+        sender: {
+          _id: myUser._id,
+          searchTag: myUser.searchTag,
+          avatar: myUser.avatar,
+        },
+      };
 
       if (recivers.length) {
-        for (let reciver of recivers) {
-          emiterSocket(req, reciver._id, chatEventEnumNew.NEW_MESSAGE, {});
+        emiterSocket(req, myUser.socketId, chatEventEnumNew.NEW_MESSAGE, {
+          newMessage: messageObject,
+          contactId: contact._id,
+        });
+        for (let reciver of recivers[0].member) {
+          emiterSocket(req, reciver.socketId, chatEventEnumNew.NEW_MESSAGE, {
+            newMessage: messageObject,
+            contactId: contact._id,
+          });
         }
       }
-      emiterSocket(req, contact._id, chatEventEnumNew.NEW_MESSAGE, {});
+      // emiterSocket(req, contact._id, chatEventEnumNew.NEW_MESSAGE, {});
     }
   }
 

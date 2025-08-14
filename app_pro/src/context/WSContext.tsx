@@ -1,17 +1,18 @@
 import React, { createContext, useEffect, useMemo } from "react";
 import io from "socket.io-client"
 import { useAppDispatch, useAppSelector } from "../app/hooks";
-import { kickedMeTemp, triggerOnline } from "../app/functions/temp";
-import { kickedMeAuth, kickOutAuth, saveContact, saveGroup, triggerConOnline, type groupMssageType, type groupsResp, type newChatTypes } from "../app/functions/auth";
+import { kickedMeTemp, newMessageInRoom, triggerOnline } from "../app/functions/temp";
+import { kickedMeAuth, kickOutAuth, messageRecived, saveContact, saveGroup, triggerConOnline, type groupMssageType, type groupsResp, type newChatTypes } from "../app/functions/auth";
 
 const ChatEventsEnum = {
     ONLINE_EVENT: "is_online",
     OFFLINE_EVENT: "offline",
-    NEW_MESSAGE: "message",
     APPROACHED_TALK: "apprached_to_talk",
     NEW_GROUP_CHAT: "created_room",
     KICKED_OUT_MEMBER: "cickout_member",
-    KICKED_OUT_YOU: "you_member"
+    KICKED_OUT_YOU: "you_member",
+    NEW_MESSAGE: "message",
+    MESSAGE_DELETED: "del_message",
 }
 
 interface WSCTypes {
@@ -58,10 +59,6 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
             disp(triggerConOnline({ contactId: contactId, trigger: false }))
         })
 
-        socket?.on(ChatEventsEnum.NEW_MESSAGE, ({ newMessage }: { newMessage: groupMssageType; }) => {
-            console.log("recived new message: -> ", newMessage);
-        })
-
         socket?.on(ChatEventsEnum.APPROACHED_TALK, ({ newContact }: { newContact: newChatTypes }) => {
             disp(saveContact({ newChat: newContact }));
             // console.log('you are in a chat room , ', newContact);
@@ -78,8 +75,15 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
 
         socket?.on(ChatEventsEnum.KICKED_OUT_YOU, ({ groupId }: { groupId: string }) => {
             console.log('kicked you out');
+            // Incomplete
             disp(kickedMeAuth({ groupId }))
             disp(kickedMeTemp({ groupId }))
+        })
+
+        socket?.on(ChatEventsEnum.NEW_MESSAGE, ({ newMessage, contactId }: { newMessage: groupMssageType; contactId: string; }) => {
+            console.log("recived new message: -> ", newMessage);
+            disp(messageRecived({ contactId: contactId, newMsg: newMessage }));
+            disp(newMessageInRoom({ contactId: contactId, newMsg: newMessage }));
         })
 
     }, [socket, isLoggedIn])

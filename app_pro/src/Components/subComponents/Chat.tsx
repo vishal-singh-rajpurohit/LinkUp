@@ -194,14 +194,18 @@ const ChatBox = () => {
             {
                 selectedContact.isGroup ? (
                     messages && messages.map((msg, index) => (
-                        <Mail key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} mailOptions={mailOptions} />
+                        msg.sender?._id === user._id? (
+                            <MailMe key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} mailOptions={mailOptions} time={msg.createdAt} />
+                        ): (
+                            <Mail key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} mailOptions={mailOptions} time={msg.createdAt} />
+                        )
                     ))
                 ) : (
                     messages && messages.map((msg, index) => (
                         msg.userId === selectedContact.userId ? (
-                            <Mail key={index} message={msg.message} avatar={selectedContact.avatar} _id={msg._id} senderTag={selectedContact.searchTag} mailOptions={mailOptions} />
+                            <Mail key={index} message={msg.message} avatar={selectedContact.avatar} _id={msg._id} senderTag={selectedContact.searchTag} mailOptions={mailOptions} time={msg.createdAt} />
                         ) : (
-                            <MailMe key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={user.searchTag} mailOptions={mailOptions} />
+                            <MailMe key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={user.searchTag} mailOptions={mailOptions} time={msg.createdAt} />
                         )
 
                     ))

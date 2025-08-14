@@ -355,6 +355,21 @@ const logIn = asyncHandler(async (req, resp) => {
         "member.user.online": 1,
       },
     },
+    {
+      $addFields: {
+        messages: {
+          $sortArray: {
+            input: "$messages",
+            sortBy: { createdAt: 1 }, // 1 = ascending (oldest first)
+          },
+        },
+      },
+    },
+    {
+      $sort: {
+        "messages.createdAt": 1,
+      },
+    },
   ]);
 
   const archivedContactIds = await Contact.aggregate([
@@ -583,6 +598,21 @@ const logIn = asyncHandler(async (req, resp) => {
         "messages.sender.avatar": 1,
       },
     },
+    {
+      $addFields: {
+        messages: {
+          $sortArray: {
+            input: "$messages",
+            sortBy: { createdAt: 1 }, // 1 = ascending (oldest first)
+          },
+        },
+      },
+    },
+    {
+      $sort: {
+        "messages.createdAt": 1,
+      },
+    },
   ]);
 
   finalUser[0].groups = groups;
@@ -743,6 +773,21 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
         "messages.attechmentType": 1,
         "messages.isCall": 1,
         "messages.callType": 1,
+        "messages.createdAt": 1,
+      },
+    },
+    {
+      $addFields: {
+        messages: {
+          $sortArray: {
+            input: "$messages",
+            sortBy: { createdAt: 1 }, // 1 = ascending (oldest first)
+          },
+        },
+      },
+    },
+    {
+      $sort: {
         "messages.createdAt": 1,
       },
     },
@@ -972,6 +1017,21 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
         "messages.sender._id": 1,
         "messages.sender.searchTag": 1,
         "messages.sender.avatar": 1,
+      },
+    },
+    {
+      $addFields: {
+        messages: {
+          $sortArray: {
+            input: "$messages",
+            sortBy: { createdAt: 1 }, // 1 = ascending (oldest first)
+          },
+        },
+      },
+    },
+    {
+      $sort: {
+        "messages.createdAt": 1,
       },
     },
   ]);

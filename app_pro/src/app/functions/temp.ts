@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import { type contactTypes, type groupsResp, type groupType } from './auth'
+import { type contactTypes, type groupMssageType, type groupsResp, type groupType } from './auth'
 
 export interface searchUserTypes {
     _id: string;
@@ -256,6 +256,14 @@ function cickOutMember(state: initialStateTypes, action: PayloadAction<{ groupId
     }
 }
 
+function newMessage(state: initialStateTypes, action: PayloadAction<{newMsg: groupMssageType, contactId: string}>){
+    if(state.selectedContact._id !== action.payload.contactId) return;
+    state.selectedContact.messages = [
+        ...(state.selectedContact.messages || []),
+        action.payload.newMsg
+    ]
+}
+
 // Chat settings
 
 function setHasAttechFunc(state: initialStateTypes, action: PayloadAction<{ trigger: boolean }>) {
@@ -294,11 +302,12 @@ const tempSlice = createSlice({
         setHasAttechments: setHasAttechFunc,
         removeTempMessage: delMessage,
         triggerOnline: setOnline,
-        kickedMeTemp: cickOutMember
+        kickedMeTemp: cickOutMember,
+        newMessageInRoom: newMessage
     }
 })
 
 
-export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp, updateSelectedAvatar, setHasAttechments, removeTempMessage, triggerOnline, kickedMeTemp } = tempSlice.actions
+export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp, updateSelectedAvatar, setHasAttechments, removeTempMessage, triggerOnline, kickedMeTemp, newMessageInRoom } = tempSlice.actions
 
 export default tempSlice.reducer
