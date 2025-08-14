@@ -72,11 +72,11 @@ const Auth = ({ children }: { children: ReactNode }) => {
     if (!formData.latitude) {
       console.log('offline');
 
-      setFormData({
-        ...formData,
-        latitude: "Not given",
-        longitude: "Not given",
-      })
+      // setFormData({
+      //   ...formData,
+      //   latitude: "Not given",
+      //   longitude: "Not given",
+      // })
     }
   }, [])
 
@@ -152,11 +152,11 @@ export const RevAuth = ({ children }: { children: ReactNode }) => {
     )
     // Disable in Production
     if (!formData.latitude) {
-      setFormData({
-        ...formData,
-        latitude: "Not given",
-        longitude: "Not given",
-      })
+      // setFormData({
+      //   ...formData,
+      //   latitude: "Not given",
+      //   longitude: "Not given",
+      // })
     }
   }, [])
 

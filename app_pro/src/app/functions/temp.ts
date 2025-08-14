@@ -1,6 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import { type contactTypes, type groupType } from './auth'
-import { IoAccessibilityOutline } from "react-icons/io5";
+import { type contactTypes, type groupsResp, type groupType } from './auth'
 
 export interface searchUserTypes {
     _id: string;
@@ -110,7 +109,7 @@ function selectGpFunc(state: initialStateTypes, action: PayloadAction<{ chat: gr
         time: action.payload.chat.time,
         userId: "",
         userName: action.payload.chat.groupName,
-        messages: [],
+        messages: action.payload.chat.messages,
         members: action.payload.chat.members
     }
 }
@@ -251,6 +250,12 @@ function setOnline(state: initialStateTypes, action: PayloadAction<{ contactId: 
     }
 }
 
+function cickOutMember(state: initialStateTypes, action: PayloadAction<{ groupId: string }>) {
+    if (state.selectedContact._id === action.payload.groupId) {
+        clearTemo(state)
+    }
+}
+
 // Chat settings
 
 function setHasAttechFunc(state: initialStateTypes, action: PayloadAction<{ trigger: boolean }>) {
@@ -288,11 +293,12 @@ const tempSlice = createSlice({
         updateSelectedAvatar: setGroupAvatar,
         setHasAttechments: setHasAttechFunc,
         removeTempMessage: delMessage,
-        triggerOnline: setOnline
+        triggerOnline: setOnline,
+        kickedMeTemp: cickOutMember
     }
 })
 
 
-export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp, updateSelectedAvatar, setHasAttechments, removeTempMessage, triggerOnline } = tempSlice.actions
+export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp, updateSelectedAvatar, setHasAttechments, removeTempMessage, triggerOnline, kickedMeTemp } = tempSlice.actions
 
 export default tempSlice.reducer

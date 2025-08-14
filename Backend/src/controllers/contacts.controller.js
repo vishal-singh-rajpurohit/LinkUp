@@ -10,12 +10,22 @@ const {
 } = require("../utils/cloudinary.utils");
 const { default: mongoose } = require("mongoose");
 const Message = require("../models/message.modal");
+const { emiterSocket } = require("../Socket");
+const { chatEventEnumNew } = require("../constants/constants");
 
 const createOneOnOneChat = asyncHandler(async (req, resp) => {
   try {
     const user = req.user;
 
     if (!user) {
+      throw new ApiError(401, "Unautharized request", {
+        errorMessage: "Unautharized request",
+      });
+    }
+
+    const myUser = await User.findById(user._id);
+
+    if (!myUser) {
       throw new ApiError(401, "Unautharized request", {
         errorMessage: "Unautharized request",
       });
@@ -42,8 +52,6 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
       isGroup: false,
     });
 
-    console.log(`already in contact`);
-
     if (isAlreadyContact) {
       throw new ApiError(500, "already in contact", {
         errorMessage: "aleady in contact",
@@ -55,6 +63,7 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
       isGroup: false,
       oneOnOne: [user._id, reciverId],
       socketId: null,
+      lastMessage: "Welcome to the chat",
     });
 
     await newContact.save();
@@ -160,15 +169,55 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
       throw new ApiError(400, "Error while getting user details");
     }
 
-    resp.status(200).json(
-      new ApiResponse(
-        200,
-        {
-          newContact: contactUserDetails[0],
+    // Send to the end user
+    if (reciver.online) {
+      const emitPayload = {
+        lastMessage: "Just Connected to you",
+        isBlocked: false,
+        updatedAt: new Date(),
+        socketId: newContact._id,
+        member: {
+          _id: memberOne._id,
+          isArchieved: false,
+          user: {
+            _id: myUser._id,
+            searchTag: myUser.searchTag,
+            socketId: myUser.socketId,
+            email: myUser.email,
+            avatar: myUser.avatar,
+            online: myUser.online,
+          },
         },
-        "Contact created successfully"
-      )
-    );
+      };
+      emiterSocket(req, reciver.socketId, chatEventEnumNew.APPROACHED_TALK, {
+        newContact: emitPayload,
+      });
+    }
+    const emitPayload = {
+      lastMessage: "You Approached",
+      isBlocked: false,
+      updatedAt: new Date(),
+      socketId: newContact._id,
+      member: {
+        _id: memberTwo._id,
+        isArchieved: false,
+        user: {
+          _id: reciver._id,
+          searchTag: reciver.searchTag,
+          socketId: reciver.socketId,
+          email: reciver.email,
+          avatar: reciver.avatar,
+          online: reciver.online,
+        },
+      },
+    };
+    emiterSocket(req, myUser.socketId, chatEventEnumNew.APPROACHED_TALK, {
+      newContact: emitPayload,
+    });
+
+    resp
+      .status(200)
+      .json(new ApiResponse(200, {}, "Contact created successfully"));
   } catch (error) {
     console.log("Error in creating contact :", error);
     throw new ApiError(400, "Error while creating contacts ");
@@ -185,7 +234,16 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
       });
     }
 
-    const { contacts, groupName, whoCanSend, description, avatar, public_id } = req.body;
+    const myUser = await User.findById(user._id);
+
+    if (!myUser) {
+      throw new ApiError(401, "Unauthraized User", {
+        errorMessage: "Unauthraized User",
+      });
+    }
+
+    const { contacts, groupName, whoCanSend, description, avatar, public_id } =
+      req.body;
 
     contacts.push({ userId: String(user._id), admin: true });
 
@@ -202,7 +260,7 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
       description: description,
       createdBy: user._id,
       groupAvatar: avatar,
-      public_id_avatar: public_id
+      public_id_avatar: public_id,
     });
 
     await newGroup.save();
@@ -332,42 +390,56 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
       },
     ]);
 
+    const newMessage = new Message({
+      message: `${user.searchTag} Added You In Group`,
+      contactId: newGroup._id,
+      userId: user._id,
+      pending: false,
+      hasAttechment: false,
+      attechmentType: null,
+      attechmentId: null,
+      attechmentLink: "",
+      callId: null,
+      callType: "",
+      isCall: false,
+      geoLoc: {
+        latitude: "0000",
+        longitude: "0000",
+      },
+    });
 
-      const newMessage = new Message({
-        message: `${user.searchTag} Created Chat Group`,
-        contactId: newGroup._id,
-        userId: user._id,
-        pending: false,
-        hasAttechment: false,
-        attechmentType: null,
-        attechmentId: null,
-        attechmentLink: "",
-        callId: null,
-        callType: "",
-        isCall: false,
-        geoLoc: {
-          latitude: "0000",
-          longitude: "0000",
-        },
-      });
-
-
-      await newMessage.save()
+    await newMessage.save();
 
     // Error here
     if (!newGroupDetails[0]) {
       throw new ApiError(400, `group not found after creation`);
     }
 
-    resp
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          { newGroupDetails: newGroupDetails[0] },
-          "Group created successfully"
-        )
-      );
+    for (let member of newGroupDetails[0].members) {
+      if (member.user.online) {
+        // console.log(`sending to: `, member.user.userName, "socketId: ", member.socketId);
+        emiterSocket(
+          req,
+          member.user.socketId,
+          chatEventEnumNew.NEW_GROUP_CHAT,
+          {
+            newGroupDetails: newGroupDetails[0],
+          }
+        );
+      } else {
+        console.log(member.user.userName, "isOffline: ");
+      }
+    }
+
+    resp.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          // newGroupDetails: newGroupDetails[0]
+        },
+        "Group created successfully"
+      )
+    );
   } catch (error) {
     console.log("Error in creating group: ", error);
     throw new ApiError(401, "Error while creating group chat ", {
@@ -695,7 +767,9 @@ const addToGroup = asyncHandler(async (req, resp) => {
       userId: val._id,
     });
 
-    if (!isExistes) {
+    const reciver = await User.findById(val._id);
+
+    if (!isExistes && reciver) {
       const newMember = new ContactMember({
         addedBy: user._id,
         userId: val._id,
@@ -705,6 +779,120 @@ const addToGroup = asyncHandler(async (req, resp) => {
         isBlocked: false,
       });
       await newMember.save();
+
+      const groupDetails = await ContactMember.aggregate([
+        {
+          $match: {
+            _id: newMember._id,
+          },
+        },
+        {
+          $lookup: {
+            from: "contacts",
+            localField: "contactId",
+            foreignField: "_id",
+            as: "group",
+          },
+        },
+        {
+          $unwind: "$group",
+        },
+        {
+          $match: {
+            "group.isGroup": true,
+          },
+        },
+        {
+          $lookup: {
+            from: "contactmembers",
+            localField: "group._id",
+            foreignField: "contactId",
+            as: "members",
+          },
+        },
+        {
+          $unwind: "$members",
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "members.userId",
+            foreignField: "_id",
+            as: "members.user",
+          },
+        },
+        {
+          $addFields: {
+            "members.user": {
+              $first: ["$members.user"],
+            },
+          },
+        },
+        {
+          $match: {
+            "members.isBlocked": false,
+          },
+        },
+        {
+          $group: {
+            _id: "$group._id",
+            isBlocked: { $first: "$isBlocked" },
+            isArchieved: { $first: "$isArchieved" },
+            isGroup: { $first: "$group.isGroup" },
+            groupName: { $first: "$group.groupName" },
+            avatar: { $first: "$group.groupAvatar" },
+            lastMessage: { $first: "$group.lastMessage" },
+            isGroup: { $first: "$group.isGroup" },
+            roomId: { $first: "$group.socketId" },
+            whoCanSend: { $first: "$group.whoCanSend" },
+            description: { $first: "$group.description" },
+            updatedAt: { $first: "$group.updatedAt" },
+            members: {
+              $push: "$members",
+            },
+          },
+        },
+        {
+          $lookup: {
+            from: "messages",
+            localField: "contactId",
+            foreignField: "_id",
+            as: "messages",
+          },
+        },
+        {
+          $project: {
+            isGroup: 1,
+            isBlocked: 1,
+            isArchieved: 1,
+            groupName: 1,
+            whoCanSend: 1,
+            avatar: 1,
+            description: 1,
+            roomId: 1,
+            isGroup: 1,
+            lastMessage: 1,
+            updatedAt: 1,
+            "members._id": 1,
+            "members.isAdmin": 1,
+            "members.user._id": 1,
+            "members.user.userName": 1,
+            "members.user.searchTag": 1,
+            "members.user.socketId": 1,
+            "members.user.online": 1,
+            "members.user.email": 1,
+            "members.user.avatar": 1,
+          },
+        },
+      ]);
+
+      if (reciver.online) {
+        emiterSocket(req, reciver.socketId, chatEventEnumNew.NEW_GROUP_CHAT, {
+          newGroupDetails: groupDetails[0],
+        });
+      } else {
+        console.log(reciver.userName, "isOffline: ");
+      }
     }
   }
 
@@ -747,9 +935,140 @@ const kickOutFromGroup = asyncHandler(async (req, resp) => {
   if (!member._id) {
     throw new ApiError(400, "Member not found in Group");
   }
-
   member.isBlocked = true;
   await member.save();
+
+  // Emmit to users
+  const groupDetails = await ContactMember.aggregate([
+    {
+      $match: {
+        contactId: contact._id,
+        isBlocked: false,
+      },
+    },
+    {
+      $lookup: {
+        from: "contacts",
+        localField: "contactId",
+        foreignField: "_id",
+        as: "group",
+      },
+    },
+    {
+      $unwind: "$group",
+    },
+    {
+      $match: {
+        "group.isGroup": true,
+      },
+    },
+    {
+      $lookup: {
+        from: "contactmembers",
+        localField: "group._id",
+        foreignField: "contactId",
+        as: "members",
+      },
+    },
+    {
+      $unwind: "$members",
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "members.userId",
+        foreignField: "_id",
+        as: "members.user",
+      },
+    },
+    {
+      $addFields: {
+        "members.user": {
+          $first: ["$members.user"],
+        },
+      },
+    },
+    {
+      $match: {
+        "members.isBlocked": false,
+      },
+    },
+    {
+      $group: {
+        _id: "$group._id",
+        isBlocked: { $first: "$isBlocked" },
+        isArchieved: { $first: "$isArchieved" },
+        isGroup: { $first: "$group.isGroup" },
+        groupName: { $first: "$group.groupName" },
+        avatar: { $first: "$group.groupAvatar" },
+        lastMessage: { $first: "$group.lastMessage" },
+        isGroup: { $first: "$group.isGroup" },
+        roomId: { $first: "$group.socketId" },
+        whoCanSend: { $first: "$group.whoCanSend" },
+        description: { $first: "$group.description" },
+        updatedAt: { $first: "$group.updatedAt" },
+        members: {
+          $push: "$members",
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "messages",
+        localField: "contactId",
+        foreignField: "_id",
+        as: "messages",
+      },
+    },
+    {
+      $project: {
+        isGroup: 1,
+        isBlocked: 1,
+        isArchieved: 1,
+        groupName: 1,
+        whoCanSend: 1,
+        avatar: 1,
+        description: 1,
+        roomId: 1,
+        isGroup: 1,
+        lastMessage: 1,
+        updatedAt: 1,
+        "members._id": 1,
+        "members.isAdmin": 1,
+        "members.user._id": 1,
+        "members.user.userName": 1,
+        "members.user.searchTag": 1,
+        "members.user.socketId": 1,
+        "members.user.online": 1,
+        "members.user.email": 1,
+        "members.user.avatar": 1,
+      },
+    },
+  ]);
+
+  const kickedUser = await User.findById(member.userId);
+
+  if (!kickedUser) {
+    throw new ApiError(400, "User Blocked But not found");
+  }
+
+  if (kickedUser.online) {
+    console.log(`emitted to kicked one`);
+    emiterSocket(req, kickedUser.socketId, chatEventEnumNew.KICKED_OUT_YOU, {
+      groupId: groupDetails[0]._id,
+    });
+  }
+
+  for (let member of groupDetails[0].members) {
+    if (member.user.online) {
+      emiterSocket(
+        req,
+        member.user.socketId,
+        chatEventEnumNew.KICKED_OUT_MEMBER,
+        { updatedGroup: groupDetails }
+      );
+    }
+  }
 
   resp.status(201).json(new ApiResponse(201, {}, "Member Removed From Chat"));
 });
@@ -837,14 +1156,37 @@ const upload = asyncHandler(async (req, resp) => {
 
   const upload_resp = await uploadToCloudinary(path);
 
-  resp
-    .status(201)
-    .json(
-      new ApiResponse(201, {
-        avatar: upload_resp.url,
-        public_id: upload_resp.public_id,
-      })
-    );
+  resp.status(201).json(
+    new ApiResponse(201, {
+      avatar: upload_resp.url,
+      public_id: upload_resp.public_id,
+    })
+  );
+});
+
+// Join Room Event
+const joinChat = asyncHandler(async (req, resp) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      throw new ApiError(401, "Unautharized request", {
+        errorMessage: "Unautharized request",
+      });
+    }
+
+    const User = await User.findById(user._id);
+
+    if (!User) {
+      throw new ApiError(401, "Unautharized request", {
+        errorMessage: "Unautharized request",
+      });
+    }
+
+    const {} = req.body;
+  } catch (error) {
+    throw new ApiError(500, "Error in join room event");
+  }
 });
 
 module.exports = {
@@ -858,5 +1200,5 @@ module.exports = {
   addToGroup,
   kickOutFromGroup,
   changeAvatar,
-  upload
+  upload,
 };

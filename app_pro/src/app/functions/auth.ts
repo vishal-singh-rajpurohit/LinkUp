@@ -74,8 +74,6 @@ interface senderTypes {
     avatar: string;
 }
 
-
-
 export interface contactTypes {
     _id: string;
     userId: string;
@@ -321,15 +319,16 @@ function newContact(state: initialTypes, action: PayloadAction<{
         messages: []
     }
 
-    state.contacts = [...state.contacts, newContact]
+    state.contacts = [
+        newContact,
+        ...(state.contacts)
+    ]
 
 }
 
 function newGroup(state: initialTypes, action: PayloadAction<{
     newChat: groupsResp
 }>) {
-
-
     const members: groupMemberTypes[] = []
 
     action.payload.newChat.members.forEach((mem) => {
@@ -484,21 +483,19 @@ function delMessage(state: initialTypes, action: PayloadAction<{ contactId: stri
 // Socket events
 function setOnline(state: initialTypes, action: PayloadAction<{ contactId: string; trigger: boolean }>) {
     const contact = state.contacts.filter((user) => user._id === action.payload.contactId);
-    console.log('contacts =>', JSON.stringify(state.contacts, null, 2));
-    if (contact[0]._id) {
-        console.log('entered');
+    if (contact.length) {
         let tempCon = contact[0];
         tempCon.isOnline = action.payload.trigger;
         tempCon.time = new Date()
 
         state.contacts = [
-            ...(state.contacts.filter((user) => user._id !== action.payload.contactId)),
-            tempCon
+            tempCon,
+            ...(state.contacts.filter((user) => user._id !== action.payload.contactId))
         ]
     }
     else {
         const contact = state.safer.filter((user) => user._id === action.payload.contactId);
-        if (contact[0]._id) {
+        if (contact.length) {
             let tempCon = contact[0];
             tempCon.isOnline = action.payload.trigger;
             tempCon.time = new Date();
@@ -510,6 +507,41 @@ function setOnline(state: initialTypes, action: PayloadAction<{ contactId: strin
         }
     }
 
+}
+
+function cickOutMember(state: initialTypes, action: PayloadAction<{ newChat: groupsResp }>) {
+    const members: groupMemberTypes[] = []
+
+    action.payload.newChat.members.forEach((mem) => {
+        const newMember: groupMemberTypes = {
+            _id: mem.user._id,
+            isAdmin: mem.isAdmin,
+            avatar: mem.user.avatar,
+            email: mem.user.email,
+            isOnline: mem.user.online,
+            searchTag: mem.user.searchTag,
+            socketId: mem.user.socketId,
+            userName: mem.user.userName
+        }
+
+        members.push(newMember)
+    })
+
+    const toUpdate = state.groups.filter((con)=>con._id === action.payload.newChat._id)
+
+    if(toUpdate[0]){
+        console.log(`Update found`);
+        toUpdate[0].members = members;
+        state.groups = [
+            ...(state.groups),
+            ...(toUpdate)
+        ]
+    }
+
+}
+
+function kickedMeOut(state: initialTypes, action: PayloadAction<{groupId: string}>){
+    state.groups = state.groups.filter((gp)=>gp._id !== action.payload.groupId)
 }
 
 
@@ -535,12 +567,14 @@ export const AuthSlice = createSlice({
         setSecourityQuestion: setQuestion,
         setSecourityAnswer: setAns,
         removeMessage: delMessage,
-        triggerConOnline: setOnline
+        triggerConOnline: setOnline,
+        kickOutAuth: cickOutMember,
+        kickedMeAuth: kickedMeOut
     }
 });
 
 
-export const { firstEnter, enterApp, logOut, saveContact, saveGroup, blockTrigger, addArchieved, removeArchieved, kickoutAuth, setTheme, updateEmail, updateName, updateSearchTag, updateAvatar, setSecourityQuestion, setSecourityAnswer, updateGroupAvatar, removeMessage, triggerConOnline} = AuthSlice.actions
+export const { firstEnter, enterApp, logOut, saveContact, saveGroup, blockTrigger, addArchieved, removeArchieved, kickoutAuth, setTheme, updateEmail, updateName, updateSearchTag, updateAvatar, setSecourityQuestion, setSecourityAnswer, updateGroupAvatar, removeMessage, triggerConOnline, kickOutAuth, kickedMeAuth } = AuthSlice.actions
 
 
 export default AuthSlice.reducer

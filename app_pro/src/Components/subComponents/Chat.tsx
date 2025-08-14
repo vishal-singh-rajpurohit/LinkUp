@@ -11,8 +11,6 @@ import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { getTimeDifference } from '../../helpers/timeConverter'
 import { NavLink, useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { useSelector } from 'react-redux'
-
 const api = import.meta.env.VITE_API;
 
 export const ChatArea = () => {
@@ -202,10 +200,10 @@ const ChatBox = () => {
                     messages && messages.map((msg, index) => (
                         msg.userId === selectedContact.userId ? (
                             <Mail key={index} message={msg.message} avatar={selectedContact.avatar} _id={msg._id} senderTag={selectedContact.searchTag} mailOptions={mailOptions} />
-                        ): (
+                        ) : (
                             <MailMe key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={user.searchTag} mailOptions={mailOptions} />
                         )
-                        
+
                     ))
                 )
             }

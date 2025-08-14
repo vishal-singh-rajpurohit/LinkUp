@@ -59,7 +59,6 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
     async function select() {
         if (isSearching) {
             try {
-
                 interface respTypes {
                     data: {
                         newContact: newChatTypes
@@ -70,9 +69,9 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
                     { reciverId: _id },
                     { withCredentials: true }
                 )
-                disp(saveContact({ newChat: resp.data.data.newContact }));
+                // disp(saveContact({ newChat: resp.data.data.newContact }));
                 disp(setSearching({ trigger: false }));
-                talk(resp.data.data.newContact._id);
+                // talk(resp.data.data.newContact._id);
 
             } catch (error) {
                 console.log(`error saving contact ${error}`);
@@ -282,7 +281,7 @@ const CreateGroupChat = () => {
             }, {
                 withCredentials: true
             });
-            disp(saveGroup({ newChat: resp.data.data.newGroupDetails }))
+            // disp(saveGroup({ newChat: resp.data.data.newGroupDetails }))
             disp(clearGroupContact())
             disp(openGroupChat({ trigger: false }))
         } catch (error) {

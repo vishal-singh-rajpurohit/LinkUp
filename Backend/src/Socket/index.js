@@ -107,9 +107,8 @@ const starterSocketIo = async (io) => {
   });
 };
 
-const emiterSocket = (req, roomId, event, Payload) => {
-  console.log("emmited");
-  req.app.get("io").to(roomId).emit(event, Payload);
+const emiterSocket = async (req, roomId, event, Payload) => {
+  await req.app.get("io").to(roomId).emit(event, Payload);
 };
 
 const emiterCall = (req, userId, event, Payload) => {
@@ -206,9 +205,6 @@ const getUserOnlineFriends = async (userId) => {
         },
       },
     ]);
-
-    console.log(`contactsOnline `, contactsOnline);
-    
     return contactsOnline;
   } catch (error) {
     throw new ApiError(5001, "error in searching contacts");

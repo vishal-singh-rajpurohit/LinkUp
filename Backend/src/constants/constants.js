@@ -24,11 +24,15 @@ const ChatEventEnum = Object({
   CLOSE_AUDIO_CALL: "closeAudioCall",
 });
 
-
-const chatEventEnumNew = Object({
+const chatEventEnumNew = {
   ONLINE_EVENT: "is_online",
   OFFLINE_EVENT: "offline",
-})
+  NEW_MESSAGE: "message",
+  APPROACHED_TALK: "apprached_to_talk",
+  NEW_GROUP_CHAT: "created_room",
+  KICKED_OUT_MEMBER: "cickout_member",
+  KICKED_OUT_YOU: "you_member",
+};
 
 const LoadLimits = Object.freeze({
   CONTACT_LIMIT: 50,

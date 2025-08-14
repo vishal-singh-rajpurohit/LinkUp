@@ -1,10 +1,13 @@
 const Contact = require("../models/contacts.model");
+const ContactMember = require("../models/contactMember.model");
 const Message = require("../models/message.modal");
 const Reaction = require("../models/react.model");
 const User = require("../models/user.model");
 const ApiError = require("../utils/ApiError.utils");
 const ApiResponse = require("../utils/ApiResponse.utils");
 const asyncHandler = require("../utils/asyncHandler.utils");
+const { emiterSocket } = require("../Socket");
+const { chatEventEnumNew } = require("../constants/constants");
 
 const sendMessage = asyncHandler(async (req, resp) => {
   const user = req.user;
@@ -63,6 +66,165 @@ const sendMessage = asyncHandler(async (req, resp) => {
 
   if (!newMessage._id) {
     throw new ApiError(501, "Message not created");
+  }
+
+  if (!newMessage.pending) {
+    if (!contact.isGroup) {
+      const reciver = await Contact.aggregate([
+        {
+          $match: {
+            _id: contact._id,
+            isGroup: false,
+          },
+        },
+        {
+          $lookup: {
+            from: "contactmembers",
+            localField: "_id",
+            foreignField: "contactId",
+            as: "members",
+          },
+        },
+        {
+          $addFields: {
+            member: {
+              $filter: {
+                input: "$members",
+                as: "member",
+                cond: {
+                  $ne: ["$$member.userId", user._id],
+                },
+              },
+            },
+          },
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "member.userId",
+            foreignField: "_id",
+            as: "member.user",
+          },
+        },
+        {
+          $unwind: "$member.user",
+        },
+
+        {
+          $group: {
+            _id: "$_id",
+            member: {
+              $first: "$member.user",
+            },
+          },
+        },
+        {
+          $group: {
+            _id: "$_id",
+            userId: {
+              $first: "$member._id",
+            },
+            isOnline: {
+              $first: "$member.online",
+            },
+            socketId: {
+              $first: "$member.socketId",
+            },
+          },
+        },
+        {
+          $match: {
+            isOnline: true,
+          },
+        },
+      ]);
+
+      if (reciver) {
+        // Working on this
+        emiterSocket(req, reciver[0].socketId, chatEventEnumNew.NEW_MESSAGE, {message: newMessage.message})
+      }
+    } else {
+      const myIo = req.app.get('io');
+      const recivers = await Contact.aggregate([
+        {
+          $match: {
+            _id: contact._id,
+          },
+        },
+        {
+          $lookup: {
+            from: "contactmembers",
+            localField: "_id",
+            foreignField: "contactId",
+            as: "members",
+          },
+        },
+        {
+          $addFields: {
+            member: {
+              $filter: {
+                input: "$members",
+                as: "member",
+                cond: {
+                  $ne: ["$$member.userId", user._id],
+                },
+              },
+            },
+          },
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "member.userId",
+            foreignField: "_id",
+            as: "member.user",
+          },
+        },
+        {
+          $unwind: "$member.user",
+        },
+        {
+          $group: {
+            _id: "$_id",
+            member: {
+              $first: "$member.user",
+            },
+          },
+        },
+        {
+          $group: {
+            _id: "$_id",
+            userId: {
+              $first: "$member._id",
+            },
+            isOnline: {
+              $first: "$member.online",
+            },
+            socketId: {
+              $first: "$member.socketId",
+            },
+          },
+        },
+        {
+          $match: {
+            isOnline: true,
+          },
+        },
+      ]);
+
+      myIo.to(contact._id).emit(chatEventEnumNew.NEW_MESSAGE, {message: newMessage.message})
+
+      recivers.forEach((reciver)=>{
+        myIo.to(reciver.socketId).emit(chatEventEnumNew.NEW_MESSAGE, {message: newMessage.message})
+      })
+
+      if (recivers.length) {
+        for (let reciver of recivers) {
+          emiterSocket(req, reciver._id, chatEventEnumNew.NEW_MESSAGE, {});
+        }
+      }
+      emiterSocket(req, contact._id, chatEventEnumNew.NEW_MESSAGE, {});
+    }
   }
 
   resp
