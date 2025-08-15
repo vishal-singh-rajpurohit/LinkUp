@@ -65,6 +65,8 @@ export interface groupMssageType {
     isCall: boolean;
     callType: string;
     createdAt: Date;
+    isDeleted?: boolean;
+    seen?: boolean,
     sender?: senderTypes;
 }
 
@@ -282,6 +284,7 @@ export interface newChatTypes {
     socketId: string;
     isBlocked: boolean;
     isArchieved: boolean;
+    isDeleted: boolean;
     updatedAt: Date;
     messages?: [];
     member: {
@@ -455,32 +458,32 @@ function setGroupAvatar(state: initialTypes, action: PayloadAction<{ avatar: str
 }
 
 // Messages
-function delMessage(state: initialTypes, action: PayloadAction<{ contactId: string; messageId: string; trigger: number }>) {
-    if (action.payload.trigger === 1) {
-        const selectedContact = state.contacts.filter((con) => con._id === action.payload.contactId)[0];
-        selectedContact.messages = selectedContact.messages?.filter((msg) => msg._id !== action.payload.messageId)
-        state.contacts = [
-            ...(state.contacts.filter((con) => con._id !== action.payload.contactId)),
-            selectedContact
-        ]
-    }
-    if (action.payload.trigger === 3) {
-        const selectedContact = state.safer.filter((con) => con._id === action.payload.contactId)[0];
-        selectedContact.messages = selectedContact.messages?.filter((msg) => msg._id !== action.payload.messageId)
-        state.safer = [
-            ...(state.safer.filter((con) => con._id !== action.payload.contactId)),
-            selectedContact
-        ]
-    }
-    if (action.payload.trigger === 2) {
-        const selectedContact = state.groups.filter((con) => con._id === action.payload.contactId)[0];
-        selectedContact.messages = selectedContact.messages?.filter((msg) => msg._id !== action.payload.messageId)
-        state.groups = [
-            ...(state.groups.filter((con) => con._id !== action.payload.contactId)),
-            selectedContact
-        ]
-    }
-}
+// function delMessage(state: initialTypes, action: PayloadAction<{ contactId: string; messageId: string; trigger: number }>) {
+//     if (action.payload.trigger === 1) {
+//         const selectedContact = state.contacts.filter((con) => con._id === action.payload.contactId)[0];
+//         selectedContact.messages = selectedContact.messages?.filter((msg) => msg._id !== action.payload.messageId)
+//         state.contacts = [
+//             ...(state.contacts.filter((con) => con._id !== action.payload.contactId)),
+//             selectedContact
+//         ]
+//     }
+//     if (action.payload.trigger === 3) {
+//         const selectedContact = state.safer.filter((con) => con._id === action.payload.contactId)[0];
+//         selectedContact.messages = selectedContact.messages?.filter((msg) => msg._id !== action.payload.messageId)
+//         state.safer = [
+//             ...(state.safer.filter((con) => con._id !== action.payload.contactId)),
+//             selectedContact
+//         ]
+//     }
+//     if (action.payload.trigger === 2) {
+//         const selectedContact = state.groups.filter((con) => con._id === action.payload.contactId)[0];
+//         selectedContact.messages = selectedContact.messages?.filter((msg) => msg._id !== action.payload.messageId)
+//         state.groups = [
+//             ...(state.groups.filter((con) => con._id !== action.payload.contactId)),
+//             selectedContact
+//         ]
+//     }
+// }
 
 // Socket events
 function setOnline(state: initialTypes, action: PayloadAction<{ contactId: string; trigger: boolean }>) {
@@ -557,7 +560,7 @@ function newMessage(state: initialTypes, action: PayloadAction<{ newMsg: groupMs
 
         state.contacts = [
             ...(toUpdateContact),
-            ...(state.contacts.filter((val)=>val._id !== action.payload.contactId)),
+            ...(state.contacts.filter((val) => val._id !== action.payload.contactId)),
         ]
     }
     else {
@@ -571,7 +574,7 @@ function newMessage(state: initialTypes, action: PayloadAction<{ newMsg: groupMs
 
             state.groups = [
                 ...(toUpdateContact),
-                ...(state.groups.filter((val)=>val._id !== action.payload.contactId)),
+                ...(state.groups.filter((val) => val._id !== action.payload.contactId)),
             ]
 
         }
@@ -586,7 +589,7 @@ function newMessage(state: initialTypes, action: PayloadAction<{ newMsg: groupMs
 
                 state.contacts = [
                     ...(toUpdateContact),
-                    ...(state.safer.filter((val)=>val._id !== action.payload.contactId)),
+                    ...(state.safer.filter((val) => val._id !== action.payload.contactId)),
                 ]
             }
             else {
@@ -595,6 +598,68 @@ function newMessage(state: initialTypes, action: PayloadAction<{ newMsg: groupMs
         }
     }
 
+}
+
+function delMessage(state: initialTypes, action: PayloadAction<{ messageId: string; contactId: string; isGroup: boolean }>) {
+    if (action.payload.isGroup) {
+        let filtered = state.groups.filter((val) => val._id === action.payload.contactId)
+        if (filtered.length) {
+            const message = filtered[0].messages?.filter((state) => state._id === action.payload.messageId);
+            const oldMessage = filtered[0].messages?.filter((state) => state._id !== action.payload.messageId);
+            message[0].isDeleted = true;
+            filtered[0].messages = [
+                ...(oldMessage),
+                ...(message)
+            ]
+            let oldGroups = state.groups.filter((val) => val._id !== action.payload.contactId)
+
+            state.groups = [
+                ...(filtered),
+                ...(oldGroups)
+            ]
+
+        }
+    } else {
+        const filterdContacts = state.contacts.filter((val) => val._id === action.payload.contactId)
+        if (filterdContacts.length) {
+            const message = filterdContacts[0].messages?.filter((state) => state._id === action.payload.messageId);
+            const oldMessage = filterdContacts[0].messages?.filter((state) => state._id !== action.payload.messageId);
+            if (message?.length) {
+                message[0].isDeleted = true;
+                filterdContacts[0].messages = [
+                    ...(oldMessage || []),
+                    ...(message || [])
+                ]
+            }
+            let oldContact = state.contacts.filter((val) => val._id !== action.payload.contactId)
+
+            state.contacts = [
+                ...(filterdContacts || []),
+                ...(oldContact || [])
+            ]
+        } else {
+            const filterdSafer = state.safer.filter((val) => val._id === action.payload.contactId)
+            if (filterdSafer.length) {
+                const message = filterdSafer[0].messages?.filter((state) => state._id === action.payload.messageId);
+                const oldMessage = filterdSafer[0].messages?.filter((state) => state._id !== action.payload.messageId);
+                if (message?.length) {
+                    message[0].isDeleted = true;
+                    filterdSafer[0].messages = [
+                        ...(oldMessage || []),
+                        ...(message || [])
+                    ]
+                }
+                let oldContact = state.safer.filter((val) => val._id !== action.payload.contactId)
+
+                state.safer = [
+                    ...(filterdSafer || []),
+                    ...(oldContact || [])
+                ]
+            } else {
+                throw new Error("Contact not found while deleting message")
+            }
+        }
+    }
 }
 
 export const AuthSlice = createSlice({
@@ -618,7 +683,7 @@ export const AuthSlice = createSlice({
         updateGroupAvatar: setGroupAvatar,
         setSecourityQuestion: setQuestion,
         setSecourityAnswer: setAns,
-        removeMessage: delMessage,
+        deleteMessage: delMessage,
         triggerConOnline: setOnline,
         kickOutAuth: cickOutMember,
         kickedMeAuth: kickedMeOut,
@@ -627,7 +692,7 @@ export const AuthSlice = createSlice({
 });
 
 
-export const { firstEnter, enterApp, logOut, saveContact, saveGroup, blockTrigger, addArchieved, removeArchieved, kickoutAuth, setTheme, updateEmail, updateName, updateSearchTag, updateAvatar, setSecourityQuestion, setSecourityAnswer, updateGroupAvatar, removeMessage, triggerConOnline, kickOutAuth, kickedMeAuth, messageRecived } = AuthSlice.actions
+export const { firstEnter, enterApp, logOut, saveContact, saveGroup, blockTrigger, addArchieved, removeArchieved, kickoutAuth, setTheme, updateEmail, updateName, updateSearchTag, updateAvatar, setSecourityQuestion, setSecourityAnswer, updateGroupAvatar, deleteMessage, triggerConOnline, kickOutAuth, kickedMeAuth, messageRecived } = AuthSlice.actions
 
 
 export default AuthSlice.reducer

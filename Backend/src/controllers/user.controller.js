@@ -593,6 +593,7 @@ const logIn = asyncHandler(async (req, resp) => {
         "messages.isCall": 1,
         "messages.callType": 1,
         "messages.createdAt": 1,
+        "messages.isDeleted": 1,
         "messages.sender._id": 1,
         "messages.sender.searchTag": 1,
         "messages.sender.avatar": 1,
@@ -616,6 +617,9 @@ const logIn = asyncHandler(async (req, resp) => {
   ]);
 
   finalUser[0].groups = groups;
+
+  // console.log('final user is: ', JSON.stringify(finalUser[0].contacts, null, 2));
+  
 
   resp
     .status(201)
@@ -771,6 +775,7 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
         "messages.pending": 1,
         "messages.attechmentLink": 1,
         "messages.attechmentType": 1,
+        "messages.isDeleted": 1,
         "messages.isCall": 1,
         "messages.callType": 1,
         "messages.createdAt": 1,
@@ -1014,6 +1019,7 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
         "messages.isCall": 1,
         "messages.callType": 1,
         "messages.createdAt": 1,
+        "messages.isDeleted": 1,
         "messages.sender._id": 1,
         "messages.sender.searchTag": 1,
         "messages.sender.avatar": 1,
@@ -1038,7 +1044,7 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
 
   finalUser[0].groups = groups;
 
-  // console.log(`final user ${JSON.stringify(finalUser[0].groups, null, 2)}`);
+  // console.log(`final user ${JSON.stringify(finalUser[0].contacts, null, 2)}`);
 
   resp
     .status(201)

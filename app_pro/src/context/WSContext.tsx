@@ -1,8 +1,8 @@
 import React, { createContext, useEffect, useMemo } from "react";
 import io from "socket.io-client"
 import { useAppDispatch, useAppSelector } from "../app/hooks";
-import { kickedMeTemp, newMessageInRoom, triggerOnline } from "../app/functions/temp";
-import { kickedMeAuth, kickOutAuth, messageRecived, saveContact, saveGroup, triggerConOnline, type groupMssageType, type groupsResp, type newChatTypes } from "../app/functions/auth";
+import { kickedMeTemp, newMessageInRoom, removeTempMessage, triggerOnline } from "../app/functions/temp";
+import { deleteMessage, kickedMeAuth, kickOutAuth, messageRecived, saveContact, saveGroup, triggerConOnline, type groupMssageType, type groupsResp, type newChatTypes } from "../app/functions/auth";
 
 const ChatEventsEnum = {
     ONLINE_EVENT: "is_online",
@@ -13,6 +13,7 @@ const ChatEventsEnum = {
     KICKED_OUT_YOU: "you_member",
     NEW_MESSAGE: "message",
     MESSAGE_DELETED: "del_message",
+    DELETED_MESSAGE: "deleted_message"
 }
 
 interface WSCTypes {
@@ -60,7 +61,7 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         })
 
         socket?.on(ChatEventsEnum.APPROACHED_TALK, ({ newContact }: { newContact: newChatTypes }) => {
-            disp(saveContact({ newChat: newContact }));
+            disp(saveContact({ newChat: newContact })); 
             // console.log('you are in a chat room , ', newContact);
         })
 
@@ -81,9 +82,14 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         })
 
         socket?.on(ChatEventsEnum.NEW_MESSAGE, ({ newMessage, contactId }: { newMessage: groupMssageType; contactId: string; }) => {
-            console.log("recived new message: -> ", newMessage);
             disp(messageRecived({ contactId: contactId, newMsg: newMessage }));
             disp(newMessageInRoom({ contactId: contactId, newMsg: newMessage }));
+        })
+
+        socket?.on(ChatEventsEnum.DELETED_MESSAGE, ({messageId, contactId, isGroup}: {messageId: string; contactId: string; isGroup: boolean}) =>{
+            console.log('one message is deleted from the group');
+            disp(deleteMessage({contactId, messageId, isGroup}))
+            disp(removeTempMessage({contactId, messageId}))
         })
 
     }, [socket, isLoggedIn])

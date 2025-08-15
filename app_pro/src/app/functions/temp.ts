@@ -256,12 +256,21 @@ function cickOutMember(state: initialStateTypes, action: PayloadAction<{ groupId
     }
 }
 
-function newMessage(state: initialStateTypes, action: PayloadAction<{newMsg: groupMssageType, contactId: string}>){
-    if(state.selectedContact._id !== action.payload.contactId) return;
+function newMessage(state: initialStateTypes, action: PayloadAction<{ newMsg: groupMssageType, contactId: string }>) {
+    if (state.selectedContact._id !== action.payload.contactId) return;
     state.selectedContact.messages = [
         ...(state.selectedContact.messages || []),
         action.payload.newMsg
     ]
+}
+
+function delMessage(state: initialStateTypes, action: PayloadAction<{ messageId: string; contactId: string; }>) {
+    if (state.selectedContact._id !== action.payload.contactId) return;
+
+    const message = state.selectedContact.messages?.filter((val) => val._id === action.payload.messageId)
+    if (message?.length) {
+        message[0].isDeleted = true;
+    }
 }
 // Chat settings
 
@@ -269,9 +278,9 @@ function setHasAttechFunc(state: initialStateTypes, action: PayloadAction<{ trig
     state.chatStates.hasAttechments = action.payload.trigger;
 }
 
-function delMessage(state: initialStateTypes, action: PayloadAction<{ messageId: string }>) {
-    state.selectedContact.messages = state.selectedContact.messages?.filter((msg) => msg._id !== action.payload.messageId);
-}
+// function delMessage(state: initialStateTypes, action: PayloadAction<{ messageId: string }>) {
+//     state.selectedContact.messages = state.selectedContact.messages?.filter((msg) => msg._id !== action.payload.messageId);
+// }
 
 
 

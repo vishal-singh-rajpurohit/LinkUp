@@ -1,10 +1,9 @@
-// import { CiMenuKebab } from 'react-icons/ci'
 import g from '../../assets/no_dp.png'
 import { MdCall, MdVideoCall } from 'react-icons/md'
 import { TiAttachmentOutline } from 'react-icons/ti'
 import { RiSendPlaneFill } from 'react-icons/ri'
 import { BsEmojiWink } from 'react-icons/bs'
-import { BottomButton, Mail, MailMe, MailMenu } from './Mails'
+import { BottomButton, DeletedMessage, DeletedMessageMe, Mail, MailMe, MailMenu } from './Mails'
 import { FaAngleLeft, FaImage } from 'react-icons/fa'
 import { useEffect, useRef, useState } from 'react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
@@ -215,8 +214,7 @@ const ChatBox = () => {
         chatViewPort?.addEventListener("scroll", getItemsInView);
 
         getItemsInView();
-    }, [])
-
+    }, []);
 
     return (
         <section id='chatBox' className="h-full overflow-y-auto flex flex-col gap-5 p-1 pb-4" style={{ scrollbarWidth: 'none' }}>
@@ -226,17 +224,33 @@ const ChatBox = () => {
                 selectedContact.isGroup ? (
                     messages && messages.map((msg, index) => (
                         msg.sender?._id === user._id ? (
-                            <MailMe key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} mailOptions={mailOptions} time={msg.createdAt} />
+                            msg.isDeleted ? (
+                                <DeletedMessageMe key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
+                            ) : (
+                                <MailMe key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} mailOptions={mailOptions} time={msg.createdAt} />
+                            )
                         ) : (
-                            <Mail key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} mailOptions={mailOptions} time={msg.createdAt} />
+                            msg.isDeleted ? (
+                                <DeletedMessage key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
+                            ) : (
+                                <Mail key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} mailOptions={mailOptions} time={msg.createdAt} />
+                            )
                         )
                     ))
                 ) : (
                     messages && messages.map((msg, index) => (
-                        msg.userId === selectedContact.userId ? (
-                            <Mail key={index} message={msg.message} avatar={selectedContact.avatar} _id={msg._id} senderTag={selectedContact.searchTag} mailOptions={mailOptions} time={msg.createdAt} />
+                        msg.userId === user._id ? (
+                            msg.isDeleted ? (
+                                <DeletedMessageMe key={index} avatar={user.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
+                            ) :
+                                (<Mail key={index} message={msg.message} avatar={selectedContact.avatar} _id={msg._id} senderTag={selectedContact.searchTag} mailOptions={mailOptions} time={msg.createdAt} />)
                         ) : (
-                            <MailMe key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={user.searchTag} mailOptions={mailOptions} time={msg.createdAt} />
+                            msg.isDeleted ? (
+                                <DeletedMessage key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
+                            ) :
+                                (
+                                    <MailMe key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={user.searchTag} mailOptions={mailOptions} time={msg.createdAt} />
+                                )
                         )
 
                     ))

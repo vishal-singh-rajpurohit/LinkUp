@@ -46,7 +46,6 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
         }
     }, [contacts, isSearching])
 
-
     function talk(id: string = _id) {
         if (window.innerWidth < 768) {
             selectToTalk(id)

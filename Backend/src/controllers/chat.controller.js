@@ -272,18 +272,23 @@ const deleteMessage = asyncHandler(async (req, resp) => {
 
   const { messageId, contactId } = req.body;
 
+  if (!messageId || !contactId) {
+    throw new ApiError(400, "contact id or messageId not found");
+  }
+
   const message = await Message.findById(messageId);
 
   if (!message._id) {
     throw new ApiError(400, "Message not found");
   }
 
-  console.log(`user Id: `);
-  console.log(`user Id: `);
+  const contact = await Contact.findById(contactId);
 
-  console.log(Object.toString(message.userId));
+  if (!contact) {
+    throw new ApiError(400, "contact not found");
+  }
 
-  if (message.userId !== myUser._id) {
+  if (!message.userId.equals(myUser._id)) {
     throw new ApiError(400, "Only Sender can delete the message");
   }
 
@@ -291,10 +296,175 @@ const deleteMessage = asyncHandler(async (req, resp) => {
   await message.save();
 
   // Emit to socket
+  if (!contact.isGroup) {
+    // If not an group chat than you have to send details of message along with userId
 
-  resp
-    .status(201)
-    .json(new ApiResponse(201, { removedId: message._id }, "removed"));
+    const contacts = await Contact.aggregate([
+      {
+        $match: {
+          _id: contact._id,
+          isGroup: false,
+        },
+      },
+      {
+        $lookup: {
+          from: "contactmembers",
+          localField: "_id",
+          foreignField: "contactId",
+          as: "members",
+        },
+      },
+      {
+        $addFields: {
+          member: {
+            $filter: {
+              input: "$members",
+              as: "member",
+              cond: {
+                $ne: ["$$member.userId", user._id],
+              },
+            },
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "member.userId",
+          foreignField: "_id",
+          as: "member.user",
+        },
+      },
+      {
+        $unwind: "$member.user",
+      },
+
+      {
+        $group: {
+          _id: "$_id",
+          member: {
+            $first: "$member.user",
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$_id",
+          userId: {
+            $first: "$member._id",
+          },
+          isOnline: {
+            $first: "$member.online",
+          },
+          socketId: {
+            $first: "$member.socketId",
+          },
+        },
+      },
+      {
+        $match: {
+          isOnline: true,
+        },
+      },
+    ]);
+
+    emiterSocket(req, myUser.socketId, chatEventEnumNew.DELETED_MESSAGE, {
+      messageId: message._id,
+      contactId: contact._id,
+      isGroup: false,
+    });
+
+    if (contacts.length) {
+      // Working on this
+      emiterSocket(req, contacts[0].socketId, chatEventEnumNew.DELETED_MESSAGE, {
+        messageId: message._id,
+        contactId: contact._id,
+        isGroup: false,
+      });
+    }
+  } else {
+    // IF Group Chat
+    const contacts = await Contact.aggregate([
+      {
+        $match: {
+          _id: contact._id,
+        },
+      },
+      {
+        $lookup: {
+          from: "contactmembers",
+          localField: "_id",
+          foreignField: "contactId",
+          as: "members",
+        },
+      },
+      {
+        $addFields: {
+          member: {
+            $filter: {
+              input: "$members",
+              as: "member",
+              cond: {
+                $ne: ["$$member.userId", myUser._id],
+              },
+            },
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "member.userId",
+          foreignField: "_id",
+          as: "member.user",
+        },
+      },
+      {
+        $unwind: "$member.user",
+      },
+      {
+        $match: {
+          "member.user.online": true,
+        },
+      },
+      {
+        $group: {
+          _id: "$_id",
+          member: {
+            $addToSet: "$member.user",
+          },
+        },
+      },
+      {
+        $project: {
+          "member._id": 1,
+          "member.socketId": 1,
+          "member.avatar": 1,
+          "member.searchTag": 1,
+        },
+      },
+    ]);
+
+    console.log(`recivers `, JSON.stringify(contacts, null, 2));
+
+    if (contacts.length) {
+      emiterSocket(req, myUser.socketId, chatEventEnumNew.DELETED_MESSAGE, {
+        messageId: message._id,
+        contactId: contact._id,
+        isGroup: true,
+      });
+      for (let reciver of contacts[0].member) {
+        console.log(`reciver -> `, JSON.stringify(reciver, null, 2));
+        emiterSocket(req, reciver.socketId, chatEventEnumNew.DELETED_MESSAGE, {
+          messageId: message._id,
+          contactId: contact._id,
+          isGroup: true,
+        });
+      }
+    }
+  }
+
+  resp.status(201).json(new ApiResponse(201, {}, "deleted from chat"));
 });
 
 const replyTo = asyncHandler(async (req, resp) => {

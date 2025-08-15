@@ -1,10 +1,9 @@
 import { CiMenuKebab } from "react-icons/ci"
 import g from '../../assets/no_dp.png'
 import { useEffect, useRef, useState } from "react"
-import { removeTempMessage, setTempString } from "../../app/functions/temp";
+import { setTempString } from "../../app/functions/temp";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import axios from "axios";
-import { removeMessage } from "../../app/functions/auth";
 import { getTimeDifference } from "../../helpers/timeConverter";
 import { FcDown } from "react-icons/fc";
 
@@ -154,6 +153,89 @@ export const MailMe = (
   )
 }
 
+export const DeletedMessage = (
+  {
+    _id,
+    avatar,
+    senderTag,
+    time = null
+  }: {
+    _id: string;
+    avatar: string;
+    senderTag: string;
+    time: Date | null
+  }
+) => {
+  const [timer, setTimer] = useState<string>("")
+
+  useEffect(() => {
+    if (time) {
+      const currTime: string = getTimeDifference(time)
+      setTimer(currTime)
+    }
+  }, [time])
+  return (
+    <div id={_id} data-user={senderTag} className={`flex gap-2 text-white`}>
+      <div className="">
+        <div className='w-[1.3rem] h-[1.3rem] flex items-center shadow-[0_0_10px_#00F0FF55] justify-center overflow-hidden rounded-[16px] font-[#0F172A] bg-amber-300 md:h-[1.5rem] md:w-[1.5rem]'>
+          <img src={avatar || g} alt="😒" className="max-h-[1.5rem] h-full" />
+        </div>
+      </div>
+      <div className="min-h-7 max-w-[80%]">
+        <div className="bg-[#101215] text-[#F8FAFC] p-1 rounded-md "><div className="text-[10px]">{senderTag}</div>This message is deleted</div>
+        <div className="text-[10px]">
+          <div>{timer}</div>
+        </div>
+      </div>
+      <div className="flex"></div>
+    </div>
+  )
+}
+
+export const DeletedMessageMe = (
+  {
+    _id,
+    avatar,
+    senderTag,
+    time = null
+  }: {
+    _id: string;
+    avatar: string;
+    senderTag: string;
+    time: Date | null
+  }
+) => {
+  const [timer, setTimer] = useState<string>("")
+
+  useEffect(() => {
+    if (time) {
+      const currTime: string = getTimeDifference(time)
+      setTimer(currTime)
+    }
+  }, [time])
+  return (
+    <div id={_id} className={`flex gap-2 text-white flex-row-reverse `}>
+      <div className="">
+        <div className='w-[1.r3em] h-[1.3rem] flex items-center shadow-[0_0_10px_#00F0FF55] justify-center overflow-hidden rounded-[16px] font-[#0F172A] bg-amber-300 md:h-[1.5rem] md:w-[1.5rem]'>
+          <img src={avatar || g} alt="😒" className="max-h-[1.5rem] h-full" />
+        </div>
+      </div>
+      <div className="min-h-6 max-w-[80%] ">
+        <div className="bg-[#101215] text-[White] p-1 rounded-md ">
+          <div className="text-[10px] flex flex-row-reverse">{senderTag}</div>
+          <div className="">
+            This message is deleted
+          </div>
+        </div>
+        <div className="text-[10px]">
+          <div>{timer}</div>
+        </div>
+      </div>
+      <div className="flex"></div>
+    </div>
+  )
+}
+
 export const MailMenu = ({ mailRef }: { mailRef: React.RefObject<HTMLDivElement | null> }) => {
   const disp = useAppDispatch()
   const messageId = useAppSelector((state) => state.temp.tempString)
@@ -163,18 +245,12 @@ export const MailMenu = ({ mailRef }: { mailRef: React.RefObject<HTMLDivElement 
 
   async function undoMessage() {
     try {
-      const resp = await axios.post<{
-        data: {
-          removedId: string;
-        }
-      }>(`${api}/chat/message/del-msg`, {
+      await axios.post(`${api}/chat/message/del-msg`, {
         messageId,
-        contactId: user._id
+        contactId: contact._id
       }, { withCredentials: true });
 
       disp(setTempString({ text: "" }));
-      disp(removeMessage({ contactId: contact._id, messageId: resp.data.data.removedId, trigger: chatType }))
-      disp(removeTempMessage({ messageId: resp.data.data.removedId }))
 
       if (mailRef.current) mailRef.current.style.display = "none"
 
@@ -184,10 +260,10 @@ export const MailMenu = ({ mailRef }: { mailRef: React.RefObject<HTMLDivElement 
     }
   }
 
-  useEffect(()=>{
+  useEffect(() => {
     const model = document.getElementById("message-options");
 
-    model?.addEventListener('mouseleave', ()=>{
+    model?.addEventListener('mouseleave', () => {
       model.style.display = 'none'
     })
 
@@ -195,7 +271,7 @@ export const MailMenu = ({ mailRef }: { mailRef: React.RefObject<HTMLDivElement 
 
   return (
     // <section className="fixed flex items-center justify-center w-full">
-    <section ref={mailRef} id="message-options" className={`absolute hidden flex-col items-center justify-center gap-1 px-2 rounded-sm max-w-max h-[4.5rem] text-[12px] text-blue-100 bg-slate-700 ` }>
+    <section ref={mailRef} id="message-options" className={`absolute hidden flex-col items-center justify-center gap-1 px-2 rounded-sm max-w-max h-[4.5rem] text-[12px] text-blue-100 bg-slate-700 `}>
       <div className="cursor-pointer">forward to</div>
       <div onClick={undoMessage} className="cursor-pointer">undo message</div>
       <div className="cursor-pointer">reply to message</div>
@@ -204,7 +280,7 @@ export const MailMenu = ({ mailRef }: { mailRef: React.RefObject<HTMLDivElement 
   )
 }
 
-export const BottomButton =({count = 2}: {count?: number})=>{
+export const BottomButton = ({ count = 2 }: { count?: number }) => {
   return (
     <div className="fixed bottom-[5rem] right-[3rem] w-10 h-10 flex flex-col justify-center items-center bg-green-200 rounded-3xl text-black border-1 border-green-400 cursor-pointer">
       <div className="">{count}</div>

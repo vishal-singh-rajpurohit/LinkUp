@@ -194,6 +194,7 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
       });
     }
     const emitPayload = {
+      _id: newContact._id,
       lastMessage: "You Approached",
       isBlocked: false,
       updatedAt: new Date(),

@@ -27,11 +27,12 @@ const ChatEventEnum = Object({
 const chatEventEnumNew = {
   ONLINE_EVENT: "is_online",
   OFFLINE_EVENT: "offline",
-  NEW_MESSAGE: "message",
   APPROACHED_TALK: "apprached_to_talk",
   NEW_GROUP_CHAT: "created_room",
   KICKED_OUT_MEMBER: "cickout_member",
   KICKED_OUT_YOU: "you_member",
+  NEW_MESSAGE: "message",
+  DELETED_MESSAGE: "deleted_message"
 };
 
 const LoadLimits = Object.freeze({
