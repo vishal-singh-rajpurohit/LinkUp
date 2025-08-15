@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import axios from "axios";
 import { removeMessage } from "../../app/functions/auth";
 import { getTimeDifference } from "../../helpers/timeConverter";
+import { FcDown } from "react-icons/fc";
 
 const api = import.meta.env.VITE_API;
 
@@ -62,7 +63,7 @@ export const Mail = (
 
   // for sent messaes => bg-[#00F0FF] text-[#0F172A]
   return (
-    <div className={`flex gap-2 text-white`}>
+    <div id={_id} data-user={senderTag} className={`flex gap-2 text-white`}>
       <div className="">
         <div className='w-[1.3rem] h-[1.3rem] flex items-center shadow-[0_0_10px_#00F0FF55] justify-center overflow-hidden rounded-[16px] font-[#0F172A] bg-amber-300 md:h-[1.5rem] md:w-[1.5rem]'>
           <img src={avatar || g} alt="😒" className="max-h-[1.5rem] h-full" />
@@ -131,7 +132,7 @@ export const MailMe = (
   }, []);
 
   return (
-    <div className={`flex gap-2 text-white flex-row-reverse `}>
+    <div id={_id} className={`flex gap-2 text-white flex-row-reverse `}>
       <div className="">
         <div className='w-[1.r3em] h-[1.3rem] flex items-center shadow-[0_0_10px_#00F0FF55] justify-center overflow-hidden rounded-[16px] font-[#0F172A] bg-amber-300 md:h-[1.5rem] md:w-[1.5rem]'>
           <img src={avatar || g} alt="😒" className="max-h-[1.5rem] h-full" />
@@ -152,9 +153,6 @@ export const MailMe = (
     </div>
   )
 }
-
-
-
 
 export const MailMenu = ({ mailRef }: { mailRef: React.RefObject<HTMLDivElement | null> }) => {
   const disp = useAppDispatch()
@@ -186,13 +184,31 @@ export const MailMenu = ({ mailRef }: { mailRef: React.RefObject<HTMLDivElement 
     }
   }
 
+  useEffect(()=>{
+    const model = document.getElementById("message-options");
+
+    model?.addEventListener('mouseleave', ()=>{
+      model.style.display = 'none'
+    })
+
+  }, [])
+
   return (
     // <section className="fixed flex items-center justify-center w-full">
-    <section ref={mailRef} id="message-options" className="absolute hidden flex-col items-center justify-center gap-1 px-2 rounded-sm max-w-max h-[4.5rem] text-[12px] text-blue-100 bg-slate-700">
+    <section ref={mailRef} id="message-options" className={`absolute hidden flex-col items-center justify-center gap-1 px-2 rounded-sm max-w-max h-[4.5rem] text-[12px] text-blue-100 bg-slate-700 ` }>
       <div className="cursor-pointer">forward to</div>
       <div onClick={undoMessage} className="cursor-pointer">undo message</div>
       <div className="cursor-pointer">reply to message</div>
       {/* <div className="cursor-pointer">cancel</div> */}
     </section>
+  )
+}
+
+export const BottomButton =({count = 2}: {count?: number})=>{
+  return (
+    <div className="fixed bottom-[5rem] right-[3rem] w-10 h-10 flex flex-col justify-center items-center bg-green-200 rounded-3xl text-black border-1 border-green-400 cursor-pointer">
+      <div className="">{count}</div>
+      <div className=""><FcDown /></div>
+    </div>
   )
 }

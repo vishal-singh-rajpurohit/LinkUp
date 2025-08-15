@@ -263,7 +263,6 @@ function newMessage(state: initialStateTypes, action: PayloadAction<{newMsg: gro
         action.payload.newMsg
     ]
 }
-
 // Chat settings
 
 function setHasAttechFunc(state: initialStateTypes, action: PayloadAction<{ trigger: boolean }>) {

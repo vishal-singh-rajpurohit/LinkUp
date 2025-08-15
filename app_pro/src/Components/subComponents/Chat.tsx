@@ -4,9 +4,9 @@ import { MdCall, MdVideoCall } from 'react-icons/md'
 import { TiAttachmentOutline } from 'react-icons/ti'
 import { RiSendPlaneFill } from 'react-icons/ri'
 import { BsEmojiWink } from 'react-icons/bs'
-import { Mail, MailMe, MailMenu } from './Mails'
+import { BottomButton, Mail, MailMe, MailMenu } from './Mails'
 import { FaAngleLeft, FaImage } from 'react-icons/fa'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { getTimeDifference } from '../../helpers/timeConverter'
 import { NavLink, useNavigate } from 'react-router-dom'
@@ -187,16 +187,47 @@ const ChatBox = () => {
     const selectedContact = useAppSelector((state) => state.temp.selectedContact);
     const user = useAppSelector((state) => state.auth.user);
 
+    useEffect(() => {
+        const chatViewPort = document.getElementById("chatBox")
+
+        function getItemsInView() {
+            const parentView = chatViewPort?.getBoundingClientRect();
+            const msgs = chatViewPort?.children || [];
+
+            let onViewMessages = [];
+
+            for (let child of msgs) {
+                const childRect = child.getBoundingClientRect();
+
+                if (parentView) {
+                    const isVisible = childRect.top < parentView?.bottom && childRect.bottom > parentView?.top;
+
+                    if (isVisible) {
+                        onViewMessages.push(child.attributes.getNamedItem("data-user")?.nodeValue)
+                    }
+                }
+            }
+
+            console.clear();
+            console.log('Visible items:', onViewMessages);
+        }
+
+        chatViewPort?.addEventListener("scroll", getItemsInView);
+
+        getItemsInView();
+    }, [])
+
 
     return (
-        <section className="h-full overflow-y-auto flex flex-col gap-5 p-1 pb-4" style={{ scrollbarWidth: 'none' }}>
+        <section id='chatBox' className="h-full overflow-y-auto flex flex-col gap-5 p-1 pb-4" style={{ scrollbarWidth: 'none' }}>
             <MailMenu mailRef={mailOptions} />
+            <BottomButton />
             {
                 selectedContact.isGroup ? (
                     messages && messages.map((msg, index) => (
-                        msg.sender?._id === user._id? (
+                        msg.sender?._id === user._id ? (
                             <MailMe key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} mailOptions={mailOptions} time={msg.createdAt} />
-                        ): (
+                        ) : (
                             <Mail key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} mailOptions={mailOptions} time={msg.createdAt} />
                         )
                     ))

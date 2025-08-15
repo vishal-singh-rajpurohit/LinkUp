@@ -91,6 +91,7 @@ export interface contactTypes {
     time?: Date;
     messages?: groupMssageType[];
     members?: groupMemberTypes[];
+    unseen?: number;
 }
 
 interface groupMemberTypes {
@@ -103,6 +104,7 @@ interface groupMemberTypes {
     socketId: string;
     email: string;
     isOnline: boolean;
+    unseen?: number;
 }
 
 export interface groupType {
