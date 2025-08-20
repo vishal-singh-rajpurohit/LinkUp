@@ -68,8 +68,13 @@ const newSchema = new Schema(
       required: true,
     },
     refferTo: {
-      type: mongoose.Types.ObjectId,
-      ref: "messages",
+      msgId: {
+        type: mongoose.Types.ObjectId,
+        ref: "messages",
+      },
+      targetUsetTag: {
+        type: String,
+      },
     },
     isDeleted: {
       type: Boolean,

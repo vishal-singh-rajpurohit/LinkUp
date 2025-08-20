@@ -32,7 +32,9 @@ const chatEventEnumNew = {
   KICKED_OUT_MEMBER: "cickout_member",
   KICKED_OUT_YOU: "you_member",
   NEW_MESSAGE: "message",
-  DELETED_MESSAGE: "deleted_message"
+  DELETED_MESSAGE: "deleted_message",
+  TYPING_ON: "typing_on",
+  TYPING_OFF: "typing_off",
 };
 
 const LoadLimits = Object.freeze({

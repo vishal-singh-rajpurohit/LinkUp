@@ -1,10 +1,11 @@
 import React, { createContext, useEffect, useMemo } from "react";
 import io from "socket.io-client"
 import { useAppDispatch, useAppSelector } from "../app/hooks";
-import { kickedMeTemp, newMessageInRoom, removeTempMessage, triggerOnline } from "../app/functions/temp";
+import { kickedMeTemp, newMessageInRoom, removeTempMessage, toggleTyping, triggerOnline } from "../app/functions/temp";
 import { deleteMessage, kickedMeAuth, kickOutAuth, messageRecived, saveContact, saveGroup, triggerConOnline, type groupMssageType, type groupsResp, type newChatTypes } from "../app/functions/auth";
+import type { Socket } from "socket.io-client";
 
-const ChatEventsEnum = {
+export const ChatEventsEnum = {
     ONLINE_EVENT: "is_online",
     OFFLINE_EVENT: "offline",
     APPROACHED_TALK: "apprached_to_talk",
@@ -13,15 +14,17 @@ const ChatEventsEnum = {
     KICKED_OUT_YOU: "you_member",
     NEW_MESSAGE: "message",
     MESSAGE_DELETED: "del_message",
-    DELETED_MESSAGE: "deleted_message"
+    DELETED_MESSAGE: "deleted_message",
+    TYPING_ON: 'typing_on',
+    TYPING_OFF: 'typing_off',
 }
 
 interface WSCTypes {
-
+    socket: Socket | null
 }
 
 
-const WSContext = createContext<WSCTypes | null>(null);
+export const WSContext = createContext<WSCTypes | null>(null);
 
 const WSProvider = ({ children }: { children: React.ReactNode }) => {
     const disp = useAppDispatch();
@@ -41,6 +44,7 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
 
             return newSocket
         }
+        return null
     }, [isLoggedIn])
 
     useEffect(() => {
@@ -61,7 +65,7 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         })
 
         socket?.on(ChatEventsEnum.APPROACHED_TALK, ({ newContact }: { newContact: newChatTypes }) => {
-            disp(saveContact({ newChat: newContact })); 
+            disp(saveContact({ newChat: newContact }));
             // console.log('you are in a chat room , ', newContact);
         })
 
@@ -86,15 +90,25 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
             disp(newMessageInRoom({ contactId: contactId, newMsg: newMessage }));
         })
 
-        socket?.on(ChatEventsEnum.DELETED_MESSAGE, ({messageId, contactId, isGroup}: {messageId: string; contactId: string; isGroup: boolean}) =>{
+        socket?.on(ChatEventsEnum.DELETED_MESSAGE, ({ messageId, contactId, isGroup }: { messageId: string; contactId: string; isGroup: boolean }) => {
             console.log('one message is deleted from the group');
-            disp(deleteMessage({contactId, messageId, isGroup}))
-            disp(removeTempMessage({contactId, messageId}))
+            disp(deleteMessage({ contactId, messageId, isGroup }))
+            disp(removeTempMessage({ contactId, messageId }))
+        })
+
+        socket?.on(ChatEventsEnum.TYPING_ON, ({ avatar }: { avatar: string }) => {
+            disp(toggleTyping({avatar: avatar, trigger: true}))
+        })
+
+        socket?.on(ChatEventsEnum.TYPING_OFF, () => {
+            disp(toggleTyping({avatar: "", trigger: false}))
         })
 
     }, [socket, isLoggedIn])
 
-    const data = {}
+    const data: WSCTypes = {
+        socket
+    }
     return <WSContext.Provider value={data} >{children}</WSContext.Provider>
 
 }

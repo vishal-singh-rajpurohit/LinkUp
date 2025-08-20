@@ -244,7 +244,6 @@ const sendMessage = asyncHandler(async (req, resp) => {
           });
         }
       }
-      // emiterSocket(req, contact._id, chatEventEnumNew.NEW_MESSAGE, {});
     }
   }
 
@@ -376,11 +375,16 @@ const deleteMessage = asyncHandler(async (req, resp) => {
 
     if (contacts.length) {
       // Working on this
-      emiterSocket(req, contacts[0].socketId, chatEventEnumNew.DELETED_MESSAGE, {
-        messageId: message._id,
-        contactId: contact._id,
-        isGroup: false,
-      });
+      emiterSocket(
+        req,
+        contacts[0].socketId,
+        chatEventEnumNew.DELETED_MESSAGE,
+        {
+          messageId: message._id,
+          contactId: contact._id,
+          isGroup: false,
+        }
+      );
     }
   } else {
     // IF Group Chat
@@ -490,13 +494,14 @@ const replyTo = asyncHandler(async (req, resp) => {
     longitude,
     latitude,
     messageId,
+    searchTag,
   } = req.body;
 
   if (!message.trim() && !contain_files) {
     throw new ApiError(400, "Either send file of Message");
   }
 
-  if (!contactId || !messageId) {
+  if (!contactId || !messageId || !searchTag) {
     throw new ApiError(400, "messageId || ContactId not found");
   }
 
@@ -512,6 +517,12 @@ const replyTo = asyncHandler(async (req, resp) => {
     throw new ApiError(400, "refMessage not found");
   }
 
+  const targetUser = await User.findOne({ searchTag: searchTag });
+
+  if (!targetUser) {
+    throw new ApiError(400, "Invalid search tag");
+  }
+
   const newMessage = new Message({
     message: message.trim(),
     contactId: contactId,
@@ -524,7 +535,10 @@ const replyTo = asyncHandler(async (req, resp) => {
     callId: null,
     callType: "",
     isCall: false,
-    refferTo: refMessage._id,
+    refferTo: {
+      msgId: refMessage._id,
+      targetUsetTag: targetUser.searchTag,
+    },
     geoLoc: {
       latitude: latitude,
       longitude: longitude,
@@ -539,6 +553,8 @@ const replyTo = asyncHandler(async (req, resp) => {
   if (!newMessage._id) {
     throw new ApiError(501, "Message not created");
   }
+
+  console.log("called out ");
 
   resp
     .status(200)

@@ -4,6 +4,7 @@ const { Socket } = require("socket.io");
 const { ChatEventEnum, chatEventEnumNew } = require("../constants/constants");
 const User = require("../models/user.model");
 const Contact = require("../models/contacts.model");
+const { default: mongoose } = require("mongoose");
 /**
  * @description event happens when user switches between chats or contacts based on contactId
  * @param {Socket<import("socket.io")}
@@ -83,6 +84,162 @@ const starterSocketIo = async (io) => {
         }
       });
 
+      // Typing indicator
+      socket.on(chatEventEnumNew.TYPING_ON, async (payload) => {
+        const contact = await Contact.findById(payload.contactId);
+
+        if (!contact) {
+          console.log("contacts not found");
+        }
+
+        if (!contact.isGroup) {
+          const reciver = await Contact.aggregate([
+            {
+              $match: {
+                _id: contact._id,
+                isGroup: false,
+              },
+            },
+            {
+              $lookup: {
+                from: "contactmembers",
+                localField: "_id",
+                foreignField: "contactId",
+                as: "members",
+              },
+            },
+            {
+              $addFields: {
+                member: {
+                  $filter: {
+                    input: "$members",
+                    as: "member",
+                    cond: {
+                      $ne: ["$$member.userId", payload.userId],
+                    },
+                  },
+                },
+              },
+            },
+            {
+              $lookup: {
+                from: "users",
+                localField: "member.userId",
+                foreignField: "_id",
+                as: "member.user",
+              },
+            },
+            {
+              $unwind: "$member.user",
+            },
+
+            {
+              $group: {
+                _id: "$_id",
+                member: {
+                  $first: "$member.user",
+                },
+              },
+            },
+            {
+              $group: {
+                _id: "$_id",
+                userId: {
+                  $first: "$member._id",
+                },
+                isOnline: {
+                  $first: "$member.online",
+                },
+                socketId: {
+                  $first: "$member.socketId",
+                },
+                avatar: {
+                  $first: "$member.avatar",
+                },
+              },
+            },
+            {
+              $match: {
+                isOnline: true,
+              },
+            },
+          ]);
+
+          if (reciver.length) {
+            // Working on this
+            io.to(`${reciver[0].socketId}`).emit(`${chatEventEnumNew.TYPING_ON}`, { avatar:  payload.avatar });
+          }
+        } else {
+          // IF Group Chat
+          const recivers = await Contact.aggregate([
+            {
+              $match: {
+                _id: contact._id,
+              },
+            },
+            {
+              $lookup: {
+                from: "contactmembers",
+                localField: "_id",
+                foreignField: "contactId",
+                as: "members",
+              },
+            },
+            {
+              $addFields: {
+                member: {
+                  $filter: {
+                    input: "$members",
+                    as: "member",
+                    cond: {
+                      $ne: ["$$member.userId", new mongoose.Types.ObjectId(payload.userId)],
+                    },
+                  },
+                },
+              },
+            },
+            {
+              $lookup: {
+                from: "users",
+                localField: "member.userId",
+                foreignField: "_id",
+                as: "member.user",
+              },
+            },
+            {
+              $unwind: "$member.user",
+            },
+            {
+              $match: {
+                "member.user.online": true,
+              },
+            },
+            {
+              $group: {
+                _id: "$_id",
+                member: {
+                  $addToSet: "$member.user",
+                },
+              },
+            },
+            {
+              $project: {
+                "member._id": 1,
+                "member.socketId": 1,
+                "member.avatar": 1,
+                "member.searchTag": 1,
+              },
+            },
+          ]);
+
+          if (recivers.length) {
+            for (let reciver of recivers[0].member) {
+             io.to(`${reciver.socketId}`).emit(`${chatEventEnumNew.TYPING_ON}`, { avatar:  payload.avatar });
+            }
+          }
+        }
+      });
+
       socket.on(ChatEventEnum.DISCONNECT_EVENT, async () => {
         console.log("user has disconnected userId: " + socket.user?._id);
         if (socket.user?._id) {
@@ -98,6 +255,7 @@ const starterSocketIo = async (io) => {
           await setUserOffline(user._id);
         }
       });
+
     } catch (error) {
       socket.emit(
         ChatEventEnum.SOCKET_ERROR_EVENT,
@@ -141,7 +299,7 @@ const getUserOnlineFriends = async (userId) => {
           oneOnOne: {
             $all: [userId],
           },
-          isGroup: false
+          isGroup: false,
         },
       },
       {

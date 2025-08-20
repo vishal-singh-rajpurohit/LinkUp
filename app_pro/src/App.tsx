@@ -9,6 +9,7 @@ import Help from './Components/profile/Pages/Help'
 import Auth, { RevAuth } from './middleware/Auth'
 import Signup from './Components/Auth/Signup'
 import LoginForm from './Components/Auth/Login'
+import VideoCallPage from './Components/Calling/VideoCallPage'
 function App() {
 
   return (
@@ -22,6 +23,7 @@ function App() {
       <Route path='/user/help' element={<Auth ><Help /></Auth>} />
       <Route path='/user/find-chats' element={<Auth ><FindChat /></Auth>} />
       <Route path='/user/settings' element={<Auth ><Settings /></Auth>} />
+      <Route path='/user/call/video' element={<VideoCallPage />} />
     </Routes>
   )
 }

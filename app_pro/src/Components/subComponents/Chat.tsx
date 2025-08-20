@@ -3,13 +3,15 @@ import { MdCall, MdVideoCall } from 'react-icons/md'
 import { TiAttachmentOutline } from 'react-icons/ti'
 import { RiSendPlaneFill } from 'react-icons/ri'
 import { BsEmojiWink } from 'react-icons/bs'
-import { BottomButton, DeletedMessage, DeletedMessageMe, Mail, MailMe, MailMenu } from './Mails'
+import { BottomButton, DeletedMessage, DeletedMessageMe, Mail, MailMe, MailMenu, TypingIndicator } from './Mails'
 import { FaAngleLeft, FaImage } from 'react-icons/fa'
-import { useEffect, useRef, useState } from 'react'
+import { useContext, useEffect, useRef, useState } from 'react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { getTimeDifference } from '../../helpers/timeConverter'
 import { NavLink, useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { setReplyState, toggleTyping } from '../../app/functions/temp'
+import { ChatEventsEnum, WSContext } from '../../context/WSContext'
 const api = import.meta.env.VITE_API;
 
 export const ChatArea = () => {
@@ -77,6 +79,7 @@ export const ChatTop = () => {
 }
 
 export const MailBox = () => {
+    const chatRef = useRef<HTMLInputElement | null>(null)
     return (
         <section className='w-full h-full overflow-y-scroll rounded-sm bg-[#1F2937]  grid grid-rows-[9fr_1fr] py-1.5 px-1'>
             <ChatBox />
@@ -93,13 +96,21 @@ interface geoLocType {
 const MailOptions = () => {
     const disp = useAppDispatch()
     const contact = useAppSelector((state) => state.temp.selectedContact);
+    const user = useAppSelector((state) => state.auth.user)
     const contain_files = useAppSelector((state) => state.temp.chatStates.hasAttechments)
+    const isTyping = useAppSelector((state) => state.temp.typing)
 
     const [message, setMessage] = useState<string>("");
     const [geoLoc, setGeoLoc] = useState<geoLocType>({
         latitude: '00', //meke empty in production
         longitude: '00' //meke empty in production
     })
+
+    const socketContext = useContext(WSContext)
+
+    if (!socketContext) {
+        throw new Error("Web socket context not found")
+    }
 
     async function sendChat(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -126,14 +137,33 @@ const MailOptions = () => {
         }
     }
 
+    useEffect(() => {
+        if (message.length) {
+            socketContext.socket?.emit(ChatEventsEnum.TYPING_ON, { contactId: contact._id, searchTag: user.searchTag, avatar: user.avatar, userId: user._id });
+        }
+    }, [message, setMessage])
+
+    useEffect(() => {
+        let timeout: ReturnType<typeof setTimeout>;
+
+        if (isTyping) {
+            timeout = setTimeout(() => {
+                disp(toggleTyping({avatar: '', trigger: false}))
+            }, 3000);
+        }
+
+        return () => {
+            clearTimeout(timeout);
+        };
+    }, [isTyping]);
+
     return (
         <>
-            {/* <EmojiBox /> */}
-            {/* <AttechMents /> */}
+            <TypingIndicator trigger={isTyping.trigger} avatar={isTyping.user} />
             <section className='w-full h-full max-h-[3rem] flex items-center justify-center '>
-                <form onSubmit={sendChat} className='w-[90%] h-full grid grid-cols-[7fr_3fr] items-center content-center border-1 border-white rounded-md md:grid-cols-[7fr_3fr] lg:grid-cols-[8fr_2fr] lg:gap-1.5'>
+                <form id="optionsWrapper" onSubmit={sendChat} className='w-[90%] h-full grid grid-cols-[7fr_3fr] items-center content-center border-1 border-white rounded-md md:grid-cols-[7fr_3fr] lg:grid-cols-[8fr_2fr] lg:gap-1.5'>
                     <div className="w-full h-full flex items-center justify-center pl-2">
-                        <input type="text" value={message} onChange={(e) => setMessage(e.target.value)} placeholder='write a message....' className="w-full h-full outline-0 text-sm text-gray-2 00 font-serif" />
+                        <input id="messageBox" type="text" value={message} onChange={(e) => setMessage(e.target.value)} placeholder='write a message....' className="w-full h-full outline-0 text-sm text-gray-2 00 font-serif" />
                     </div>
                     <div className="h-full w-full flex items-center justify-center gap-2 ">
                         <TiAttachmentOutline size={20} cursor={'pointer'} />
@@ -181,10 +211,40 @@ const AttechMents = () => {
 }
 
 const ChatBox = () => {
-    const mailOptions = useRef<HTMLDivElement | null>(null)
+    const mailOptions = useRef<HTMLDivElement | null>(null);
+    const mailRef = useRef<HTMLDivElement | null>(null);
     const messages = useAppSelector((state) => state.temp.selectedContact?.messages) || [];
     const selectedContact = useAppSelector((state) => state.temp.selectedContact);
     const user = useAppSelector((state) => state.auth.user);
+    const disp = useAppDispatch();
+
+    // Reply Model
+    useEffect(() => {
+        const handleDoubleClick = (e: MouseEvent) => {
+            const target = e.target as HTMLElement
+            const msgId = target.getAttribute("data-msgid");
+            const targetTag = target.getAttribute("data-tag");
+            // console.log("Message ID:", msgId, targetTag);
+            console.log("double clicked on message", e);
+            if (msgId && targetTag) {
+                disp(setReplyState({ messageId: msgId, senderTag: targetTag, trigger: true }))
+                const messageArea = document.getElementById('messageBox')
+                messageArea?.focus()
+            }
+        };
+
+        const element = mailRef.current;
+        if (element) {
+            element.addEventListener("dblclick", handleDoubleClick);
+        }
+
+        // cleanup to avoid multiple listeners
+        return () => {
+            if (element) {
+                element.removeEventListener("dblclick", handleDoubleClick);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         const chatViewPort = document.getElementById("chatBox")
@@ -218,22 +278,22 @@ const ChatBox = () => {
 
     return (
         <section id='chatBox' className="h-full overflow-y-auto flex flex-col gap-5 p-1 pb-4" style={{ scrollbarWidth: 'none' }}>
-            <MailMenu mailRef={mailOptions} />
+            <MailMenu mailRef={mailOptions} boxRef={mailRef} />
             <BottomButton />
             {
                 selectedContact.isGroup ? (
                     messages && messages.map((msg, index) => (
                         msg.sender?._id === user._id ? (
                             msg.isDeleted ? (
-                                <DeletedMessageMe key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
+                                <DeletedMessageMe key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"You"} time={msg.createdAt} />
                             ) : (
-                                <MailMe key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} mailOptions={mailOptions} time={msg.createdAt} />
+                                <MailMe mailRef={mailRef} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"you"} mailOptions={mailOptions} time={msg.createdAt} />
                             )
                         ) : (
                             msg.isDeleted ? (
                                 <DeletedMessage key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
                             ) : (
-                                <Mail key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} mailOptions={mailOptions} time={msg.createdAt} />
+                                <Mail mailRef={mailRef} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} mailOptions={mailOptions} time={msg.createdAt} />
                             )
                         )
                     ))
@@ -243,19 +303,20 @@ const ChatBox = () => {
                             msg.isDeleted ? (
                                 <DeletedMessageMe key={index} avatar={user.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
                             ) :
-                                (<Mail key={index} message={msg.message} avatar={selectedContact.avatar} _id={msg._id} senderTag={selectedContact.searchTag} mailOptions={mailOptions} time={msg.createdAt} />)
+                                (<MailMe mailRef={mailRef} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />)
                         ) : (
                             msg.isDeleted ? (
                                 <DeletedMessage key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
                             ) :
                                 (
-                                    <MailMe key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={user.searchTag} mailOptions={mailOptions} time={msg.createdAt} />
+                                    <Mail mailRef={mailRef} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={user.searchTag} mailOptions={mailOptions} time={msg.createdAt} />
                                 )
                         )
 
                     ))
                 )
             }
+
         </section>
     )
 }

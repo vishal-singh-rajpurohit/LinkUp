@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import { type contactTypes, type groupMssageType, type groupsResp, type groupType } from './auth'
+import { type contactTypes, type groupMssageType, type groupsResp, type groupType, type initialRespType } from './auth'
 
 export interface searchUserTypes {
     _id: string;
@@ -27,6 +27,12 @@ interface chatStates {
     hasAttechments: boolean
 }
 
+interface replyState {
+    isReplay: boolean;
+    _id: string;
+    senderTag: string;
+}
+
 interface initialStateTypes {
     searchUsers: searchUserTypes[];
     activeGroup: boolean;
@@ -39,6 +45,11 @@ interface initialStateTypes {
     tempUser: temporalTypes[];
     tempString: string;
     chatStates: chatStates;
+    replayTemp: replyState;
+    typing: {
+        trigger: boolean;
+        user: string;
+    };
 }
 
 const initialState: initialStateTypes = {
@@ -47,6 +58,10 @@ const initialState: initialStateTypes = {
     activeAddToGroup: false,
     kickOutGroup: false,
     kickOutWarning: false,
+    typing: {
+        trigger: false,
+        user: ""
+    },
     selectedContact: {
         _id: "",
         userId: "",
@@ -67,6 +82,11 @@ const initialState: initialStateTypes = {
     tempString: "",
     chatStates: {
         hasAttechments: false
+    },
+    replayTemp: {
+        _id: "",
+        isReplay: false,
+        senderTag: "",
     }
 }
 
@@ -168,6 +188,10 @@ function clearTemo(state: initialStateTypes) {
     state.groupContact = [];
     state.searchUsers = [];
     state.tempUser = [];
+    state.typing = {
+        trigger: false,
+        user: ""
+    };
     state.selectedContact = {
         _id: "",
         userId: "",
@@ -181,7 +205,12 @@ function clearTemo(state: initialStateTypes) {
         isArchieved: false,
         lastMessage: "",
         isOnline: false,
-    }
+    },
+        state.replayTemp = {
+            _id: "",
+            isReplay: false,
+            senderTag: ""
+        }
 }
 
 function setTemporalUser(state: initialStateTypes, action: PayloadAction<{
@@ -272,16 +301,24 @@ function delMessage(state: initialStateTypes, action: PayloadAction<{ messageId:
         message[0].isDeleted = true;
     }
 }
+
+function setTyping(state: initialStateTypes, action: PayloadAction<{ trigger: boolean; avatar: string }>) {
+    state.typing = {
+        trigger: action.payload.trigger,
+        user: action.payload.avatar
+    }
+}
 // Chat settings
 
 function setHasAttechFunc(state: initialStateTypes, action: PayloadAction<{ trigger: boolean }>) {
     state.chatStates.hasAttechments = action.payload.trigger;
 }
 
-// function delMessage(state: initialStateTypes, action: PayloadAction<{ messageId: string }>) {
-//     state.selectedContact.messages = state.selectedContact.messages?.filter((msg) => msg._id !== action.payload.messageId);
-// }
-
+function replyStateFunc(state: initialStateTypes, action: PayloadAction<{ trigger: boolean; senderTag: string; messageId: string; }>) {
+    state.replayTemp._id = action.payload.messageId;
+    state.replayTemp.isReplay = action.payload.trigger;
+    state.replayTemp.senderTag = action.payload.senderTag;
+}
 
 
 const tempSlice = createSlice({
@@ -311,11 +348,13 @@ const tempSlice = createSlice({
         removeTempMessage: delMessage,
         triggerOnline: setOnline,
         kickedMeTemp: cickOutMember,
-        newMessageInRoom: newMessage
+        newMessageInRoom: newMessage,
+        setReplyState: replyStateFunc,
+        toggleTyping: setTyping
     }
 })
 
 
-export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp, updateSelectedAvatar, setHasAttechments, removeTempMessage, triggerOnline, kickedMeTemp, newMessageInRoom } = tempSlice.actions
+export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp, updateSelectedAvatar, setHasAttechments, removeTempMessage, triggerOnline, kickedMeTemp, newMessageInRoom, setReplyState, toggleTyping } = tempSlice.actions
 
 export default tempSlice.reducer
