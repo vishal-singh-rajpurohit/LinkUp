@@ -1,7 +1,7 @@
 import React, { createContext, useEffect, useMemo } from "react";
 import io from "socket.io-client"
 import { useAppDispatch, useAppSelector } from "../app/hooks";
-import { kickedMeTemp, newMessageInRoom, removeTempMessage, toggleTyping, triggerOnline } from "../app/functions/temp";
+import { kickedMeTemp, newMessageInRoom, notificationPup, removeTempMessage, toggleTyping, triggerOnline } from "../app/functions/temp";
 import { deleteMessage, kickedMeAuth, kickOutAuth, messageRecived, saveContact, saveGroup, triggerConOnline, type groupMssageType, type groupsResp, type newChatTypes } from "../app/functions/auth";
 import type { Socket } from "socket.io-client";
 
@@ -66,11 +66,13 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
 
         socket?.on(ChatEventsEnum.APPROACHED_TALK, ({ newContact }: { newContact: newChatTypes }) => {
             disp(saveContact({ newChat: newContact }));
+            disp(notificationPup({trigger: true}))
             // console.log('you are in a chat room , ', newContact);
         })
 
         socket?.on(ChatEventsEnum.NEW_GROUP_CHAT, ({ newGroupDetails }: { newGroupDetails: groupsResp }) => {
             disp(saveGroup({ newChat: newGroupDetails }));
+            disp(notificationPup({trigger: true}))
         })
 
         socket?.on(ChatEventsEnum.KICKED_OUT_MEMBER, ({ updatedGroup }: { updatedGroup: groupsResp }) => {
@@ -88,6 +90,7 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         socket?.on(ChatEventsEnum.NEW_MESSAGE, ({ newMessage, contactId }: { newMessage: groupMssageType; contactId: string; }) => {
             disp(messageRecived({ contactId: contactId, newMsg: newMessage }));
             disp(newMessageInRoom({ contactId: contactId, newMsg: newMessage }));
+            disp(notificationPup({trigger: true}))
         })
 
         socket?.on(ChatEventsEnum.DELETED_MESSAGE, ({ messageId, contactId, isGroup }: { messageId: string; contactId: string; isGroup: boolean }) => {

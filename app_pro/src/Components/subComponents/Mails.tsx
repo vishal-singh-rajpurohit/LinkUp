@@ -1,7 +1,7 @@
 import { CiMenuKebab } from "react-icons/ci"
 import g from '../../assets/no_dp.png'
 import React, { useEffect, useRef, useState } from "react"
-import { setTempString } from "../../app/functions/temp";
+import { notificationPup, setTempString } from "../../app/functions/temp";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import axios from "axios";
 import { getTimeDifference } from "../../helpers/timeConverter";
@@ -482,6 +482,33 @@ export const BottomButton = ({ count = 2 }: { count?: number }) => {
     <div className="fixed bottom-[5rem] right-[3rem] w-10 h-10 flex flex-col justify-center items-center bg-green-200 rounded-3xl text-black border-1 border-green-400 cursor-pointer">
       <div className="">{count}</div>
       <div className=""><FcDown /></div>
+    </div>
+  )
+}
+
+export const Notification = () =>{
+  const disp = useAppDispatch()
+  const isActive = useAppSelector((state)=>state.temp.notificationPopUp)
+
+  useEffect(()=>{
+    let timeout: ReturnType<typeof setTimeout>;
+    if(isActive){
+      timeout = setTimeout(()=>{
+        disp(notificationPup({trigger: false}))
+      }, 2000)
+    }
+
+    return ()=>{
+      clearTimeout(timeout)
+    }
+  }, [isActive])
+
+  return(
+    <div className={`fixed top-0 left-0 z-50 w-full h-[3rem] ${isActive?"flex": "hidden"} flex-col items-center justify-center md:w-[20rem] md:left-10`}>
+      <div className="w-[30%] md:w-[60%] h-[1.3rem] rounded-sm bg-green-500 text-black flex items-center justify-center text-sm font-light">
+        {/* <div className=""></div> */}
+        <p className="">New Message</p>
+      </div>
     </div>
   )
 }

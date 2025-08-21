@@ -41,6 +41,7 @@ interface initialStateTypes {
     kickOutWarning: boolean;
     selectedContact: contactTypes;
     groupContact: groupContactTypes[];
+    notificationPopUp: boolean;
     chatListTypes: number; // 1 -> single, 2-> group, 3 -> archieved
     tempUser: temporalTypes[];
     tempString: string;
@@ -58,6 +59,7 @@ const initialState: initialStateTypes = {
     activeAddToGroup: false,
     kickOutGroup: false,
     kickOutWarning: false,
+    notificationPopUp: false,
     typing: {
         trigger: false,
         user: ""
@@ -308,6 +310,10 @@ function setTyping(state: initialStateTypes, action: PayloadAction<{ trigger: bo
         user: action.payload.avatar
     }
 }
+
+function setNotification(state: initialStateTypes, action: PayloadAction<{trigger: boolean}>){
+    state.notificationPopUp = action.payload.trigger
+}
 // Chat settings
 
 function setHasAttechFunc(state: initialStateTypes, action: PayloadAction<{ trigger: boolean }>) {
@@ -350,11 +356,12 @@ const tempSlice = createSlice({
         kickedMeTemp: cickOutMember,
         newMessageInRoom: newMessage,
         setReplyState: replyStateFunc,
-        toggleTyping: setTyping
+        toggleTyping: setTyping,
+        notificationPup: setNotification
     }
 })
 
 
-export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp, updateSelectedAvatar, setHasAttechments, removeTempMessage, triggerOnline, kickedMeTemp, newMessageInRoom, setReplyState, toggleTyping } = tempSlice.actions
+export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp, updateSelectedAvatar, setHasAttechments, removeTempMessage, triggerOnline, kickedMeTemp, newMessageInRoom, setReplyState, toggleTyping, notificationPup } = tempSlice.actions
 
 export default tempSlice.reducer
