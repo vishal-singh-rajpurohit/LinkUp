@@ -1,8 +1,8 @@
 import React, { createContext, useEffect, useMemo } from "react";
 import io from "socket.io-client"
 import { useAppDispatch, useAppSelector } from "../app/hooks";
-import { kickedMeTemp, newMessageInRoom, notificationPup, removeTempMessage, toggleTyping, triggerOnline } from "../app/functions/temp";
-import { deleteMessage, kickedMeAuth, kickOutAuth, messageRecived, saveContact, saveGroup, triggerConOnline, type groupMssageType, type groupsResp, type newChatTypes } from "../app/functions/auth";
+import { kickedMeTemp, markTempAsRead, newMessageInRoom, notificationPup, removeTempMessage, toggleTyping, triggerOnline } from "../app/functions/temp";
+import { deleteMessage, kickedMeAuth, kickOutAuth, markAsRead, messageRecived, saveContact, saveGroup, triggerConOnline, type groupMssageType, type groupsResp, type newChatTypes } from "../app/functions/auth";
 import type { Socket } from "socket.io-client";
 
 export const ChatEventsEnum = {
@@ -17,6 +17,8 @@ export const ChatEventsEnum = {
     DELETED_MESSAGE: "deleted_message",
     TYPING_ON: 'typing_on',
     TYPING_OFF: 'typing_off',
+    MARK_READ: "mark_read",
+    MARKED: "marked_read",
 }
 
 interface WSCTypes {
@@ -66,13 +68,13 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
 
         socket?.on(ChatEventsEnum.APPROACHED_TALK, ({ newContact }: { newContact: newChatTypes }) => {
             disp(saveContact({ newChat: newContact }));
-            disp(notificationPup({trigger: true}))
+            disp(notificationPup({ trigger: true }))
             // console.log('you are in a chat room , ', newContact);
         })
 
         socket?.on(ChatEventsEnum.NEW_GROUP_CHAT, ({ newGroupDetails }: { newGroupDetails: groupsResp }) => {
             disp(saveGroup({ newChat: newGroupDetails }));
-            disp(notificationPup({trigger: true}))
+            disp(notificationPup({ trigger: true }))
         })
 
         socket?.on(ChatEventsEnum.KICKED_OUT_MEMBER, ({ updatedGroup }: { updatedGroup: groupsResp }) => {
@@ -90,7 +92,7 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         socket?.on(ChatEventsEnum.NEW_MESSAGE, ({ newMessage, contactId }: { newMessage: groupMssageType; contactId: string; }) => {
             disp(messageRecived({ contactId: contactId, newMsg: newMessage }));
             disp(newMessageInRoom({ contactId: contactId, newMsg: newMessage }));
-            disp(notificationPup({trigger: true}))
+            disp(notificationPup({ trigger: true }))
         })
 
         socket?.on(ChatEventsEnum.DELETED_MESSAGE, ({ messageId, contactId, isGroup }: { messageId: string; contactId: string; isGroup: boolean }) => {
@@ -100,11 +102,20 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         })
 
         socket?.on(ChatEventsEnum.TYPING_ON, ({ avatar }: { avatar: string }) => {
-            disp(toggleTyping({avatar: avatar, trigger: true}))
+            disp(toggleTyping({ avatar: avatar, trigger: true }))
         })
 
         socket?.on(ChatEventsEnum.TYPING_OFF, () => {
-            disp(toggleTyping({avatar: "", trigger: false}))
+            disp(toggleTyping({ avatar: "", trigger: false }))
+        })
+
+        socket?.on(ChatEventsEnum.MARKED, ({messageId, contactId, viewerId}:{
+            messageId: string;
+            viewerId: string;
+            contactId: string;
+        })=>{
+            disp(markAsRead({messageId: messageId, contactId: contactId, viewerId}))
+            disp(markTempAsRead({messageId: messageId, contactId: contactId, viewerId}))
         })
 
     }, [socket, isLoggedIn])

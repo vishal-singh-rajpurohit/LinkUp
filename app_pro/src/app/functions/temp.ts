@@ -97,6 +97,8 @@ function searchingFunc(state: initialStateTypes, action: PayloadAction<{ users: 
 }
 
 function selectConFunc(state: initialStateTypes, action: PayloadAction<{ chat: contactTypes }>) {
+    console.log('chat is: ', action.payload.chat);
+    
     state.selectedContact = {
         _id: action.payload.chat._id,
         lastMessage: action.payload.chat.lastMessage,
@@ -311,9 +313,26 @@ function setTyping(state: initialStateTypes, action: PayloadAction<{ trigger: bo
     }
 }
 
-function setNotification(state: initialStateTypes, action: PayloadAction<{trigger: boolean}>){
+function setNotification(state: initialStateTypes, action: PayloadAction<{ trigger: boolean }>) {
     state.notificationPopUp = action.payload.trigger
 }
+
+function markRead(state: initialStateTypes, action: PayloadAction<{
+    messageId: string;
+    viewerId: string;
+    contactId: string;
+}>) {
+    if (state.selectedContact._id === action.payload.contactId) {
+        const message = state.selectedContact.messages?.filter((msg) => msg._id === action.payload.messageId)
+        if (message?.length) {
+            message[0].readBy = [
+                ...(message[0].readBy || []),
+                action.payload.viewerId
+            ]
+        }
+    }
+}
+
 // Chat settings
 
 function setHasAttechFunc(state: initialStateTypes, action: PayloadAction<{ trigger: boolean }>) {
@@ -357,11 +376,12 @@ const tempSlice = createSlice({
         newMessageInRoom: newMessage,
         setReplyState: replyStateFunc,
         toggleTyping: setTyping,
-        notificationPup: setNotification
+        notificationPup: setNotification,
+        markTempAsRead: markRead
     }
 })
 
 
-export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp, updateSelectedAvatar, setHasAttechments, removeTempMessage, triggerOnline, kickedMeTemp, newMessageInRoom, setReplyState, toggleTyping, notificationPup } = tempSlice.actions
+export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp, updateSelectedAvatar, setHasAttechments, removeTempMessage, triggerOnline, kickedMeTemp, newMessageInRoom, setReplyState, toggleTyping, notificationPup, markTempAsRead } = tempSlice.actions
 
 export default tempSlice.reducer

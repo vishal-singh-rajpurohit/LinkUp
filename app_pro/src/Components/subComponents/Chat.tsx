@@ -224,8 +224,6 @@ const ChatBox = () => {
             const target = e.target as HTMLElement
             const msgId = target.getAttribute("data-msgid");
             const targetTag = target.getAttribute("data-tag");
-            // console.log("Message ID:", msgId, targetTag);
-            console.log("double clicked on message", e);
             if (msgId && targetTag) {
                 disp(setReplyState({ messageId: msgId, senderTag: targetTag, trigger: true }))
                 const messageArea = document.getElementById('messageBox')
@@ -287,13 +285,13 @@ const ChatBox = () => {
                             msg.isDeleted ? (
                                 <DeletedMessageMe key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"You"} time={msg.createdAt} />
                             ) : (
-                                <MailMe mailRef={mailRef} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"you"} mailOptions={mailOptions} time={msg.createdAt} />
+                                <MailMe mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"you"} mailOptions={mailOptions} time={msg.createdAt} />
                             )
                         ) : (
                             msg.isDeleted ? (
                                 <DeletedMessage key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
                             ) : (
-                                <Mail mailRef={mailRef} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} mailOptions={mailOptions} time={msg.createdAt} />
+                                <Mail mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} mailOptions={mailOptions} time={msg.createdAt} />
                             )
                         )
                     ))
@@ -303,13 +301,13 @@ const ChatBox = () => {
                             msg.isDeleted ? (
                                 <DeletedMessageMe key={index} avatar={user.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
                             ) :
-                                (<MailMe mailRef={mailRef} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />)
+                                (<MailMe mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />)
                         ) : (
                             msg.isDeleted ? (
                                 <DeletedMessage key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
                             ) :
                                 (
-                                    <Mail mailRef={mailRef} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={user.searchTag} mailOptions={mailOptions} time={msg.createdAt} />
+                                    <Mail mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={user.searchTag} mailOptions={mailOptions} time={msg.createdAt} />
                                 )
                         )
 

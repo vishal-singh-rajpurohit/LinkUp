@@ -35,6 +35,8 @@ const chatEventEnumNew = {
   DELETED_MESSAGE: "deleted_message",
   TYPING_ON: "typing_on",
   TYPING_OFF: "typing_off",
+  MARK_READ: "mark_read",
+  MARKED: "marked_read",
 };
 
 const LoadLimits = Object.freeze({

@@ -81,6 +81,12 @@ const newSchema = new Schema(
       default: false,
       required: true,
     },
+    readBy: {
+      type: [mongoose.Types.ObjectId],
+      ref: "Users",
+      default: [],
+      required: true,
+    }
   },
   {
     timeseries: true,

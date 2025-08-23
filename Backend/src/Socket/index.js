@@ -5,6 +5,7 @@ const { ChatEventEnum, chatEventEnumNew } = require("../constants/constants");
 const User = require("../models/user.model");
 const Contact = require("../models/contacts.model");
 const { default: mongoose } = require("mongoose");
+const Message = require("../models/message.modal");
 /**
  * @description event happens when user switches between chats or contacts based on contactId
  * @param {Socket<import("socket.io")}
@@ -56,20 +57,11 @@ const starterSocketIo = async (io) => {
       socket.emit(ChatEventEnum.CONNECTED_EVENT);
       console.log("User connected 🗼. userId: ", user._id.toString());
 
-      // Sending user is live to all users to is live
-      const contactsOnline = await getUserOnlineFriends(user._id);
-      for (let con of contactsOnline) {
-        io.to(`${con.userId}`).emit(`${chatEventEnumNew.ONLINE_EVENT}`, {
-          contactId: con._id,
-          message: "your friend is online",
-        });
-      }
-
       // Events
       socket.on("joinRoom", async (payload) => {
         const roomId = payload.roomId.toString();
         socket.join(roomId);
-        console.log(`User joined room: ${roomId}`);
+        // console.log(`User joined room: ${roomId}`);
 
         socket.to(roomId).emit("message", {
           user: socket.id,
@@ -83,6 +75,15 @@ const starterSocketIo = async (io) => {
           console.log(`Users in room ${roomId}:`, room.size);
         }
       });
+
+      // Sending user is live to all users to is live
+      const contactsOnline = await getUserOnlineFriends(user._id);
+      for (let con of contactsOnline) {
+        io.to(`${con.userId}`).emit(`${chatEventEnumNew.ONLINE_EVENT}`, {
+          contactId: con._id,
+          message: "your friend is online",
+        });
+      }
 
       // Typing indicator
       socket.on(chatEventEnumNew.TYPING_ON, async (payload) => {
@@ -167,7 +168,10 @@ const starterSocketIo = async (io) => {
 
           if (reciver.length) {
             // Working on this
-            io.to(`${reciver[0].socketId}`).emit(`${chatEventEnumNew.TYPING_ON}`, { avatar:  payload.avatar });
+            io.to(`${reciver[0].socketId}`).emit(
+              `${chatEventEnumNew.TYPING_ON}`,
+              { avatar: payload.avatar }
+            );
           }
         } else {
           // IF Group Chat
@@ -192,7 +196,10 @@ const starterSocketIo = async (io) => {
                     input: "$members",
                     as: "member",
                     cond: {
-                      $ne: ["$$member.userId", new mongoose.Types.ObjectId(payload.userId)],
+                      $ne: [
+                        "$$member.userId",
+                        new mongoose.Types.ObjectId(payload.userId),
+                      ],
                     },
                   },
                 },
@@ -234,10 +241,45 @@ const starterSocketIo = async (io) => {
 
           if (recivers.length) {
             for (let reciver of recivers[0].member) {
-             io.to(`${reciver.socketId}`).emit(`${chatEventEnumNew.TYPING_ON}`, { avatar:  payload.avatar });
+              io.to(`${reciver.socketId}`).emit(
+                `${chatEventEnumNew.TYPING_ON}`,
+                { avatar: payload.avatar }
+              );
             }
           }
         }
+      });
+
+      // Mark Read
+      socket.on(chatEventEnumNew.MARK_READ, async (payload) => {
+        console.log('tryied');
+        
+        const user = await User.findById(payload.id);
+        if (!user) {
+          throw new ApiError(501, "Unautharized Request");
+        }
+        const message = await Message.findByIdAndUpdate(
+          payload.msgId,
+          {
+            $addToSet: { readBy: user._id },
+          },
+          { new: true }
+        );
+        if (!message) {
+          throw new ApiError(400, "Message not found:");
+        }
+
+        const sender = await User.findById(message.userId);
+
+        if (!sender) {
+          throw new ApiError(400, "Sender not found");
+        }
+
+        socket.to(sender.socketId).emit(chatEventEnumNew.MARKED, {
+          messageId: message._id,
+          contactId: message.contactId,
+          viewerId: user._id
+        });
       });
 
       socket.on(ChatEventEnum.DISCONNECT_EVENT, async () => {
@@ -255,7 +297,6 @@ const starterSocketIo = async (io) => {
           await setUserOffline(user._id);
         }
       });
-
     } catch (error) {
       socket.emit(
         ChatEventEnum.SOCKET_ERROR_EVENT,
@@ -267,6 +308,10 @@ const starterSocketIo = async (io) => {
 
 const emiterSocket = async (req, roomId, event, Payload) => {
   await req.app.get("io").to(roomId).emit(event, Payload);
+};
+
+const emiterSocketDIr = async (io, roomId, event, Payload) => {
+  await io.to(roomId).emit(event, Payload);
 };
 
 const emiterCall = (req, userId, event, Payload) => {

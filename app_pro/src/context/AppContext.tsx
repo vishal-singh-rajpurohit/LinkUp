@@ -29,11 +29,13 @@ export const AppContextProvider = ({ children }: {
             const chat = contacts.filter((val) => val._id === id)
             // console.log(`contac is ${JSON.stringify(chat[0], null, 2)}`);
             disp(selectContact({ chat: chat[0] }))
+            // console.log("chat is: ", chat[0])
         }
         else if (chatTypes === 2) {
             const chat = groups.filter((val) => val._id === id)
             disp(selectGroup({ chat: chat[0] }))
-        } else if (chatTypes === 3) {
+        }
+        else if (chatTypes === 3) {
             const chat = archContacts.filter((val) => val._id === id)
             disp(selectContact({ chat: chat[0] }))
         }

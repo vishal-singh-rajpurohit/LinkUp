@@ -1,11 +1,12 @@
 import { CiMenuKebab } from "react-icons/ci"
 import g from '../../assets/no_dp.png'
-import React, { useEffect, useRef, useState } from "react"
+import React, { useContext, useEffect, useRef, useState } from "react"
 import { notificationPup, setTempString } from "../../app/functions/temp";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import axios from "axios";
 import { getTimeDifference } from "../../helpers/timeConverter";
 import { FcDown } from "react-icons/fc";
+import { ChatEventsEnum, WSContext } from "../../context/WSContext";
 
 const api = import.meta.env.VITE_API;
 
@@ -15,6 +16,7 @@ export const Mail = (
     mailOptions,
     mailRef,
     avatar,
+    readBy,
     message,
     _id,
     senderTag,
@@ -23,6 +25,7 @@ export const Mail = (
     mailOptions: React.RefObject<HTMLDivElement | null>;
     mailRef: React.RefObject<HTMLDivElement | null>;
     message: string;
+    readBy: string[];
     _id: string;
     avatar: string;
     senderTag: string;
@@ -30,7 +33,16 @@ export const Mail = (
   }) => {
   const disp = useAppDispatch()
   const currMessageRef = useRef<HTMLDivElement | null>(null)
+  const messageRef = useRef<HTMLDivElement | null>(null)
   const [timer, setTimer] = useState<string>("")
+  const userId = useAppSelector((state) => state.auth.user._id)
+  const socketContext = useContext(WSContext)
+
+  if (!socketContext) {
+    throw new Error("socket context not found")
+  }
+
+  const { socket } = socketContext
 
   useEffect(() => {
     if (time) {
@@ -61,16 +73,51 @@ export const Mail = (
     }
   }, []);
 
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          const msgIdx = readBy.indexOf(userId)
+
+          if (msgIdx === -1) {
+            socket?.emit(ChatEventsEnum.MARK_READ, ({
+              id: userId,
+              msgId: _id
+            }))
+          }
+
+          // Stop observing to avoid multiple events
+          messageRef.current && observer.unobserve(messageRef.current);
+
+        }
+      },
+      { threshold: 0.5 } // Trigger when 50% of the element is visible
+    );
+
+    if (messageRef.current) {
+      observer.observe(messageRef.current);
+    }
+
+    return () => {
+      if (messageRef.current) {
+        observer.unobserve(messageRef.current);
+      }
+    };
+  }, [message, socket]);
+
   // for sent messaes => bg-[#00F0FF] text-[#0F172A]
   return (
-    <div id={_id} className={`flex gap-2 text-white`}>
+    <div id={_id} ref={messageRef} className={`flex gap-2 text-white`}>
       <div className="">
         <div className='w-[1.3rem] h-[1.3rem] flex items-center shadow-[0_0_10px_#00F0FF55] justify-center overflow-hidden rounded-[16px] font-[#0F172A] bg-amber-300 md:h-[1.5rem] md:w-[1.5rem]'>
           <img src={avatar || g} alt="😒" className="max-h-[1.5rem] h-full" />
         </div>
       </div>
       <div className="the-msg min-h-7 max-w-[80%] min-w-[3rem] ">
-        <div ref={mailRef} data-msgId={_id} data-tag={senderTag} className="bg-[#334155] text-[#F8FAFC] p-1 rounded-md "><div className="text-[10px]">{senderTag}</div>{message}</div>
+        <div ref={mailRef} data-msgId={_id} data-tag={senderTag} className="bg-[#334155] text-[#F8FAFC] p-1 rounded-md ">
+          <div className="text-[10px]">{senderTag}</div>
+          {message}
+        </div>
         <div className="text-[10px]">
           <div>{timer}</div>
         </div>
@@ -84,6 +131,7 @@ export const MailMe = (
   {
     mailOptions,
     mailRef,
+    readBy,
     avatar,
     message,
     _id,
@@ -92,6 +140,7 @@ export const MailMe = (
   }: {
     mailOptions: React.RefObject<HTMLDivElement | null>;
     mailRef: React.RefObject<HTMLDivElement | null>;
+    readBy: string[];
     message?: string;
     _id: string;
     avatar?: string;
@@ -101,6 +150,9 @@ export const MailMe = (
   const disp = useAppDispatch()
   const currMessageRef = useRef<HTMLDivElement | null>(null);
   const [timer, setTimer] = useState<string>("")
+
+
+
 
   useEffect(() => {
     if (time) {
@@ -112,8 +164,6 @@ export const MailMe = (
   useEffect(() => {
     disp(setTempString({ text: _id }))
     const currMessageEl = currMessageRef.current;
-
-
     if (currMessageEl) {
       const handleClick = (e: MouseEvent) => {
         if (mailOptions.current) {
@@ -133,6 +183,8 @@ export const MailMe = (
     }
   }, []);
 
+
+
   return (
     <div id={_id} className={`flex gap-2 text-white flex-row-reverse selection:bg-[#fff0]`}>
       <div className="">
@@ -141,10 +193,17 @@ export const MailMe = (
         </div>
       </div>
       <div className="min-h-6 max-w-[80%] min-w-[3rem] ">
-        <div ref={mailRef} data-msgId={_id} data-tag={senderTag} className="bg-[#00F0FF] text-[#0F172A] p-1 rounded-md cursor-pointer">
+        <div ref={mailRef} data-msgid={_id} data-tag={senderTag} className="bg-[#00F0FF] text-[#0F172A] p-1 rounded-md cursor-pointer">
           <div className="text-[10px] flex flex-row-reverse">{senderTag}</div>
           <div className="">
             {message}
+          </div>
+          <div className="text-[10px] w-full flex items-end justify-end">
+            {
+              readBy.length ?
+                (<span className="text-[#e915e3] font-bold">✓✓</span>) :
+                (<span className="text-[#1519d0]">✓</span>)
+            }
           </div>
         </div>
         <div className="text-[10px]">
@@ -407,7 +466,7 @@ export const MentionCard = (
 
 export const TypingIndicator = ({ avatar, trigger }: { avatar: string; trigger: boolean; }) => {
   return (
-    <div className={`${trigger ? "flex": 'hidden'} gap-2 text-white`}>
+    <div className={`${trigger ? "flex" : 'hidden'} gap-2 text-white`}>
       <div className="">
         <div className='w-[1.3rem] h-[1.3rem] flex items-center shadow-[0_0_10px_#00F0FF55] justify-center overflow-hidden rounded-[16px] font-[#0F172A] bg-amber-300 md:h-[1.5rem] md:w-[1.5rem]'>
           <img src={avatar || g} alt="😒" className="max-h-[1.5rem] h-full" />
@@ -486,27 +545,26 @@ export const BottomButton = ({ count = 2 }: { count?: number }) => {
   )
 }
 
-export const Notification = () =>{
+export const Notification = () => {
   const disp = useAppDispatch()
-  const isActive = useAppSelector((state)=>state.temp.notificationPopUp)
+  const isActive = useAppSelector((state) => state.temp.notificationPopUp)
 
-  useEffect(()=>{
+  useEffect(() => {
     let timeout: ReturnType<typeof setTimeout>;
-    if(isActive){
-      timeout = setTimeout(()=>{
-        disp(notificationPup({trigger: false}))
+    if (isActive) {
+      timeout = setTimeout(() => {
+        disp(notificationPup({ trigger: false }))
       }, 2000)
     }
 
-    return ()=>{
+    return () => {
       clearTimeout(timeout)
     }
   }, [isActive])
 
-  return(
-    <div className={`fixed top-0 left-0 z-50 w-full h-[3rem] ${isActive?"flex": "hidden"} flex-col items-center justify-center md:w-[20rem] md:left-10`}>
+  return (
+    <div className={`fixed top-0 left-0 z-50 w-full h-[3rem] ${isActive ? "flex" : "hidden"} flex-col items-center justify-center md:w-[20rem] md:left-10`}>
       <div className="w-[30%] md:w-[60%] h-[1.3rem] rounded-sm bg-green-500 text-black flex items-center justify-center text-sm font-light">
-        {/* <div className=""></div> */}
         <p className="">New Message</p>
       </div>
     </div>

@@ -594,6 +594,7 @@ const logIn = asyncHandler(async (req, resp) => {
         "messages.callType": 1,
         "messages.createdAt": 1,
         "messages.isDeleted": 1,
+        "messages.readBy": 1,
         "messages.sender._id": 1,
         "messages.sender.searchTag": 1,
         "messages.sender.avatar": 1,
@@ -635,6 +636,8 @@ const logIn = asyncHandler(async (req, resp) => {
 });
 
 const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
+  // console.log('checking logged in');
+  
   const user = req.user;
 
   if (!user) {
@@ -776,6 +779,7 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
         "messages.attechmentLink": 1,
         "messages.attechmentType": 1,
         "messages.isDeleted": 1,
+        "messages.readBy": 1,
         "messages.isCall": 1,
         "messages.callType": 1,
         "messages.createdAt": 1,
@@ -1020,6 +1024,7 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
         "messages.callType": 1,
         "messages.createdAt": 1,
         "messages.isDeleted": 1,
+        "messages.readBy": 1,
         "messages.sender._id": 1,
         "messages.sender.searchTag": 1,
         "messages.sender.avatar": 1,
