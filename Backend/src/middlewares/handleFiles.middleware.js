@@ -1,8 +1,8 @@
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
-
 const dest = "temp/avatars";
+
 if (!fs.existsSync(dest)) {
   fs.mkdirSync(dest, { recursive: true });
 }
@@ -23,6 +23,7 @@ const fileUploader = multer({
   storage: storage,
   limits: {
     files: 1,
+    fileSize: 30 * 1024 * 1024 // 30 MB
   },
 });
 

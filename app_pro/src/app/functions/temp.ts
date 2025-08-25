@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import { type contactTypes, type groupMssageType, type groupsResp, type groupType, type initialRespType } from './auth'
+import { type contactTypes, type groupMssageType, type groupType } from './auth'
 
 export interface searchUserTypes {
     _id: string;
@@ -51,6 +51,9 @@ interface initialStateTypes {
         trigger: boolean;
         user: string;
     };
+    fileSelection: boolean;
+    uploadingState: boolean;
+    fileType: string;
 }
 
 const initialState: initialStateTypes = {
@@ -89,7 +92,10 @@ const initialState: initialStateTypes = {
         _id: "",
         isReplay: false,
         senderTag: "",
-    }
+    },
+    fileSelection: false,
+    uploadingState: false,
+    fileType: ""
 }
 
 function searchingFunc(state: initialStateTypes, action: PayloadAction<{ users: searchUserTypes[] }>) {
@@ -141,7 +147,7 @@ function selectGpFunc(state: initialStateTypes, action: PayloadAction<{ chat: gr
 function addGroupContact(state: initialStateTypes, action: PayloadAction<{ user: groupContactTypes }>) {
     let find: boolean = false;
 
-    for (let val of state.groupContact) {
+    for (const val of state.groupContact) {
         if (val._id === action.payload.user._id) {
             find = true
         }
@@ -209,12 +215,15 @@ function clearTemo(state: initialStateTypes) {
         isArchieved: false,
         lastMessage: "",
         isOnline: false,
-    },
-        state.replayTemp = {
+    };
+    state.replayTemp = {
             _id: "",
             isReplay: false,
             senderTag: ""
-        }
+    };
+    state.fileSelection = false;
+    state.uploadingState = false;
+    state.fileType = ""
 }
 
 function setTemporalUser(state: initialStateTypes, action: PayloadAction<{
@@ -233,7 +242,7 @@ function setTemporalUser(state: initialStateTypes, action: PayloadAction<{
         userId: action.payload.contacts.userId
     }
 
-    for (let val of state.tempUser) {
+    for (const val of state.tempUser) {
         if (val._id === newContact._id) {
             find = true
         }
@@ -345,6 +354,14 @@ function replyStateFunc(state: initialStateTypes, action: PayloadAction<{ trigge
     state.replayTemp.senderTag = action.payload.senderTag;
 }
 
+function fileSelectionTrigger(state: initialStateTypes, action: PayloadAction<{trigger: boolean;}>){
+    state.fileSelection = action.payload.trigger;
+}
+
+function triggerUploadingState(state: initialStateTypes, action: PayloadAction<{trigger: boolean; value: string}>){
+    state.uploadingState = action.payload.trigger;
+    state.fileType = action.payload.value
+}
 
 const tempSlice = createSlice({
     name: 'temp',
@@ -377,11 +394,13 @@ const tempSlice = createSlice({
         setReplyState: replyStateFunc,
         toggleTyping: setTyping,
         notificationPup: setNotification,
-        markTempAsRead: markRead
+        markTempAsRead: markRead,
+        setFileSelection: fileSelectionTrigger,
+        setUploadingState: triggerUploadingState
     }
 })
 
 
-export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp, updateSelectedAvatar, setHasAttechments, removeTempMessage, triggerOnline, kickedMeTemp, newMessageInRoom, setReplyState, toggleTyping, notificationPup, markTempAsRead } = tempSlice.actions
+export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp, updateSelectedAvatar, setHasAttechments, removeTempMessage, triggerOnline, kickedMeTemp, newMessageInRoom, setReplyState, toggleTyping, notificationPup, markTempAsRead, setFileSelection, setUploadingState } = tempSlice.actions
 
 export default tempSlice.reducer

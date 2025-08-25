@@ -1,5 +1,5 @@
 import g from '../../assets/no_dp.png'
-import { MdCall, MdVideoCall } from 'react-icons/md'
+import { MdCall, MdOutlineAudioFile, MdOutlineAudiotrack, MdOutlineFileOpen, MdOutlineImage, MdOutlineVideoLibrary, MdVideoCall } from 'react-icons/md'
 import { TiAttachmentOutline } from 'react-icons/ti'
 import { RiSendPlaneFill } from 'react-icons/ri'
 import { BsEmojiWink } from 'react-icons/bs'
@@ -10,7 +10,7 @@ import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { getTimeDifference } from '../../helpers/timeConverter'
 import { NavLink, useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { setReplyState, toggleTyping } from '../../app/functions/temp'
+import { setFileSelection, setReplyState, toggleTyping } from '../../app/functions/temp'
 import { ChatEventsEnum, WSContext } from '../../context/WSContext'
 const api = import.meta.env.VITE_API;
 
@@ -79,7 +79,6 @@ export const ChatTop = () => {
 }
 
 export const MailBox = () => {
-    const chatRef = useRef<HTMLInputElement | null>(null)
     return (
         <section className='w-full h-full overflow-y-scroll rounded-sm bg-[#1F2937]  grid grid-rows-[9fr_1fr] py-1.5 px-1'>
             <ChatBox />
@@ -137,6 +136,10 @@ const MailOptions = () => {
         }
     }
 
+    function openFileSelection(trigger: boolean) {
+        disp(setFileSelection({ trigger: trigger }))
+    }
+
     useEffect(() => {
         if (message.length) {
             socketContext.socket?.emit(ChatEventsEnum.TYPING_ON, { contactId: contact._id, searchTag: user.searchTag, avatar: user.avatar, userId: user._id });
@@ -148,7 +151,7 @@ const MailOptions = () => {
 
         if (isTyping) {
             timeout = setTimeout(() => {
-                disp(toggleTyping({avatar: '', trigger: false}))
+                disp(toggleTyping({ avatar: '', trigger: false }))
             }, 3000);
         }
 
@@ -159,6 +162,7 @@ const MailOptions = () => {
 
     return (
         <>
+            <AttechMents />
             <TypingIndicator trigger={isTyping.trigger} avatar={isTyping.user} />
             <section className='w-full h-full max-h-[3rem] flex items-center justify-center '>
                 <form id="optionsWrapper" onSubmit={sendChat} className='w-[90%] h-full grid grid-cols-[7fr_3fr] items-center content-center border-1 border-white rounded-md md:grid-cols-[7fr_3fr] lg:grid-cols-[8fr_2fr] lg:gap-1.5'>
@@ -166,7 +170,7 @@ const MailOptions = () => {
                         <input id="messageBox" type="text" value={message} onChange={(e) => setMessage(e.target.value)} placeholder='write a message....' className="w-full h-full outline-0 text-sm text-gray-2 00 font-serif" />
                     </div>
                     <div className="h-full w-full flex items-center justify-center gap-2 ">
-                        <TiAttachmentOutline size={20} cursor={'pointer'} />
+                        <TiAttachmentOutline size={20} cursor={'pointer'} onClick={() => openFileSelection(true)} />
                         <BsEmojiWink size={18} cursor={'pointer'} />
                         <button type='submit' className="bg-[#00F0FF] h-[2rem] w-[2rem] flex items-center justify-center rounded-sm c cursor-pointer md:w-[4rem] md:h-[2rem]"><RiSendPlaneFill className='lg:text-[25px]' /> </button>
                     </div>
@@ -196,17 +200,41 @@ const EmojiBox = () => {
 
 // Attechment Box
 const AttechMents = () => {
+    const open = useAppSelector((state) => state.temp.fileSelection);
+
+    const imgRef = useRef<HTMLInputElement | null>(null)
+    const vidRef = useRef<HTMLInputElement | null>(null)
+    const docRef = useRef<HTMLInputElement | null>(null)
+    const audioRef = useRef<HTMLInputElement | null>(null)
+
+
     return (
-        <section className="w-[80%] h-[5rem] overflow-auto flex justify-end mb-1 lg:h-[7rem] mt-1">
-            <div className="w-[30%] h-full overflow-auto relative rounded-sm flex items-center justify-center" style={{ scrollbarWidth: 'none' }}>
-                <div className=" bg-[#ffffff5d] w-full h-full grid grid-cols-2 gap-4 justify-center">
-                    <div className="w-full h-full flex items-center justify-center"><FaImage size={20} cursor={'pointer'} /></div>
-                    <div className="w-full h-full flex items-center justify-center"><FaImage size={20} cursor={'pointer'} /></div>
-                    <div className="w-full h-full flex items-center justify-center"><FaImage size={20} cursor={'pointer'} /></div>
-                    <div className="w-full h-full flex items-center justify-center"><FaImage size={20} cursor={'pointer'} /></div>
+        <>
+            <section className={`w-[80%] h-[8rem] ${open ? "flex" : "hidden"} overflow-auto justify-end mb-1 lg:h-[7rem] mt-1`}>
+                <div className="w-[40%] h-full overflow-auto relative rounded-sm flex items-center justify-center md:w-[30%] lg:w-[20%]" style={{ scrollbarWidth: 'none' }}>
+                    <div className=" bg-[#ffffff5d] w-[8rem] h-[8rem] rounded-md grid grid-cols-2 gap-4 justify-center">
+                        <div className="w-full h-full flex items-center justify-center">
+                            <MdOutlineImage onClick={()=>imgRef.current?.click()} size={25} cursor={'pointer'} />
+                        </div>
+                        <div className="w-full h-full flex items-center justify-center">
+                            <MdOutlineVideoLibrary onClick={()=>vidRef.current?.click()} size={25} cursor={'pointer'} />
+                        </div>
+                        <div className="w-full h-full flex items-center justify-center">
+                            <MdOutlineAudiotrack onClick={()=>audioRef.current?.click()} size={25} cursor={'pointer'} />
+                        </div>
+                        <div className="w-full h-full flex items-center justify-center">
+                            <MdOutlineFileOpen onClick={()=>docRef.current?.click()} size={25} cursor={'pointer'} />
+                        </div>
+                    </div>
                 </div>
+            </section>
+            <div className="hidden">
+                <input ref={docRef} type="file" accept=".pdf,.doc,.docx,.txt, .css, .js, .c, .cpp, .py, .ipynb" name="" id="" />
+                <input ref={imgRef} type="file" accept='image/*' />
+                <input ref={vidRef} type="file" accept="video/*" max={1} name="" id="" />
+                <input ref={audioRef} type="file" accept="audio/*" max={1} name="" id="" />
             </div>
-        </section>
+        </>
     )
 }
 

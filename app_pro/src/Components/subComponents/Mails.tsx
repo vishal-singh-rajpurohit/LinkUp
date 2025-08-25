@@ -10,7 +10,6 @@ import { ChatEventsEnum, WSContext } from "../../context/WSContext";
 
 const api = import.meta.env.VITE_API;
 
-
 export const Mail = (
   {
     mailOptions,
@@ -87,7 +86,7 @@ export const Mail = (
           }
 
           // Stop observing to avoid multiple events
-          messageRef.current && observer.unobserve(messageRef.current);
+          if (messageRef.current) observer.unobserve(messageRef.current);
 
         }
       },
@@ -182,8 +181,6 @@ export const MailMe = (
       };
     }
   }, []);
-
-
 
   return (
     <div id={_id} className={`flex gap-2 text-white flex-row-reverse selection:bg-[#fff0]`}>
@@ -494,8 +491,8 @@ export const MailMenu = ({ mailRef, }: {
   const disp = useAppDispatch()
   const messageId = useAppSelector((state) => state.temp.tempString)
   const contact = useAppSelector((state) => state.temp.selectedContact)
-  const user = useAppSelector((state) => state.auth.user)
-  const chatType = useAppSelector((state) => state.temp.chatListTypes)
+  // const user = useAppSelector((state) => state.auth.user)
+  // const chatType = useAppSelector((state) => state.temp.chatListTypes)
 
   async function undoMessage() {
     try {

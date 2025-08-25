@@ -31,6 +31,26 @@ async function uploadToCloudinary(path) {
   }
 }
 
+async function uploadRawToCloudinary(path) {
+  try {
+    const upload = await cloudinary.uploader.upload(path, {
+      resource_type: "raw",
+      folder: "documents",
+    });
+
+    fs.unlinkSync(path);
+
+    return {
+      file_type: upload.type,
+      link: upload.url,
+      public_id: upload.public_id,
+    };
+  } catch (error) {
+    fs.unlinkSync(path);
+    throw new ApiError(500, "Error in Upload on cloudinary");
+  }
+}
+
 async function removeFromCloudinary(public_id) {
   try {
     await cloudinary.uploader.destroy(public_id);
@@ -41,5 +61,6 @@ async function removeFromCloudinary(public_id) {
 
 module.exports = {
   uploadToCloudinary,
+  uploadRawToCloudinary,
   removeFromCloudinary,
 };
