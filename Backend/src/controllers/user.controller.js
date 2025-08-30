@@ -216,7 +216,7 @@ const signUp = asyncHandler(async (req, resp) => {
 const logIn = asyncHandler(async (req, resp) => {
   const { searchTag, password, longitude, latitude } = req.body;
 
-  if (!searchTag || !password || !longitude || !latitude) {
+  if (!searchTag || !password ) {
     throw new ApiError(400, "All data must required");
   }
 

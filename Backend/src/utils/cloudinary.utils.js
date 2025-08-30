@@ -41,7 +41,7 @@ async function uploadRawToCloudinary(path) {
     fs.unlinkSync(path);
 
     return {
-      file_type: upload.type,
+      file_type : upload.type,
       link: upload.url,
       public_id: upload.public_id,
     };

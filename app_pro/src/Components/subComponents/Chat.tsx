@@ -98,6 +98,7 @@ const MailOptions = () => {
     const user = useAppSelector((state) => state.auth.user)
     const contain_files = useAppSelector((state) => state.temp.chatStates.hasAttechments)
     const isTyping = useAppSelector((state) => state.temp.typing)
+    const formData = new FormData();
 
     const [message, setMessage] = useState<string>("");
     const [geoLoc, setGeoLoc] = useState<geoLocType>({
@@ -162,7 +163,7 @@ const MailOptions = () => {
 
     return (
         <>
-            <AttechMents />
+            <AttechMents formData={formData} />
             <TypingIndicator trigger={isTyping.trigger} avatar={isTyping.user} />
             <section className='w-full h-full max-h-[3rem] flex items-center justify-center '>
                 <form id="optionsWrapper" onSubmit={sendChat} className='w-[90%] h-full grid grid-cols-[7fr_3fr] items-center content-center border-1 border-white rounded-md md:grid-cols-[7fr_3fr] lg:grid-cols-[8fr_2fr] lg:gap-1.5'>
@@ -199,14 +200,31 @@ const EmojiBox = () => {
 }
 
 // Attechment Box
-const AttechMents = () => {
+const AttechMents = ({formData}: {formData: HTMLFormElement}) => {
     const open = useAppSelector((state) => state.temp.fileSelection);
-
+    const fileType = useAppSelector((state)=>state.temp.fileType)
     const imgRef = useRef<HTMLInputElement | null>(null)
     const vidRef = useRef<HTMLInputElement | null>(null)
     const docRef = useRef<HTMLInputElement | null>(null)
     const audioRef = useRef<HTMLInputElement | null>(null)
 
+
+    async function handelFile(e: React.ChangeEvent<HTMLInputElement>){
+        if(e.target.files){
+            if(fileType === 'img'){
+                formData.append('file', e.target.files[0])
+            }
+            else if(fileType === 'vid'){
+                formData.append('file', e.target.files[0])
+            }
+            else if(fileType === 'audio'){
+                formData.append('file', e.target.files[0])
+            }
+            else if(fileType === 'doc'){
+                formData.append('file', e.target.files[0])
+            }
+        }
+    }
 
     return (
         <>

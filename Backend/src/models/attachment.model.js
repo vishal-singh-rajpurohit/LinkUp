@@ -6,6 +6,10 @@ const newModel = new Schema(
       type: String,
       required: true,
     },
+    contactId: {
+      type: String,
+      required: true,
+    },
     fileType: {
       type: String,
       required: true,
