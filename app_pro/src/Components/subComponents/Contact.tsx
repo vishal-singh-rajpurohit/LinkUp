@@ -12,8 +12,7 @@ import { AppContext } from '../../context/Contexts'
 import { FaArchive, FaUserFriends } from 'react-icons/fa'
 import { MdGroups } from 'react-icons/md'
 import { SampleCropper3 } from '../Cropper/Cropper'
-
-
+import { CheckCircle } from 'lucide-react'
 
 const api = import.meta.env.VITE_API
 
@@ -135,18 +134,18 @@ const SelectContactItem = ({ _id, searchTag, avatar, userId }: {
         }));
 
         const sel: groupContactTypes[] = groupContact.filter((val) => val._id == id)
-        setIsSelected(!(Boolean(sel.length)));
+        setIsSelected(!sel.length);
     }
 
     return (
-        <div onClick={() => select(_id)} className={` h-[4rem] cursor-pointer ${isSelected ? 'bg-purple-950' : null} hover:bg-purple-900`}>
-            <div className="grid h-full grid-cols-[0.1fr_1.3fr_5.7fr_0.8fr] items-center px-1 ">
-                <div className="flex items-center">
-                    <input type="checkbox" checked={isSelected} className="" onChange={() => select(_id)} />
-                </div>
-                <div className="w-full overflow-hidden h-full flex items-center justify-center">
+        <div onClick={() => select(_id)} className={` h-[4rem] cursor-pointer  hover:bg-purple-900`}>
+            <div className="grid h-full grid-cols-[1.3fr_5.7fr_0.8fr] items-center px-1 ">
+                <div className="w-full overflow-hidden h-full flex items-center justify-center relative">
                     <div className='w-[2.5rem] h-[2.5rem] flex items-center justify-center overflow-hidden rounded-[10rem] bg-[#e4e6e7] md:h-[2rem] md:w-[2rem]'>
                         <img src={avatar || g} alt="😒" className="max-h-[2.5rem] h-full md:max-h-[1.5rem]" />
+                    </div>
+                    <div className={`absolute pt-[30%] pl-[40%] ${isSelected ? 'flex' : 'hidden'}`}>
+                        <CheckCircle color='#45ff60' />
                     </div>
                 </div>
                 <div className="w-full h-full pl-1 flex gap-0  justify-center flex-col">
@@ -187,14 +186,14 @@ const AdminSelect = ({ _id, searchTag, avatar, userId }: {
     }
 
     return (
-        <div onClick={() => select(_id)} className={` h-[4rem] cursor-pointer ${isSelected ? 'bg-purple-950' : null} hover:bg-purple-900`}>
-            <div className="grid h-full grid-cols-[0.1fr_1.3fr_5.7fr_0.8fr] items-center px-1 ">
-                <div className="flex items-center">
-                    <input type="checkbox" checked={isSelected} className="" />
-                </div>
-                <div className="w-full overflow-hidden h-full flex items-center justify-center">
+        <div onClick={() => select(_id)} className={` h-[4rem] cursor-pointer`}>
+            <div className="grid h-full grid-cols-[1.3fr_5.7fr_0.8fr] items-center px-1 ">
+                <div className="w-full overflow-hidden h-full flex items-center justify-center relative">
                     <div className='w-[2.5rem] h-[2.5rem] flex items-center justify-center overflow-hidden rounded-[10rem] bg-[#e4e6e7] md:h-[2rem] md:w-[2rem]'>
                         <img src={avatar || g} alt="😒" className="max-h-[2.5rem] h-full md:max-h-[1.5rem]" />
+                    </div>
+                    <div className={`absolute pt-[30%] pl-[40%] ${isSelected ? 'flex' : 'hidden'}`}>
+                        <CheckCircle color='#45ff60' />
                     </div>
                 </div>
                 <div className="w-full h-full pl-1 flex gap-0  justify-center flex-col">
@@ -205,6 +204,20 @@ const AdminSelect = ({ _id, searchTag, avatar, userId }: {
                 </div>
             </div>
         </div>
+    )
+}
+
+const SelectedContacts = ({ avatar, admin }: {
+    avatar: string;
+    admin?: boolean;
+}) => {
+
+    return (
+        <section className="cursor-pointer">
+            <div className={`w-[2.5rem] h-[2.5rem] rounded-[50%] overflow-hidden ${admin ? 'border-2 border-green-400' : ''}`}>
+                <img src={avatar || g} alt="" className="w-full h-full" />
+            </div>
+        </section>
     )
 }
 
@@ -270,7 +283,7 @@ const CreateGroupChat = () => {
             on: 0
         })
         try {
-            const resp = await axios.post<newGroupTypes>(`${api}/chat/create-group-chat`, {
+            await axios.post<newGroupTypes>(`${api}/chat/create-group-chat`, {
                 contacts: selectedGroupContacts,
                 groupName: formData.groupName,
                 description: formData.description,
@@ -310,39 +323,34 @@ const CreateGroupChat = () => {
         }
     }
 
-
     return (
         <>
             <SampleCropper3 image={tempAvatar} setOpen={setShowEditor} setImage={setTempAvatar} setPiblicId={setTemp_pid} open={showEditor} />
-            <section className={`absolute ${display ? 'flex' : 'hidden'} flex-col justify-center items-center min-h-full w-[90%] bg-[#284f4e80] md:w-[100%] pb-[3rem]`}>
-                <div className=" flex flex-col items-center gap-2 min-h-[98%] w-full bg-[#337775] pt-3 md:w-[80%]">
-                    <div className="w-full flex justify-center items-center">
-                        <h3 className="uppercase text-2xl text-black font-bold underline-offset-1 underline select-none">Create Group Chat</h3>
-                    </div>
-                    <div className="w-full h-[6rem] flex justify-center items-center">
-                        <div className="h-[4rem] w-[4rem] rounded-[50%] overflow-hidden cursor-pointer border-2 border-b-black">
+            <section className={`absolute ${display ? 'flex' : 'hidden'} flex-col justify-center items-center h-full w-[100%] bg-slate-900 md:w-[100%] pb-[3rem] lg:bg-transparent`}>
+                <div className=" flex flex-col items-center gap-2 h-full  w-full bg-slate-700 pt-3 md:w-[25rem]">
+                    <div className="w-full h-[4rem] grid grid-cols-[3fr_6fr_1fr] items-center justify-center content-center justify-items-center">
+                        <div className="h-[3rem] w-[3rem] rounded-[50%] overflow-hidden cursor-pointer border-2 border-b-black">
                             <img src={tempAvatar || g} onClick={clickAvatar} alt="😁" className="w-full h-full" />
                             <input type="file" ref={avatarRef} accept='image' onChange={selectAvatar} className='hidden' />
                         </div>
-                    </div>
-                    <div className="flex flex-col items-center gap-4 w-[90%]">
-                        <div className="flex flex-col min-h-[4rem] gap-1 w-[90%]">
-                            <label htmlFor="groupName">Group Name</label>
-                            <input type="text" name='groupName' id='groupName' onChange={(e) => setFormData({ ...formData, groupName: e.target.value })} className="w-full h-[2rem] text-white bg-slate-700 pl-1 rounded-sm" placeholder='Enter Group Name' />
+                        <div className="h-full w-full flex flex-col min-h-[4rem] gap-1 justify-center items-start">
+                            <input className="w-[99%] h-[3rem] text-white bg-slate-700 pl-1  rounded-sm border-2 border-emerald-300 text-lg outline-0" placeholder='Enter Group Name' type="text" name='groupName' id='groupName' onChange={(e) => setFormData({ ...formData, groupName: e.target.value })} />
                             {
                                 <p className={`text-red-500 bg-amber-200 ${custErr.on === 2 ? 'block' : 'hidden'}`}>{custErr.message}</p>
                             }
                         </div>
+                        <div className=""></div>
+                    </div>
+                    <div className="flex flex-col items-center gap-1 w-[90%]">
                         <div className="flex flex-col min-h-[4rem] gap-1 w-[90%]">
-                            <label htmlFor="description">Description</label>
-                            <input type="text" name='description' id='description' className="w-full h-[2rem] text-white bg-slate-700 pl-1 rounded-sm"
+                            <input type="text" name='description' id='description' className="w-[99%] h-[3rem] text-white bg-slate-700 pl-1  rounded-sm border-2 border-emerald-300 text-lg outline-0"
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder={`Hii let's talk`} />
                             {
                                 <p className={`text-red-500 bg-amber-200 ${custErr.on === 3 ? 'block' : 'hidden'}`}>{custErr.message}</p>
                             }
                         </div>
-                        <div className="flex flex-col min-h-[4rem] gap-1 w-[90%]">
-                            <label htmlFor="description">who can send message?</label>
+                        <div className="flex flex-col min-h-[4rem] w-[90%] gap-1">
+                            <label htmlFor="description" className='text-sm'>who can send message?</label>
                             <select name='description' id='description' className="w-full h-[2rem] text-white bg-slate-700 pl-1 rounded-sm uppercase" onChange={(e) => setWhoCanSet(e.target.value)} >
                                 <option value="anyone">anyone</option>
                                 <option value="only_admin">only admin</option>
@@ -354,6 +362,13 @@ const CreateGroupChat = () => {
                         <div className="flex  justify-between pt-1">
                             <div className="text-lg font-mono">select at least 2</div>
                             <button disabled={selectedGroupContacts.length < 1} onClick={hideSelection} className="px-1 bg-purple-500 disabled:bg-purple-300 disabled:text-gray-200 rounded-sm cursor-pointer">{doneSelecting ? 'select more' : 'done'}</button>
+                        </div>
+                        <div className="flex gap-1 overflow-hidden overflow-x-scroll" style={{ scrollbarWidth: 'none' }}>
+                            {
+                                selectedGroupContacts.map((val, idx) => (
+                                    <SelectedContacts avatar={val.avatar} admin={val.admin} key={idx} />
+                                ))
+                            }
                         </div>
                         {
                             <p className={`text-red-500 bg-amber-200 ${custErr.on === 4 ? 'block' : 'hidden'}`}>{custErr.message}</p>
@@ -368,7 +383,7 @@ const CreateGroupChat = () => {
                     </div>
                     <div className={`w-[90%] border-t-2 border-amber-500 ${whoCanSend === 'only_admin' && doneSelecting ? 'block' : 'hidden'}`}>
                         <div className="flex  justify-between pt-1">
-                            <div className={`text-lg font-mono `}>select group admins</div>
+                            <div className={`text-lg font-mono `}>Select Group Admin</div>
                         </div>
                         <div className={`pt-2`}>
                             {
@@ -378,8 +393,7 @@ const CreateGroupChat = () => {
                             }
                         </div>
                     </div>
-
-                    <div className="fixed bottom-[1.5vh] w-[90%] gap-1 flex items-center justify-center">
+                    <div className="fixed bg-slate-700 min-h-[4rem] bottom-[0] w-full gap-1 flex items-center justify-center md:w-[25rem] ">
                         {
                             (whoCanSend === 'only_admin' && !doneSelecting) ? (
                                 <button disabled={selectedGroupContacts.length < 1} className="w-[40%] h-8 text-lg bg-blue-950 text-white cursor-pointer rounded-sm" onClick={hideSelection}>select admin</button>
