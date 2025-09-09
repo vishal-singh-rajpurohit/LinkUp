@@ -9,9 +9,9 @@ import { FcDown } from "react-icons/fc";
 import { AppContext, WSContext } from "../../context/Contexts";
 import { ChatEventsEnum } from "../../context/constant";
 import { FaFile, FaImage, FaVideo, FaDownload, FaTimes, FaFileImage, FaFileVideo, FaFileAudio, FaFileCode, FaFileAlt, } from "react-icons/fa";
-
 import { IoMdCloudUpload } from "react-icons/io"
 import { RiCheckDoubleLine } from "react-icons/ri";
+import sound from '../../assets/sound.mp3'
 
 
 
@@ -1054,10 +1054,14 @@ export const BottomButton = ({ count = 2 }: { count?: number }) => {
 export const Notification = () => {
   const disp = useAppDispatch()
   const isActive = useAppSelector((state) => state.temp.notificationPopUp)
+  const audioRef = useRef< HTMLAudioElement | null>(null)
 
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout>;
     if (isActive) {
+      audioRef.current?.play().catch((error) => {
+  console.error("Audio play failed:", error);
+});
       timeout = setTimeout(() => {
         disp(notificationPup({ trigger: false }))
       }, 2000)
@@ -1073,6 +1077,7 @@ export const Notification = () => {
       <div className="w-[30%] md:w-[60%] h-[1.3rem] rounded-sm bg-green-500 text-black flex items-center justify-center text-sm font-light">
         <p className="">New Message</p>
       </div>
+      <audio ref={audioRef} src={sound} className={`hidden`}></audio>
     </div>
   )
 }

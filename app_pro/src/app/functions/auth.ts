@@ -532,6 +532,7 @@ function kickedMeOut(state: initialTypes, action: PayloadAction<{ groupId: strin
 
 function newMessage(state: initialTypes, action: PayloadAction<{ newMsg: groupMssageType, contactId: string }>) {
     const toUpdateContact = state.contacts.filter((val) => val._id === action.payload.contactId);
+    toUpdateContact[0].lastMessage = action.payload.newMsg.message
     // Checking in groups
     if (toUpdateContact.length) {
         toUpdateContact[0].messages = [
@@ -546,6 +547,7 @@ function newMessage(state: initialTypes, action: PayloadAction<{ newMsg: groupMs
     }
     else {
         const toUpdateContact = state.groups.filter((val) => val._id === action.payload.contactId)
+        toUpdateContact[0].lastMessage = action.payload.newMsg.message
         // Checking in groups
         if (toUpdateContact.length) {
             toUpdateContact[0].messages = [
@@ -561,6 +563,7 @@ function newMessage(state: initialTypes, action: PayloadAction<{ newMsg: groupMs
         }
         else {
             const toUpdateContact = state.safer.filter((val) => val._id === action.payload.contactId)
+            toUpdateContact[0].lastMessage = action.payload.newMsg.message
             // Checking in Archieved
             if (toUpdateContact.length) {
                 toUpdateContact[0].messages = [
