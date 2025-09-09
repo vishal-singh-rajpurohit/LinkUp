@@ -1,38 +1,15 @@
-import React, { createContext, useEffect, useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import io from "socket.io-client"
 import { useAppDispatch, useAppSelector } from "../app/hooks";
-import { kickedMeTemp, markTempAsRead, newMessageInRoom, notificationPup, removeTempMessage, toggleTyping, triggerOnline } from "../app/functions/temp";
-import { deleteMessage, kickedMeAuth, kickOutAuth, markAsRead, messageRecived, saveContact, saveGroup, triggerConOnline, type groupMssageType, type groupsResp, type newChatTypes } from "../app/functions/auth";
-import type { Socket } from "socket.io-client";
+import { kickedMeTemp, markTempAsRead, newMessageInRoom, notificationPup, removeTempMessage, toggleTyping, triggerOnline, uploadedMeidaTemp } from "../app/functions/temp";
+import { deleteMessage, kickedMeAuth, kickOutAuth, markAsRead, messageMediaSent, messageRecived, saveContact, saveGroup, triggerConOnline, type groupMssageType, type groupsResp, type newChatTypes } from "../app/functions/auth";
+import { WSContext, type WSCTypes } from "./Contexts";
+import { ChatEventsEnum } from "./constant"
 
-export const ChatEventsEnum = {
-    ONLINE_EVENT: "is_online",
-    OFFLINE_EVENT: "offline",
-    APPROACHED_TALK: "apprached_to_talk",
-    NEW_GROUP_CHAT: "created_room",
-    KICKED_OUT_MEMBER: "cickout_member",
-    KICKED_OUT_YOU: "you_member",
-    NEW_MESSAGE: "message",
-    MESSAGE_DELETED: "del_message",
-    DELETED_MESSAGE: "deleted_message",
-    TYPING_ON: 'typing_on',
-    TYPING_OFF: 'typing_off',
-    MARK_READ: "mark_read",
-    MARKED: "marked_read",
-}
-
-interface WSCTypes {
-    socket: Socket | null
-}
-
-
-export const WSContext = createContext<WSCTypes | null>(null);
 
 const WSProvider = ({ children }: { children: React.ReactNode }) => {
     const disp = useAppDispatch();
     const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn)
-    const selectedContact = useAppSelector((state) => state.temp.selectedContact)
-
 
     const socket = useMemo(() => {
         if (isLoggedIn) {
@@ -95,6 +72,17 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
             disp(notificationPup({ trigger: true }))
         })
 
+        socket?.on(ChatEventsEnum.SENDING_MEDIA, ({ newMessage, contactId }: { newMessage: groupMssageType; contactId: string; }) => {
+            disp(messageRecived({ contactId: contactId, newMsg: newMessage }));
+            disp(newMessageInRoom({ contactId: contactId, newMsg: newMessage }));
+        })
+
+        socket?.on(ChatEventsEnum.SENT_MEDIA, ({ newMessage, contactId }: { newMessage: groupMssageType; contactId: string; }) => {
+            disp(messageMediaSent({ contactId: contactId, newMsg: newMessage }));
+            disp(uploadedMeidaTemp({ contactId: contactId, newMsg: newMessage }));
+            // disp(notificationPup({ trigger: true }))
+        })
+
         socket?.on(ChatEventsEnum.DELETED_MESSAGE, ({ messageId, contactId, isGroup }: { messageId: string; contactId: string; isGroup: boolean }) => {
             console.log('one message is deleted from the group');
             disp(deleteMessage({ contactId, messageId, isGroup }))
@@ -109,13 +97,13 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
             disp(toggleTyping({ avatar: "", trigger: false }))
         })
 
-        socket?.on(ChatEventsEnum.MARKED, ({messageId, contactId, viewerId}:{
+        socket?.on(ChatEventsEnum.MARKED, ({ messageId, contactId, viewerId }: {
             messageId: string;
             viewerId: string;
             contactId: string;
-        })=>{
-            disp(markAsRead({messageId: messageId, contactId: contactId, viewerId}))
-            disp(markTempAsRead({messageId: messageId, contactId: contactId, viewerId}))
+        }) => {
+            disp(markAsRead({ messageId: messageId, contactId: contactId, viewerId }))
+            disp(markTempAsRead({ messageId: messageId, contactId: contactId, viewerId }))
         })
 
     }, [socket, isLoggedIn])

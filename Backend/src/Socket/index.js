@@ -252,8 +252,6 @@ const starterSocketIo = async (io) => {
 
       // Mark Read
       socket.on(chatEventEnumNew.MARK_READ, async (payload) => {
-        console.log('tryied');
-        
         const user = await User.findById(payload.id);
         if (!user) {
           throw new ApiError(501, "Unautharized Request");

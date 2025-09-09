@@ -6,9 +6,9 @@ import React, { useContext, useEffect, useRef, useState } from 'react'
 import { setSearching } from '../../app/functions/triggers'
 import axios from 'axios'
 import { appendGroupAdmin, appendGroupContact, clearGroupContact, contactListingFunction, openGroupChat, searching, type groupContactTypes, type searchUserTypes } from '../../app/functions/temp'
-import { saveContact, saveGroup, type groupsResp, type newChatTypes } from '../../app/functions/auth'
+import { type groupsResp, type newChatTypes } from '../../app/functions/auth'
 import { getTimeDifference } from '../../helpers/timeConverter'
-import { AppContext } from '../../context/AppContext'
+import { AppContext } from '../../context/Contexts'
 import { FaArchive, FaUserFriends } from 'react-icons/fa'
 import { MdGroups } from 'react-icons/md'
 import { SampleCropper3 } from '../Cropper/Cropper'
@@ -92,9 +92,9 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
                         <img src={avatar || g} alt="😒" className="max-h-[2.5rem] h-full " />
                     </div>
                 </div>
-                <div className="w-full h-full pl-1 flex gap-0  justify-center flex-col">
+                <div className="w-full h-full pl-1 flex gap-0  justify-center flex-col min-w-0">
                     <p className="text-xl font-mono text-[#E2E8F0] md:text-[15px]">{searchTag}</p>
-                    <p className="text-sm font-serif text-gray-300 md:text-[10px]">{lastMessage || null}</p>
+                    <p className="text-sm font-serif text-gray-300 md:text-[10px] truncate w-full">{lastMessage || null}</p>
                 </div>
                 <div className="">
                     <span className="text-[10px]">{timer || ""}</span>

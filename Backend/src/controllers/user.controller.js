@@ -1942,3 +1942,4 @@ module.exports = {
   getAllAccountDetails,
   changeAvatar,
 };
+ 

@@ -37,6 +37,8 @@ const chatEventEnumNew = {
   TYPING_OFF: "typing_off",
   MARK_READ: "mark_read",
   MARKED: "marked_read",
+  SENDING_MEDIA: "sending_media",
+  SENT_MEDIA: "sent_media"
 };
 
 const LoadLimits = Object.freeze({

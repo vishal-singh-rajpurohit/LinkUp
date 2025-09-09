@@ -104,7 +104,7 @@ function searchingFunc(state: initialStateTypes, action: PayloadAction<{ users: 
 
 function selectConFunc(state: initialStateTypes, action: PayloadAction<{ chat: contactTypes }>) {
     console.log('chat is: ', action.payload.chat);
-    
+
     state.selectedContact = {
         _id: action.payload.chat._id,
         lastMessage: action.payload.chat.lastMessage,
@@ -217,9 +217,9 @@ function clearTemo(state: initialStateTypes) {
         isOnline: false,
     };
     state.replayTemp = {
-            _id: "",
-            isReplay: false,
-            senderTag: ""
+        _id: "",
+        isReplay: false,
+        senderTag: ""
     };
     state.fileSelection = false;
     state.uploadingState = false;
@@ -306,6 +306,23 @@ function newMessage(state: initialStateTypes, action: PayloadAction<{ newMsg: gr
     ]
 }
 
+function uploadingMediaFunc(state: initialStateTypes, action: PayloadAction<{ newMsg: groupMssageType, contactId: string }>) {
+    if (state.selectedContact._id !== action.payload.contactId) return;
+    state.selectedContact.messages = [
+        ...(state.selectedContact.messages || []),
+        action.payload.newMsg
+    ]
+}
+
+function uploadedMediaFunc(state: initialStateTypes, action: PayloadAction<{ newMsg: groupMssageType, contactId: string }>) {
+    if (state.selectedContact._id !== action.payload.contactId) return;
+    const prevMessages = state.selectedContact.messages?.filter((val) => val._id !== action.payload.newMsg._id)
+    state.selectedContact.messages = [
+        ...(prevMessages || []),
+        action.payload.newMsg
+    ]
+}
+
 function delMessage(state: initialStateTypes, action: PayloadAction<{ messageId: string; contactId: string; }>) {
     if (state.selectedContact._id !== action.payload.contactId) return;
 
@@ -343,7 +360,6 @@ function markRead(state: initialStateTypes, action: PayloadAction<{
 }
 
 // Chat settings
-
 function setHasAttechFunc(state: initialStateTypes, action: PayloadAction<{ trigger: boolean }>) {
     state.chatStates.hasAttechments = action.payload.trigger;
 }
@@ -354,13 +370,22 @@ function replyStateFunc(state: initialStateTypes, action: PayloadAction<{ trigge
     state.replayTemp.senderTag = action.payload.senderTag;
 }
 
-function fileSelectionTrigger(state: initialStateTypes, action: PayloadAction<{trigger: boolean;}>){
+function fileSelectionTrigger(state: initialStateTypes, action: PayloadAction<{ trigger: boolean; }>) {
     state.fileSelection = action.payload.trigger;
 }
 
-function triggerUploadingState(state: initialStateTypes, action: PayloadAction<{trigger: boolean; value: string}>){
+function triggerUploadingState(state: initialStateTypes, action: PayloadAction<{ trigger: boolean; value: string }>) {
     state.uploadingState = action.payload.trigger;
     state.fileType = action.payload.value
+}
+
+function setFileTypeState(state: initialStateTypes, action: PayloadAction<{ tp: string }>) {
+    state.fileType = action.payload.tp
+}
+
+function clearUploadStateFunc(state: initialStateTypes) {
+    state.uploadingState = false;
+    state.fileType = ""
 }
 
 const tempSlice = createSlice({
@@ -396,11 +421,15 @@ const tempSlice = createSlice({
         notificationPup: setNotification,
         markTempAsRead: markRead,
         setFileSelection: fileSelectionTrigger,
-        setUploadingState: triggerUploadingState
+        setUploadingState: triggerUploadingState,
+        triggetUploadType: setFileTypeState,
+        clearUploadState: clearUploadStateFunc,
+        uploadingMeidaTemp: uploadingMediaFunc,
+        uploadedMeidaTemp: uploadedMediaFunc,
     }
 })
 
 
-export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp, updateSelectedAvatar, setHasAttechments, removeTempMessage, triggerOnline, kickedMeTemp, newMessageInRoom, setReplyState, toggleTyping, notificationPup, markTempAsRead, setFileSelection, setUploadingState } = tempSlice.actions
+export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp, updateSelectedAvatar, setHasAttechments, removeTempMessage, triggerOnline, kickedMeTemp, newMessageInRoom, setReplyState, toggleTyping, notificationPup, markTempAsRead, setFileSelection, setUploadingState, triggetUploadType, clearUploadState, uploadedMeidaTemp, uploadingMeidaTemp } = tempSlice.actions
 
 export default tempSlice.reducer

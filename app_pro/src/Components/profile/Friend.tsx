@@ -13,7 +13,7 @@ import { GrDown, GrUp } from "react-icons/gr"
 import { useContext, useEffect, useRef, useState } from "react"
 import { ContactItem } from "../subComponents/Contact"
 import { GiKickScooter } from "react-icons/gi"
-import { AppContext } from "../../context/AppContext"
+import { AppContext } from "../../context/Contexts"
 import { SampleCropper2 } from "../Cropper/Cropper"
 
 const env = import.meta.env.VITE_API

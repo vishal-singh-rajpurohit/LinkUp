@@ -200,7 +200,7 @@ function enterAppFunc(state: initialTypes, action: PayloadAction<{ userData: ini
             messages: item.messages
         }
         console.log(`get contacts: `, item.messages);
-        
+
         state.contacts = [...state.contacts, newContact]
     })
 
@@ -431,22 +431,28 @@ function setThemeFunc(state: initialTypes) {
 function setTag(state: initialTypes, action: PayloadAction<{ tag: string }>) {
     state.user.searchTag = action.payload.tag
 }
+
 function setMail(state: initialTypes, action: PayloadAction<{ mail: string }>) {
     state.user.email = action.payload.mail
 }
+
 function setName(state: initialTypes, action: PayloadAction<{ name: string }>) {
     state.user.userName = action.payload.name
 }
+
 function setQuestion(state: initialTypes, action: PayloadAction<{ q: string }>) {
     state.user.question = action.payload.q
 }
+
 function setAns(state: initialTypes, action: PayloadAction<{ ans: string }>) {
     state.user.answer = action.payload.ans;
     state.user.isVerified = true;
 }
+
 function setAvatar(state: initialTypes, action: PayloadAction<{ avatar: string }>) {
     state.user.avatar = action.payload.avatar
 }
+
 function setGroupAvatar(state: initialTypes, action: PayloadAction<{ avatar: string; contactId: string; }>) {
     const group = state.groups.filter((gp) => gp._id === action.payload.contactId)[0]
 
@@ -464,7 +470,7 @@ function setGroupAvatar(state: initialTypes, action: PayloadAction<{ avatar: str
 function setOnline(state: initialTypes, action: PayloadAction<{ contactId: string; trigger: boolean }>) {
     const contact = state.contacts.filter((user) => user._id === action.payload.contactId);
     if (contact.length) {
-        let tempCon = contact[0];
+        const tempCon = contact[0];
         tempCon.isOnline = action.payload.trigger;
         tempCon.time = new Date()
 
@@ -476,7 +482,7 @@ function setOnline(state: initialTypes, action: PayloadAction<{ contactId: strin
     else {
         const contact = state.safer.filter((user) => user._id === action.payload.contactId);
         if (contact.length) {
-            let tempCon = contact[0];
+            const tempCon = contact[0];
             tempCon.isOnline = action.payload.trigger;
             tempCon.time = new Date();
 
@@ -575,9 +581,65 @@ function newMessage(state: initialTypes, action: PayloadAction<{ newMsg: groupMs
 
 }
 
+function messageMediaSentFunc(state: initialTypes, action: PayloadAction<{ newMsg: groupMssageType, contactId: string }>) {
+    const toUpdateContact = state.contacts.filter((val) => val._id === action.payload.contactId);
+    // Checking in groups
+    if (toUpdateContact.length) {
+        const poppedMsgArray = toUpdateContact[0].messages?.filter((val) => val._id !== action.payload.newMsg._id)
+        toUpdateContact[0].messages = [
+            ...(poppedMsgArray || []),
+            action.payload.newMsg
+        ]
+
+        state.contacts = [
+            ...(toUpdateContact),
+            ...(state.contacts.filter((val) => val._id !== action.payload.contactId)),
+        ]
+    }
+    else {
+        const toUpdateContact = state.groups.filter((val) => val._id === action.payload.contactId)
+        // Checking in groups
+        if (toUpdateContact.length) {
+            const poppedMsgArray = toUpdateContact[0].messages?.filter((val) => val._id !== action.payload.newMsg._id)
+
+            toUpdateContact[0].messages = [
+                ...(poppedMsgArray || []),
+                action.payload.newMsg
+            ]
+
+            state.groups = [
+                ...(toUpdateContact),
+                ...(state.groups.filter((val) => val._id !== action.payload.contactId)),
+            ]
+
+        }
+        else {
+            const toUpdateContact = state.safer.filter((val) => val._id === action.payload.contactId)
+            // Checking in Archieved
+            if (toUpdateContact.length) {
+                const poppedMsgArray = toUpdateContact[0].messages?.filter((val) => val._id !== action.payload.newMsg._id)
+
+                toUpdateContact[0].messages = [
+                    ...(poppedMsgArray || []),
+                    action.payload.newMsg
+                ]
+
+                state.contacts = [
+                    ...(toUpdateContact),
+                    ...(state.safer.filter((val) => val._id !== action.payload.contactId)),
+                ]
+            }
+            else {
+                throw new Error('Invalid contact id')
+            }
+        }
+    }
+
+}
+
 function delMessage(state: initialTypes, action: PayloadAction<{ messageId: string; contactId: string; isGroup: boolean }>) {
     if (action.payload.isGroup) {
-        let filtered = state.groups.filter((val) => val._id === action.payload.contactId)
+        const filtered = state.groups.filter((val) => val._id === action.payload.contactId)
         if (filtered.length) {
             const message = filtered[0].messages?.filter((state) => state._id === action.payload.messageId);
             const oldMessage = filtered[0].messages?.filter((state) => state._id !== action.payload.messageId);
@@ -586,7 +648,7 @@ function delMessage(state: initialTypes, action: PayloadAction<{ messageId: stri
                 ...(oldMessage),
                 ...(message)
             ]
-            let oldGroups = state.groups.filter((val) => val._id !== action.payload.contactId)
+            const oldGroups = state.groups.filter((val) => val._id !== action.payload.contactId)
 
             state.groups = [
                 ...(filtered),
@@ -606,7 +668,7 @@ function delMessage(state: initialTypes, action: PayloadAction<{ messageId: stri
                     ...(message || [])
                 ]
             }
-            let oldContact = state.contacts.filter((val) => val._id !== action.payload.contactId)
+            const oldContact = state.contacts.filter((val) => val._id !== action.payload.contactId)
 
             state.contacts = [
                 ...(filterdContacts || []),
@@ -624,7 +686,7 @@ function delMessage(state: initialTypes, action: PayloadAction<{ messageId: stri
                         ...(message || [])
                     ]
                 }
-                let oldContact = state.safer.filter((val) => val._id !== action.payload.contactId)
+                const oldContact = state.safer.filter((val) => val._id !== action.payload.contactId)
 
                 state.safer = [
                     ...(filterdSafer || []),
@@ -726,12 +788,13 @@ export const AuthSlice = createSlice({
         kickOutAuth: cickOutMember,
         kickedMeAuth: kickedMeOut,
         messageRecived: newMessage,
-        markAsRead: markRead
+        markAsRead: markRead,
+        messageMediaSent: messageMediaSentFunc,
     }
 });
 
 
-export const { firstEnter, enterApp, logOut, saveContact, saveGroup, blockTrigger, addArchieved, removeArchieved, kickoutAuth, setTheme, updateEmail, updateName, updateSearchTag, updateAvatar, setSecourityQuestion, setSecourityAnswer, updateGroupAvatar, deleteMessage, triggerConOnline, kickOutAuth, kickedMeAuth, messageRecived, markAsRead } = AuthSlice.actions
+export const { firstEnter, enterApp, logOut, saveContact, saveGroup, blockTrigger, addArchieved, removeArchieved, kickoutAuth, setTheme, updateEmail, updateName, updateSearchTag, updateAvatar, setSecourityQuestion, setSecourityAnswer, updateGroupAvatar, deleteMessage, triggerConOnline, kickOutAuth, kickedMeAuth, messageRecived, markAsRead, messageMediaSent } = AuthSlice.actions
 
 
 export default AuthSlice.reducer

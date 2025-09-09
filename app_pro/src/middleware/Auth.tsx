@@ -58,16 +58,16 @@ const Auth = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        console.log('getting locaiton')
-        setFormData({
-          ...formData,
-          latitude: String(position.coords.latitude),
-          longitude: String(position.coords.longitude)
-        })
-      },
-    )
+    // navigator.geolocation.getCurrentPosition(
+    //   (position) => {
+    //     console.log('getting locaiton')
+    //     setFormData({
+    //       ...formData,
+    //       latitude: String(position.coords.latitude),
+    //       longitude: String(position.coords.longitude)
+    //     })
+    //   },
+    // )
     // Disable in Production
     if (!formData.latitude) {
       console.log('offline');
@@ -141,15 +141,15 @@ export const RevAuth = ({ children }: { children: ReactNode }) => {
   }, [formData, setFormData])
 
   useEffect(() => {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setFormData({
-          ...formData,
-          latitude: String(position.coords.latitude),
-          longitude: String(position.coords.longitude)
-        })
-      }
-    )
+    // navigator.geolocation.getCurrentPosition(
+    //   (position) => {
+    //     setFormData({
+    //       ...formData,
+    //       latitude: String(position.coords.latitude),
+    //       longitude: String(position.coords.longitude)
+    //     })
+    //   }
+    // )
     // Disable in Production
     if (!formData.latitude) {
       setFormData({

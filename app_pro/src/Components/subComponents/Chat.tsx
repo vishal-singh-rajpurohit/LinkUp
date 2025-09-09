@@ -1,17 +1,18 @@
 import g from '../../assets/no_dp.png'
-import { MdCall, MdOutlineAudioFile, MdOutlineAudiotrack, MdOutlineFileOpen, MdOutlineImage, MdOutlineVideoLibrary, MdVideoCall } from 'react-icons/md'
+import { MdCall, MdOutlineAudiotrack, MdOutlineFileOpen, MdOutlineImage, MdOutlineVideoLibrary, MdVideoCall } from 'react-icons/md'
 import { TiAttachmentOutline } from 'react-icons/ti'
 import { RiSendPlaneFill } from 'react-icons/ri'
 import { BsEmojiWink } from 'react-icons/bs'
-import { BottomButton, DeletedMessage, DeletedMessageMe, Mail, MailMe, MailMenu, TypingIndicator } from './Mails'
-import { FaAngleLeft, FaImage } from 'react-icons/fa'
+import { BottomButton, DeletedMessage, DeletedMessageMe, Mail, MailAttechment, MailAttechmentMe, MailMe, MailMenu, SendingMedia, TypingIndicator, UploadingMedia } from './Mails'
+import { FaAngleLeft } from 'react-icons/fa'
 import { useContext, useEffect, useRef, useState } from 'react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { getTimeDifference } from '../../helpers/timeConverter'
 import { NavLink, useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { setFileSelection, setReplyState, toggleTyping } from '../../app/functions/temp'
-import { ChatEventsEnum, WSContext } from '../../context/WSContext'
+import { setFileSelection, setHasAttechments, setReplyState, toggleTyping, triggetUploadType } from '../../app/functions/temp'
+import { ChatEventsEnum } from '../../context/constant'
+import { AppContext, WSContext } from '../../context/Contexts'
 const api = import.meta.env.VITE_API;
 
 export const ChatArea = () => {
@@ -98,47 +99,78 @@ const MailOptions = () => {
     const user = useAppSelector((state) => state.auth.user)
     const contain_files = useAppSelector((state) => state.temp.chatStates.hasAttechments)
     const isTyping = useAppSelector((state) => state.temp.typing)
-    const formData = new FormData();
-
+    const openFilesSelection = useAppSelector((state) => state.temp.fileSelection);
+    const fileType = useAppSelector((state) => state.temp.fileType)
     const [message, setMessage] = useState<string>("");
-    const [geoLoc, setGeoLoc] = useState<geoLocType>({
+    const [geoLoc] = useState<geoLocType>({
         latitude: '00', //meke empty in production
         longitude: '00' //meke empty in production
     })
 
     const socketContext = useContext(WSContext)
+    const appContext = useContext(AppContext)
 
-    if (!socketContext) {
+    if (!socketContext || !appContext) {
         throw new Error("Web socket context not found")
     }
 
+    const { messageFormData } = appContext
+
     async function sendChat(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
+        if (!message.trim()) return
         if (!message.trim() && !contain_files) return;
 
         try {
-            await axios.post(`${api}/chat/message/send-msg`,
+            const messageResp = await axios.post<{
+                data: {
+                    message_id: string
+                }
+            }>(`${api}/chat/message/send-msg`,
                 {
-                    message: message.trim(),
-                    contain_files: contain_files,
+                    message: message,
                     contactId: contact._id,
                     longitude: geoLoc.longitude,
                     latitude: geoLoc.latitude,
+                    contain_files: contain_files
                 },
                 {
-                    withCredentials: true
+                    withCredentials: true,
                 })
-
             setMessage("");
 
-            console.log('message sent');
+            if (contain_files) {
+                messageFormData.append('fileType', fileType)
+                messageFormData.append('contactId', String(contact._id))
+                messageFormData.append('messageId', String(messageResp.data.data.message_id))
+
+                await axios.post(`${api}/chat/message/attechment-upload`,
+                    messageFormData,
+                    {
+                        withCredentials: true,
+                        headers: {
+                            "Content-Type": "multipart/form-data",
+                        },
+                    }
+                )
+            }
+            messageFormData.delete('attechment')
+            messageFormData.delete('fileType')
+            messageFormData.delete('contactId')
+            messageFormData.delete('messageId')
+            disp(setHasAttechments({ trigger: false }))
+            setMessage("");
         } catch (error) {
             console.log(`error in send message: ${error}`);
         }
     }
 
     function openFileSelection(trigger: boolean) {
-        disp(setFileSelection({ trigger: trigger }))
+        if (openFilesSelection) {
+            disp(setFileSelection({ trigger: false }))
+        } else {
+            disp(setFileSelection({ trigger: trigger }))
+        }
     }
 
     useEffect(() => {
@@ -163,7 +195,8 @@ const MailOptions = () => {
 
     return (
         <>
-            <AttechMents formData={formData} />
+            <AttechMents />
+            <UploadingMedia />
             <TypingIndicator trigger={isTyping.trigger} avatar={isTyping.user} />
             <section className='w-full h-full max-h-[3rem] flex items-center justify-center '>
                 <form id="optionsWrapper" onSubmit={sendChat} className='w-[90%] h-full grid grid-cols-[7fr_3fr] items-center content-center border-1 border-white rounded-md md:grid-cols-[7fr_3fr] lg:grid-cols-[8fr_2fr] lg:gap-1.5'>
@@ -183,48 +216,40 @@ const MailOptions = () => {
 }
 
 //emoji Box
-const EmojiBox = () => {
-    return (
-        <div className="w-[90%] overflow-auto flex justify-end mb-1 lg:h-[7rem]" style={{ scrollbarWidth: 'none' }}>
-            <div className="w-[90%] h-full overflow-auto relative bg-[#ffffff5d] rounded-sm" style={{ scrollbarWidth: 'none' }}>
-                <div className='grid grid-cols-10 overflow-y-auto' style={{ scrollbarWidth: 'none' }}>
-                    {
-                        Array(100).fill('😭').map((emoji) => (
-                            <div className="cursor-pointer">{emoji}</div>
-                        ))
-                    }
-                </div>
-            </div>
-        </div>
-    )
-}
+// const EmojiBox = () => {
+//     return (
+//         <div className="w-[90%] overflow-auto flex justify-end mb-1 lg:h-[7rem]" style={{ scrollbarWidth: 'none' }}>
+//             <div className="w-[90%] h-full overflow-auto relative bg-[#ffffff5d] rounded-sm" style={{ scrollbarWidth: 'none' }}>
+//                 <div className='grid grid-cols-10 overflow-y-auto' style={{ scrollbarWidth: 'none' }}>
+//                     {
+//                         Array(100).fill('😭').map((emoji) => (
+//                             <div className="cursor-pointer">{emoji}</div>
+//                         ))
+//                     }
+//                 </div>
+//             </div>
+//         </div>
+//     )
+// }
 
 // Attechment Box
-const AttechMents = ({formData}: {formData: HTMLFormElement}) => {
+const AttechMents = (
+    // {formData}: {formData: HTMLFormElement | undefined}
+) => {
     const open = useAppSelector((state) => state.temp.fileSelection);
-    const fileType = useAppSelector((state)=>state.temp.fileType)
     const imgRef = useRef<HTMLInputElement | null>(null)
     const vidRef = useRef<HTMLInputElement | null>(null)
     const docRef = useRef<HTMLInputElement | null>(null)
     const audioRef = useRef<HTMLInputElement | null>(null)
+    const disp = useAppDispatch()
 
+    const context = useContext(AppContext)
 
-    async function handelFile(e: React.ChangeEvent<HTMLInputElement>){
-        if(e.target.files){
-            if(fileType === 'img'){
-                formData.append('file', e.target.files[0])
-            }
-            else if(fileType === 'vid'){
-                formData.append('file', e.target.files[0])
-            }
-            else if(fileType === 'audio'){
-                formData.append('file', e.target.files[0])
-            }
-            else if(fileType === 'doc'){
-                formData.append('file', e.target.files[0])
-            }
-        }
+    if (!context) {
+        throw new Error("context not found")
     }
+
+    const { handelFile } = context;
 
     return (
         <>
@@ -232,25 +257,44 @@ const AttechMents = ({formData}: {formData: HTMLFormElement}) => {
                 <div className="w-[40%] h-full overflow-auto relative rounded-sm flex items-center justify-center md:w-[30%] lg:w-[20%]" style={{ scrollbarWidth: 'none' }}>
                     <div className=" bg-[#ffffff5d] w-[8rem] h-[8rem] rounded-md grid grid-cols-2 gap-4 justify-center">
                         <div className="w-full h-full flex items-center justify-center">
-                            <MdOutlineImage onClick={()=>imgRef.current?.click()} size={25} cursor={'pointer'} />
+                            <MdOutlineImage onClick={() => {
+                                disp(triggetUploadType({ tp: 'img' }))
+                                imgRef.current?.click()
+                                disp(setFileSelection({ trigger: false }))
+                            }
+                            } size={25} cursor={'pointer'} />
                         </div>
                         <div className="w-full h-full flex items-center justify-center">
-                            <MdOutlineVideoLibrary onClick={()=>vidRef.current?.click()} size={25} cursor={'pointer'} />
+                            <MdOutlineVideoLibrary onClick={() => {
+                                disp(triggetUploadType({ tp: 'vid' }))
+                                vidRef.current?.click()
+                                disp(setFileSelection({ trigger: false }))
+                            }
+                            } size={25} cursor={'pointer'} />
                         </div>
                         <div className="w-full h-full flex items-center justify-center">
-                            <MdOutlineAudiotrack onClick={()=>audioRef.current?.click()} size={25} cursor={'pointer'} />
+                            <MdOutlineAudiotrack onClick={() => {
+                                disp(triggetUploadType({ tp: 'audio' }))
+                                audioRef.current?.click()
+                                disp(setFileSelection({ trigger: false }))
+                            }} size={25} cursor={'pointer'} />
                         </div>
                         <div className="w-full h-full flex items-center justify-center">
-                            <MdOutlineFileOpen onClick={()=>docRef.current?.click()} size={25} cursor={'pointer'} />
+                            <MdOutlineFileOpen onClick={() => {
+                                disp(triggetUploadType({ tp: 'doc' }))
+                                docRef.current?.click()
+                                disp(setFileSelection({ trigger: false }))
+                            }
+                            } size={25} cursor={'pointer'} />
                         </div>
                     </div>
                 </div>
             </section>
             <div className="hidden">
-                <input ref={docRef} type="file" accept=".pdf,.doc,.docx,.txt, .css, .js, .c, .cpp, .py, .ipynb" name="" id="" />
-                <input ref={imgRef} type="file" accept='image/*' />
-                <input ref={vidRef} type="file" accept="video/*" max={1} name="" id="" />
-                <input ref={audioRef} type="file" accept="audio/*" max={1} name="" id="" />
+                <input onChange={(e) => handelFile(e.target.files)} ref={docRef} type="file" accept=".pdf,.doc,.docx,.txt, .css, .js, .c, .cpp, .py, .ipynb" name="" id="" />
+                <input onChange={(e) => handelFile(e.target.files)} ref={imgRef} type="file" accept='image/*' />
+                <input onChange={(e) => handelFile(e.target.files)} ref={vidRef} type="file" accept="video/*" max={1} name="" id="" />
+                <input onChange={(e) => handelFile(e.target.files)} ref={audioRef} type="file" accept="audio/*" max={1} name="" id="" />
             </div>
         </>
     )
@@ -297,9 +341,9 @@ const ChatBox = () => {
             const parentView = chatViewPort?.getBoundingClientRect();
             const msgs = chatViewPort?.children || [];
 
-            let onViewMessages = [];
+            const onViewMessages = [];
 
-            for (let child of msgs) {
+            for (const child of msgs) {
                 const childRect = child.getBoundingClientRect();
 
                 if (parentView) {
@@ -312,7 +356,6 @@ const ChatBox = () => {
             }
 
             console.clear();
-            console.log('Visible items:', onViewMessages);
         }
 
         chatViewPort?.addEventListener("scroll", getItemsInView);
@@ -328,37 +371,58 @@ const ChatBox = () => {
                 selectedContact.isGroup ? (
                     messages && messages.map((msg, index) => (
                         msg.sender?._id === user._id ? (
-                            msg.isDeleted ? (
-                                <DeletedMessageMe key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"You"} time={msg.createdAt} />
+                            msg.pending ? (
+                                <SendingMedia attechmentType={msg.attechmentType} mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"you"} mailOptions={mailOptions} time={msg.createdAt} />
                             ) : (
-                                <MailMe mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"you"} mailOptions={mailOptions} time={msg.createdAt} />
-                            )
-                        ) : (
-                            msg.isDeleted ? (
-                                <DeletedMessage key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
-                            ) : (
-                                <Mail mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} mailOptions={mailOptions} time={msg.createdAt} />
-                            )
-                        )
-                    ))
-                ) : (
-                    messages && messages.map((msg, index) => (
-                        msg.userId === user._id ? (
-                            msg.isDeleted ? (
-                                <DeletedMessageMe key={index} avatar={user.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
-                            ) :
-                                (<MailMe mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />)
-                        ) : (
-                            msg.isDeleted ? (
-                                <DeletedMessage key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
-                            ) :
-                                (
-                                    <Mail mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={user.searchTag} mailOptions={mailOptions} time={msg.createdAt} />
+                                msg.isDeleted ? (
+                                    <DeletedMessageMe key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"You"} time={msg.createdAt} />
+                                ) : (
+                                    msg.attechmentLink === "" ?
+                                        <MailMe mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"you"} mailOptions={mailOptions} time={msg.createdAt} /> :
+                                        <MailAttechmentMe attechmentLink={msg.attechmentLink} mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
                                 )
-                        )
+                            )
+                        ) : (
+                            msg.pending || msg.isDeleted ? (
+                                <DeletedMessage key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
+                            ) : (
 
+                                msg.attechmentLink === "" ?
+                                    <Mail mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} mailOptions={mailOptions} time={msg.createdAt} /> :
+                                    <MailAttechment attechmentLink={msg.attechmentLink} fileType={msg.attechmentType} mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
+                            )
+                        )
+                    )
                     ))
-                )
+                    : (
+                        messages && messages.map((msg, index) => (
+                            msg.userId === user._id ? (
+                                msg.pending ? (
+                                    <SendingMedia attechmentType={msg.attechmentType} mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"you"} mailOptions={mailOptions} time={msg.createdAt} />
+                                ) : (
+                                    msg.isDeleted ? (
+                                        <DeletedMessageMe key={index} avatar={user.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
+                                    ) :
+                                        (
+                                            msg.attechmentLink === "" ?
+                                                <MailMe mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} /> :
+                                                // Working
+                                                <MailAttechmentMe attechmentLink={msg.attechmentLink} mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
+                                        ))
+                            ) : (
+                                (
+                                    msg.pending || msg.isDeleted ? (
+                                        <DeletedMessage key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
+                                    ) :
+                                        (
+                                            msg.attechmentLink === "" ?
+                                                <Mail mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={user.searchTag} mailOptions={mailOptions} time={msg.createdAt} /> :
+                                                <MailAttechment attechmentLink={msg.attechmentLink} fileType={msg.attechmentType} mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
+                                        ))
+                            )
+
+                        ))
+                    )
             }
 
         </section>

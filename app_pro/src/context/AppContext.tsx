@@ -1,16 +1,7 @@
-import { createContext, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
-import { selectContact, selectGroup } from '../app/functions/temp'
-
-
-export interface appContextTypes {
-    selectToTalk: (id: string) => void;
-    isAdmin: boolean;
-}
-
-
-export const AppContext = createContext<appContextTypes | null>(null);
-
+import { selectContact, selectGroup, setHasAttechments } from '../app/functions/temp'
+import { AppContext, type appContextTypes } from "./Contexts";
 
 export const AppContextProvider = ({ children }: {
     children: React.ReactNode
@@ -50,12 +41,42 @@ export const AppContextProvider = ({ children }: {
                 }
             })
         }
-    }, [selectedContact])
+    }, [selectedContact, user._id])
 
+    const messageFormData = new FormData()
+    const fileType = useAppSelector((state) => state.temp.fileType)
+
+    async function handelFile(files: FileList | null) {
+        console.log('File Selection called: ', files);
+        if (files?.[0]) {
+            if (fileType === 'img') {
+                console.log('attachment : ')
+                messageFormData.append('attechment', files[0])
+                disp(setHasAttechments({trigger: true}))
+            }
+            else if (fileType === 'vid') {
+                messageFormData.append('attechment', files[0])
+                disp(setHasAttechments({trigger: true}))
+            }
+            else if (fileType === 'audio') {
+                messageFormData.append('attechment', files[0])
+                disp(setHasAttechments({trigger: true}))
+            }
+            else if (fileType === 'doc') {
+                messageFormData.append('attechment', files[0])
+                disp(setHasAttechments({trigger: true}))
+            }
+
+            console.log('file is: ', messageFormData.get('attechment'));
+            
+        }
+    }
 
     const data: appContextTypes = {
         selectToTalk,
-        isAdmin
+        isAdmin,
+        handelFile,
+        messageFormData
     }
 
     return (

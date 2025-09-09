@@ -244,14 +244,26 @@ const sendMessage = asyncHandler(async (req, resp) => {
     }
   }
 
+  if(newMessage.pending){
+    emiterSocket(req, user.socketId, chatEventEnumNew.SENDING_MEDIA, {
+        newMessage: newMessage,
+        contactId: contact._id,
+      })
+  }
+
   resp
     .status(200)
     .json(
-      new ApiResponse(200, { message: newMessage }, "message sent successfully")
+      new ApiResponse(
+        200,
+        { message_id: newMessage._id },
+        "message sent successfully"
+      )
     );
 });
 
 const uploadAttechment = asyncHandler(async (req, resp) => {
+  console.log("upload called");
   const user = req.user;
   if (!user) {
     throw new ApiError(401, "Unautharized User");
@@ -265,6 +277,8 @@ const uploadAttechment = asyncHandler(async (req, resp) => {
     throw new ApiError(400, "Files not found");
   }
   const { messageId, contactId, fileType } = req.body;
+  console.log("upload called: ", req.body);
+  console.log("upload path: ", path);
   if (!contactId || !messageId) {
     throw new ApiError(400, "data not found");
   }
@@ -293,6 +307,12 @@ const uploadAttechment = asyncHandler(async (req, resp) => {
   message.attechmentType = attechment.fileType;
   message.attechmentId = attechment._id;
   await message.save();
+
+  const updatedMessage = await Message.findById(message._id)
+
+  if(!updatedMessage){
+    throw new ApiError(400, "updated message not found")
+  }
 
   const contact = await Contact.findById(contactId);
 
@@ -368,14 +388,14 @@ const uploadAttechment = asyncHandler(async (req, resp) => {
       },
     ]);
 
-    emiterSocket(req, myUser.socketId, chatEventEnumNew.NEW_MESSAGE, {
-      newMessage: message,
+    emiterSocket(req, myUser.socketId, chatEventEnumNew.SENT_MEDIA, {
+      newMessage: updatedMessage,
       contactId: contact._id,
     });
     if (reciver.length) {
       // Working on this
       emiterSocket(req, reciver[0].socketId, chatEventEnumNew.NEW_MESSAGE, {
-        newMessage: message,
+        newMessage: updatedMessage,
         contactId: contact._id,
       });
     }
@@ -460,7 +480,7 @@ const uploadAttechment = asyncHandler(async (req, resp) => {
     };
 
     if (recivers.length) {
-      emiterSocket(req, myUser.socketId, chatEventEnumNew.NEW_MESSAGE, {
+      emiterSocket(req, myUser.socketId, chatEventEnumNew.SENT_MEDIA, {
         newMessage: messageObject,
         contactId: contact._id,
       });
@@ -473,8 +493,17 @@ const uploadAttechment = asyncHandler(async (req, resp) => {
     }
   }
 
-  resp.status(200)
-  .json(new ApiResponse(200, {message: message}, "File Uploaded and message updated"))
+  emiterSocket(req, req)
+
+  resp
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { message: message },
+        "File Uploaded and message updated"
+      )
+    );
 });
 
 const deleteMessage = asyncHandler(async (req, resp) => {
@@ -836,5 +865,5 @@ module.exports = {
   deleteMessage,
   replyTo,
   reactTo,
-  uploadAttechment
+  uploadAttechment,
 };
