@@ -131,6 +131,7 @@ interface initialTypes {
     contacts: contactTypes[];
     safer: contactTypes[];
     groups: groupType[];
+    
 }
 
 const initialState: initialTypes = {

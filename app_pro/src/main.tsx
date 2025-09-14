@@ -6,6 +6,7 @@ import { Provider } from 'react-redux'
 import { store } from './app/store.ts'
 import { AppContextProvider } from './context/AppContext.tsx'
 import WSProvider from './context/WSContext.tsx'
+import { FailVideoCall, IncomingVideoCall, RequestedVideoCall } from './Components/subComponents/Calling.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <Provider store={store}>
@@ -13,6 +14,9 @@ createRoot(document.getElementById('root')!).render(
       <AppContextProvider>
         <BrowserRouter >
           <App />
+          <RequestedVideoCall />
+          <IncomingVideoCall />
+          <FailVideoCall />
         </BrowserRouter>
       </AppContextProvider>
     </WSProvider>

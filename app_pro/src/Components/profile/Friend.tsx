@@ -15,6 +15,7 @@ import { ContactItem } from "../subComponents/Contact"
 import { GiKickScooter } from "react-icons/gi"
 import { AppContext } from "../../context/Contexts"
 import { SampleCropper2 } from "../Cropper/Cropper"
+import { CheckCircle } from "lucide-react"
 
 const env = import.meta.env.VITE_API
 
@@ -46,14 +47,17 @@ const SelectContactItem = ({ searchTag, avatar, userId }: {
     }
 
     return (
-        <div onClick={() => select()} className={`px-2 w-full h-[4rem] cursor-pointer ${isSelected ? 'bg-purple-950' : null} hover:bg-purple-900`}>
+        <div onClick={() => select()} className={`px-2 w-full h-[4rem] cursor-pointer`}>
             <div className="grid h-full grid-cols-[0.1fr_1.3fr_5.7fr_0.8fr] items-center px-1 ">
                 <div className="flex items-center">
                     {/* <input type="checkbox" checked={isSelected} className="" onChange={() => select()} /> */}
                 </div>
-                <div className="w-full overflow-hidden h-full flex items-center justify-center">
+                <div className="w-full overflow-hidden h-full flex items-center justify-center relative">
                     <div className='w-[2.5rem] h-[2.5rem] flex items-center justify-center overflow-hidden rounded-[10rem] bg-[#e4e6e7] md:h-[2rem] md:w-[2rem]'>
                         <img src={avatar || x} alt="😒" className="max-h-[2.5rem] h-full md:max-h-[1.5rem]" />
+                    </div>
+                    <div className={`absolute pt-[30%] pl-[40%] ${isSelected ? 'flex' : 'hidden'}`}>
+                        <CheckCircle color='#45ff60' />
                     </div>
                 </div>
                 <div className="w-full h-full pl-1 flex gap-0  justify-center flex-col">
@@ -341,10 +345,10 @@ const Friend = () => {
         }
     }
 
-    useEffect(()=>{
-        if(tempAvatar){
+    useEffect(() => {
+        if (tempAvatar) {
             setShowEditor(true)
-        }else{
+        } else {
             setShowEditor(false)
         }
     }, [showEditor, setShowEditor, tempAvatar, setTempAvatar])
@@ -362,7 +366,7 @@ const Friend = () => {
                             <div className="w-full h-auto flex flex-col gap-1 justify-center items-center">
                                 <div className="bg-inherit w-[10rem] h-[10rem] rounded-[50%] overflow-hidden sha">
                                     <img src={contact?.avatar || x} onClick={clickAvatar} alt="profile picture" className="w-full h-auto" />
-                                    <input type="file" accept="image" className="hide" ref={avatarRef} onChange={handleAvatar} />
+                                    <input type="file" accept="image/*" className="hide" ref={avatarRef} onChange={handleAvatar} />
                                 </div>
                                 <div className="w-full flex flex-col gap-0.5 items-center justify-center">
                                     <p className="text-[22px] font-bold">{contact?.userName}</p>
@@ -390,7 +394,7 @@ const Friend = () => {
                                     <div className="">{!showMembers ? <GrDown /> : <GrUp />}</div>
                                 </div>
                                 {/*  */}
-                                <div className={`${showMembers ? 'block' : 'hidden'} cursor-pointer w-[100%] px-[5%]`}>
+                                <div className={`${showMembers ? 'block' : 'hidden'} cursor-pointer w-[100%] `}>
                                     <div className="text-gray-300 flex items-center justify-between flex-col"></div>
                                     {
                                         contact.members?.map((member, index) => (

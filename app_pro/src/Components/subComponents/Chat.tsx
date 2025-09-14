@@ -5,14 +5,16 @@ import { RiSendPlaneFill } from 'react-icons/ri'
 import { BsEmojiWink } from 'react-icons/bs'
 import { BottomButton, DeletedMessage, DeletedMessageMe, Mail, MailAttechment, MailAttechmentMe, MailMe, MailMenu, SendingMedia, TypingIndicator, UploadingMedia } from './Mails'
 import { FaAngleLeft } from 'react-icons/fa'
-import { useContext, useEffect, useRef, useState } from 'react'
+import React, { useContext, useEffect, useRef, useState, type SetStateAction } from 'react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { getTimeDifference } from '../../helpers/timeConverter'
 import { NavLink, useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { setFileSelection, setHasAttechments, setReplyState, toggleTyping, triggetUploadType } from '../../app/functions/temp'
+import { incomingVideoCall, requestVideoCall, setEmojiSelection, setFileSelection, setHasAttechments, setReplyState, toggleTyping, triggetUploadType } from '../../app/functions/temp'
 import { ChatEventsEnum } from '../../context/constant'
 import { AppContext, WSContext } from '../../context/Contexts'
+import EmojiPicker from 'emoji-picker-react';
+
 const api = import.meta.env.VITE_API;
 
 export const ChatArea = () => {
@@ -42,9 +44,30 @@ export const ChatArea = () => {
 
 export const ChatTop = () => {
     const router = useNavigate()
+    const disp = useAppDispatch()
     const room = useAppSelector((state) => state.temp.selectedContact)
+    const user = useAppSelector((state)=>state.auth.user)
     const chatTypes = useAppSelector((state) => state.temp.chatListTypes)
     const lastOnline = getTimeDifference(room?.time || Date())
+    const socketContext = useContext(WSContext)
+    
+
+    if (!socketContext) {
+        throw Error("Context not found")
+    }
+
+    const { socket } = socketContext
+
+    async function requestForVideoCall(){
+        try {
+            socket?.emit(ChatEventsEnum.REQUEST_VIDEO_CALL, {contactId: room._id, userId: user._id, username: room.searchTag, avatar: room.avatar})
+            
+            console.log("Requested")
+            
+        } catch (error) {
+            console.log('Error in Requesting video call: ', error);
+        }
+    }
 
     async function getDetails() {
         router(`/chat/details/?room_id=${room?._id}`)
@@ -68,7 +91,8 @@ export const ChatTop = () => {
                     </p>
                 </div>
                 <div className="flex gap-3 justify-center items-center">
-                    <MdVideoCall size={20} />
+                    <NavLink to={'/user/call/video'}>X</NavLink>
+                    <MdVideoCall size={20} onClick={requestForVideoCall} />
                     <MdCall size={20} />
                 </div>
                 {/* <div className="">
@@ -100,6 +124,7 @@ const MailOptions = () => {
     const contain_files = useAppSelector((state) => state.temp.chatStates.hasAttechments)
     const isTyping = useAppSelector((state) => state.temp.typing)
     const openFilesSelection = useAppSelector((state) => state.temp.fileSelection);
+    const openemojiSelection = useAppSelector((state) => state.temp.emojiSelection);
     const fileType = useAppSelector((state) => state.temp.fileType)
     const [message, setMessage] = useState<string>("");
     const [geoLoc] = useState<geoLocType>({
@@ -159,7 +184,11 @@ const MailOptions = () => {
             messageFormData.delete('contactId')
             messageFormData.delete('messageId')
             disp(setHasAttechments({ trigger: false }))
+            disp(setEmojiSelection({ trigger: false }))
             setMessage("");
+            const chatBox = document.getElementById('chatBox');
+            chatBox?.scrollBy({ top: chatBox.scrollHeight })
+
         } catch (error) {
             console.log(`error in send message: ${error}`);
         }
@@ -170,6 +199,14 @@ const MailOptions = () => {
             disp(setFileSelection({ trigger: false }))
         } else {
             disp(setFileSelection({ trigger: trigger }))
+        }
+    }
+
+    function openEmojiSelection(trigger: boolean) {
+        if (openemojiSelection) {
+            disp(setEmojiSelection({ trigger: false }))
+        } else {
+            disp(setEmojiSelection({ trigger: trigger }))
         }
     }
 
@@ -197,16 +234,23 @@ const MailOptions = () => {
         <>
             <AttechMents />
             <UploadingMedia />
+            <EmojiBox display={openemojiSelection} message={message} setMessage={setMessage} />
             <TypingIndicator trigger={isTyping.trigger} avatar={isTyping.user} />
-            <section className='w-full h-full max-h-[3rem] flex items-center justify-center '>
-                <form id="optionsWrapper" onSubmit={sendChat} className='w-[90%] h-full grid grid-cols-[7fr_3fr] items-center content-center border-1 border-white rounded-md md:grid-cols-[7fr_3fr] lg:grid-cols-[8fr_2fr] lg:gap-1.5'>
+            <section className='w-full h-[3rem] flex items-center justify-center '>
+                <form id="optionsWrapper" onSubmit={sendChat} className='w-[90%] h-full grid grid-cols-[7fr_3fr] items-center content-center border-1 border-white rounded-md md:grid-cols-[10fr_1fr] md:gap-1 lg:grid-cols-[8fr_2fr] '>
                     <div className="w-full h-full flex items-center justify-center pl-2">
                         <input id="messageBox" type="text" value={message} onChange={(e) => setMessage(e.target.value)} placeholder='write a message....' className="w-full h-full outline-0 text-sm text-gray-2 00 font-serif" />
                     </div>
-                    <div className="h-full w-full flex items-center justify-center gap-2 ">
-                        <TiAttachmentOutline size={20} cursor={'pointer'} onClick={() => openFileSelection(true)} />
-                        <BsEmojiWink size={18} cursor={'pointer'} />
-                        <button type='submit' className="bg-[#00F0FF] h-[2rem] w-[2rem] flex items-center justify-center rounded-sm c cursor-pointer md:w-[4rem] md:h-[2rem]"><RiSendPlaneFill className='lg:text-[25px]' /> </button>
+                    <div className="h-full w-full flex justify-items-center items-center justify-center gap-1 grid-cols-[2fr_2fr_2fr] ">
+                        <button type='submit' className="h-[3rem] w-full flex items-center justify-center rounded-sm c cursor-pointer md:w-[4rem] md:h-[2rem]">
+                            <TiAttachmentOutline cursor={'pointer'} onClick={() => openFileSelection(true)} className='text-xl md:2xl lg:text-[25px]' />
+                        </button>
+                        <button type='submit' className="h-[3rem] w-full flex items-center justify-center rounded-sm c cursor-pointer md:w-[4rem] md:h-[2rem]">
+                            <BsEmojiWink cursor={'pointer'} onClick={() => openEmojiSelection(true)} className='text-xl md:2xl lg:text-[25px]' />
+                        </button>
+                        <button type='submit' className="h-[3rem] w-full flex items-center justify-center rounded-sm c cursor-pointer md:w-[4rem] md:h-[2rem]">
+                            <RiSendPlaneFill className='text-xl md:2xl lg:text-[25px]' />
+                        </button>
                     </div>
                 </form>
             </section>
@@ -216,26 +260,16 @@ const MailOptions = () => {
 }
 
 //emoji Box
-// const EmojiBox = () => {
-//     return (
-//         <div className="w-[90%] overflow-auto flex justify-end mb-1 lg:h-[7rem]" style={{ scrollbarWidth: 'none' }}>
-//             <div className="w-[90%] h-full overflow-auto relative bg-[#ffffff5d] rounded-sm" style={{ scrollbarWidth: 'none' }}>
-//                 <div className='grid grid-cols-10 overflow-y-auto' style={{ scrollbarWidth: 'none' }}>
-//                     {
-//                         Array(100).fill('😭').map((emoji) => (
-//                             <div className="cursor-pointer">{emoji}</div>
-//                         ))
-//                     }
-//                 </div>
-//             </div>
-//         </div>
-//     )
-// }
+const EmojiBox = ({ display, message, setMessage }: { display: boolean; message: string; setMessage: React.Dispatch<SetStateAction<string>> }) => {
+    return (
+        <EmojiPicker open={display} onEmojiClick={(e) => {
+            setMessage(message + e.emoji)
+        }} />
+    )
+}
 
 // Attechment Box
-const AttechMents = (
-    // {formData}: {formData: HTMLFormElement | undefined}
-) => {
+const AttechMents = () => {
     const open = useAppSelector((state) => state.temp.fileSelection);
     const imgRef = useRef<HTMLInputElement | null>(null)
     const vidRef = useRef<HTMLInputElement | null>(null)
@@ -362,6 +396,8 @@ const ChatBox = () => {
 
         getItemsInView();
     }, []);
+
+
 
     return (
         <section id='chatBox' className="h-full overflow-y-auto flex flex-col gap-5 p-1 pb-4" style={{ scrollbarWidth: 'none' }}>

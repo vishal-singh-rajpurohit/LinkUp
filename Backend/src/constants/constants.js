@@ -25,6 +25,7 @@ const ChatEventEnum = Object({
 });
 
 const chatEventEnumNew = {
+  JOIN_ROOM: "joinRoom",
   ONLINE_EVENT: "is_online",
   OFFLINE_EVENT: "offline",
   APPROACHED_TALK: "apprached_to_talk",
@@ -38,7 +39,15 @@ const chatEventEnumNew = {
   MARK_READ: "mark_read",
   MARKED: "marked_read",
   SENDING_MEDIA: "sending_media",
-  SENT_MEDIA: "sent_media"
+  SENT_MEDIA: "sent_media",
+  REQUEST_VIDEO_CALL: "request_video_call",
+  INCOMING_VIDEO_CALL: "incoming_video_call",
+  CANCELLED_VIDEO_CALL: "cancelled_video_call",
+  REJECT_VIDEO_CALL: "reject_video_call",
+  REJECTED_VIDEO_CALL: "rejected_video_call",
+  ANSWER_VIDEO_CALL: "answer_video_call",
+  ACCEPTED_VIDEO_CALL: "accepted_video_call",
+  OFFLINE_CALLER: "offline_caller",
 };
 
 const LoadLimits = Object.freeze({

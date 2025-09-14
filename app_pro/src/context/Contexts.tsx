@@ -1,5 +1,6 @@
 import { createContext } from "react";
 import type { Socket } from "socket.io-client";
+import { Device } from "mediasoup-client";
 
 export interface appContextTypes {
     selectToTalk: (id: string) => void;
@@ -12,7 +13,8 @@ export const AppContext = createContext<appContextTypes | null>(null);
 
 
 export interface WSCTypes {
-    socket: Socket | null
+    socket: Socket | null;
+    device: Device
 }
 
 

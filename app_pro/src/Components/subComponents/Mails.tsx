@@ -13,8 +13,6 @@ import { IoMdCloudUpload } from "react-icons/io"
 import { RiCheckDoubleLine } from "react-icons/ri";
 import sound from '../../assets/sound.mp3'
 
-
-
 const api = import.meta.env.VITE_API;
 
 export const Mail = (
@@ -121,8 +119,8 @@ export const Mail = (
   return (
     <div id={_id} ref={messageRef} className={`flex gap-2 text-white`}>
       <div className="">
-        <div className='w-[1.3rem] h-[1.3rem] flex items-center shadow-[0_0_10px_#00F0FF55] justify-center overflow-hidden rounded-[16px] font-[#0F172A] bg-amber-300 md:h-[1.5rem] md:w-[1.5rem]'>
-          <img src={avatar || g} alt="😒" className="max-h-[1.5rem] h-full" />
+        <div className='w-[1.3rem] h-[1.3rem] flex items-center shadow-[0_0_10px_#00F0FF55] justify-center overflow-hidden rounded-[16px] font-[#0F172A] bg-slate-600 md:h-[1.5rem] md:w-[1.5rem]'>
+          <img src={avatar || g} alt="" className="max-h-[1.5rem] h-full" />
         </div>
       </div>
       <div className="the-msg min-h-5 max-w-[80%] min-w-[3rem] ">
@@ -208,8 +206,8 @@ export const MailMe = (
     <>
       <div id={_id} className={`flex gap-2 text-white flex-row-reverse selection:bg-[#fff0]`}>
         <div className="">
-          <div className='w-[1.r3em] h-[1.3rem] flex items-center shadow-[0_0_10px_#00F0FF55] justify-center overflow-hidden rounded-[16px] font-[#0F172A] bg-amber-300 md:h-[1.5rem] md:w-[1.5rem]'>
-            <img src={avatar || g} alt="😒" className="max-h-[1.5rem] h-full" />
+          <div className='w-[1.3rem] h-[1.3rem] flex items-center shadow-[0_0_10px_#00F0FF55] justify-center overflow-hidden rounded-[16px] font-[#0F172A] bg-slate-600 md:h-[1.5rem] md:w-[1.5rem]'>
+            <img src={avatar || g} alt="" className="max-h-[1.5rem] h-full" />
           </div>
         </div>
         <div className="the-msg min-h-4 max-w-[80%] min-w-[3rem] ">
@@ -1043,8 +1041,27 @@ export const MailMenu = ({ mailRef, }: {
 }
 
 export const BottomButton = ({ count = 2 }: { count?: number }) => {
+
+  useEffect(() => {
+    const scrollBtn = document.getElementById('scrollBtn');
+    const chatBox = document.getElementById('chatBox');
+    function scrollEveent() {
+      chatBox?.scrollBy({ top: chatBox.scrollHeight })
+    }
+
+    if (chatBox && scrollBtn) {
+      scrollBtn.addEventListener('click', scrollEveent)
+    }
+
+    // cleanup to avoid multiple listeners
+    return () => {
+      if (scrollBtn) {
+        scrollBtn.removeEventListener("click", scrollEveent);
+      }
+    };
+  }, []);
   return (
-    <div className="fixed bottom-[5rem] right-[3rem] w-10 h-10 flex flex-col justify-center items-center bg-green-200 rounded-3xl text-black border-1 border-green-400 cursor-pointer">
+    <div id="scrollBtn" className="fixed bottom-[5rem] right-[3rem] w-10 h-10 flex flex-col justify-center items-center bg-green-200 rounded-3xl text-black border-1 border-green-400 cursor-pointer">
       <div className="">{count}</div>
       <div className=""><FcDown /></div>
     </div>
@@ -1054,14 +1071,14 @@ export const BottomButton = ({ count = 2 }: { count?: number }) => {
 export const Notification = () => {
   const disp = useAppDispatch()
   const isActive = useAppSelector((state) => state.temp.notificationPopUp)
-  const audioRef = useRef< HTMLAudioElement | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout>;
     if (isActive) {
       audioRef.current?.play().catch((error) => {
-  console.error("Audio play failed:", error);
-});
+        console.error("Audio play failed:", error);
+      });
       timeout = setTimeout(() => {
         disp(notificationPup({ trigger: false }))
       }, 2000)

@@ -81,7 +81,7 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
     }
 
     return (
-        <div onClick={() => select()} className='w-full bg-transparent h-[4rem] cursor-pointer hover:bg-purple-900'>
+        <div onClick={() => select()} className='w-full bg-transparent h-[4rem] cursor-pointer hover:bg-slate-700'>
             <div className="grid h-full grid-cols-[0.1fr_1.3fr_5.7fr_0.8fr] items-center px-1 ">
                 <div className="flex items-center">
                     <div className={`w-2 h-2 bg-green-500 rounded-2xl ${isOnline ? 'inline' : 'hidden'}`} ></div>
@@ -92,7 +92,7 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
                     </div>
                 </div>
                 <div className="w-full h-full pl-1 flex gap-0  justify-center flex-col min-w-0">
-                    <p className="text-xl font-mono text-[#E2E8F0] md:text-[15px]">{searchTag}</p>
+                    <p className="text-[15px] font-mono text-[#E2E8F0] md:text-[15px]">{searchTag}</p>
                     <p className="text-sm font-serif text-gray-300 md:text-[10px] truncate w-full">{lastMessage || null}</p>
                 </div>
                 <div className="">
@@ -460,8 +460,8 @@ export const ContactList = () => {
                     {/* top searchbox */}
                     <div className="flex justify-between w-[95%]">
                         <div className="flex justify-center gap-2 items-center">
-                            <div className="text-lg select-none">inbox</div>
-                            <div className="bg-green-500 text-[12px] w-[3rem] h-[1.2rem] text-center rounded-sm cursor-pointer select-none">2 new</div>
+                            <div className="text-sm select-none uppercase">inbox</div>
+                            {/* <div className="bg-green-500 text-[12px] w-[3rem] h-[1.2rem] text-center rounded-sm cursor-pointer select-none">2 new</div> */}
                         </div>
                         <div className="flex gap-1">
                             <CiCirclePlus title='create group chat' onClick={() => disp(openGroupChat({ trigger: true }))} className="" size={25} cursor={"pointer"} />

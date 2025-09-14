@@ -26,6 +26,7 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
+    "mediasoup": "^3.19.2",
     "mongodb": "^6.12.0",
     "mongoose": "^8.12.1",
     "mongoose-aggregate-paginate-v2": "^1.1.2",

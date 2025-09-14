@@ -52,8 +52,19 @@ interface initialStateTypes {
         user: string;
     };
     fileSelection: boolean;
+    emojiSelection: boolean;
     uploadingState: boolean;
     fileType: string;
+    requestedVideoCall: boolean;
+    incomingVideoCall: boolean;
+    isCalling: boolean;
+    cannotConnect: boolean;
+    callDetails: {
+        roomId: string;
+        searchTag: string;
+        avatar: string;
+        callId: string;
+    }
 }
 
 const initialState: initialStateTypes = {
@@ -94,8 +105,20 @@ const initialState: initialStateTypes = {
         senderTag: "",
     },
     fileSelection: false,
+    emojiSelection: false,
+    fileType: "",
     uploadingState: false,
-    fileType: ""
+
+    incomingVideoCall: false,
+    requestedVideoCall: false,
+    isCalling: false,
+    cannotConnect: false,
+    callDetails: {
+        roomId: "",
+        searchTag: "",
+        avatar: "",
+        callId: "",
+    }
 }
 
 function searchingFunc(state: initialStateTypes, action: PayloadAction<{ users: searchUserTypes[] }>) {
@@ -374,6 +397,10 @@ function fileSelectionTrigger(state: initialStateTypes, action: PayloadAction<{ 
     state.fileSelection = action.payload.trigger;
 }
 
+function fileEmojiTrigger(state: initialStateTypes, action: PayloadAction<{ trigger: boolean; }>) {
+    state.emojiSelection = action.payload.trigger;
+}
+
 function triggerUploadingState(state: initialStateTypes, action: PayloadAction<{ trigger: boolean; value: string }>) {
     state.uploadingState = action.payload.trigger;
     state.fileType = action.payload.value
@@ -386,6 +413,48 @@ function setFileTypeState(state: initialStateTypes, action: PayloadAction<{ tp: 
 function clearUploadStateFunc(state: initialStateTypes) {
     state.uploadingState = false;
     state.fileType = ""
+}
+
+// Calling
+function requestVideoCallFunc(state: initialStateTypes, action: PayloadAction<{
+    details: {
+        roomId: string;
+        searchTag: string;
+        avatar: string;
+        callId: string;
+    }
+}>) {
+    state.requestedVideoCall = true;
+    state.callDetails = action.payload.details
+}
+
+function cancelVideoCallFunc(state: initialStateTypes) {
+    state.requestedVideoCall = false
+}
+
+function incomingVideoCallFunc(state: initialStateTypes, action: PayloadAction<{
+    details: {
+        roomId: string;
+        searchTag: string;
+        avatar: string;
+        callId: string;
+    }
+}>) {
+    state.incomingVideoCall = true
+    state.callDetails = action.payload.details
+}
+
+function rejectVideoCallFunc(state: initialStateTypes) {
+    state.incomingVideoCall = false
+}
+
+function setAnswerCallFunc(state: initialStateTypes, action: PayloadAction<{ trigger: boolean }>) {
+    state.isCalling = action.payload.trigger
+}
+
+function setCallFailure(state: initialStateTypes, action: PayloadAction<{ trigger: boolean }>) {
+    state.cannotConnect = action.payload.trigger;
+    state.incomingVideoCall = false;
 }
 
 const tempSlice = createSlice({
@@ -421,15 +490,22 @@ const tempSlice = createSlice({
         notificationPup: setNotification,
         markTempAsRead: markRead,
         setFileSelection: fileSelectionTrigger,
+        setEmojiSelection: fileEmojiTrigger,
         setUploadingState: triggerUploadingState,
         triggetUploadType: setFileTypeState,
         clearUploadState: clearUploadStateFunc,
         uploadingMeidaTemp: uploadingMediaFunc,
         uploadedMeidaTemp: uploadedMediaFunc,
+        requestVideoCall: requestVideoCallFunc,
+        cancelVideoCall: cancelVideoCallFunc,
+        incomingVideoCall: incomingVideoCallFunc,
+        rejectVideoCall: rejectVideoCallFunc,
+        answerCall: setAnswerCallFunc,
+        callFailure: setCallFailure,
     }
 })
 
 
-export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp, updateSelectedAvatar, setHasAttechments, removeTempMessage, triggerOnline, kickedMeTemp, newMessageInRoom, setReplyState, toggleTyping, notificationPup, markTempAsRead, setFileSelection, setUploadingState, triggetUploadType, clearUploadState, uploadedMeidaTemp, uploadingMeidaTemp } = tempSlice.actions
+export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp, updateSelectedAvatar, setHasAttechments, removeTempMessage, triggerOnline, kickedMeTemp, newMessageInRoom, setReplyState, toggleTyping, notificationPup, markTempAsRead, setFileSelection, setEmojiSelection, setUploadingState, triggetUploadType, clearUploadState, uploadedMeidaTemp, uploadingMeidaTemp, cancelVideoCall, incomingVideoCall, rejectVideoCall, requestVideoCall, answerCall, callFailure } = tempSlice.actions
 
 export default tempSlice.reducer
