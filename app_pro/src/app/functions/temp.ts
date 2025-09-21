@@ -448,6 +448,11 @@ function rejectVideoCallFunc(state: initialStateTypes) {
     state.incomingVideoCall = false
 }
 
+function setIncomingCallStateFunc(state: initialStateTypes) {
+    state.incomingVideoCall = false
+}
+
+
 function setAnswerCallFunc(state: initialStateTypes, action: PayloadAction<{ trigger: boolean }>) {
     state.isCalling = action.payload.trigger
 }
@@ -500,12 +505,13 @@ const tempSlice = createSlice({
         cancelVideoCall: cancelVideoCallFunc,
         incomingVideoCall: incomingVideoCallFunc,
         rejectVideoCall: rejectVideoCallFunc,
+        setIncomingCallState: setIncomingCallStateFunc,
         answerCall: setAnswerCallFunc,
         callFailure: setCallFailure,
     }
 })
 
 
-export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp, updateSelectedAvatar, setHasAttechments, removeTempMessage, triggerOnline, kickedMeTemp, newMessageInRoom, setReplyState, toggleTyping, notificationPup, markTempAsRead, setFileSelection, setEmojiSelection, setUploadingState, triggetUploadType, clearUploadState, uploadedMeidaTemp, uploadingMeidaTemp, cancelVideoCall, incomingVideoCall, rejectVideoCall, requestVideoCall, answerCall, callFailure } = tempSlice.actions
+export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp, updateSelectedAvatar, setHasAttechments, removeTempMessage, triggerOnline, kickedMeTemp, newMessageInRoom, setReplyState, toggleTyping, notificationPup, markTempAsRead, setFileSelection, setEmojiSelection, setUploadingState, triggetUploadType, clearUploadState, uploadedMeidaTemp, uploadingMeidaTemp, cancelVideoCall, incomingVideoCall, rejectVideoCall, requestVideoCall, answerCall, callFailure, setIncomingCallState } = tempSlice.actions
 
 export default tempSlice.reducer

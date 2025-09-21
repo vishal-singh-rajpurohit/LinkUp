@@ -28,4 +28,8 @@ export const ChatEventsEnum = {
     ANSWER_VIDEO_CALL: "answer_video_call",
     ACCEPTED_VIDEO_CALL: "accepted_video_call",
     OFFLINE_CALLER: "offline_caller",
+    REQUEST_VIDEO_ROOM_TEST: 'request_video_call_test',
+    INCOMING_VIDEO_ROOM_TEST: 'incoming_video_call_test',
+    JOIN_VIDEO_ROOM_TEST: 'join_video_test',
+    JOINED_VIDEO_ROOM_TEST: 'joinee_video_test',
 }

@@ -3,13 +3,13 @@ import { PhoneCall, PhoneOff } from "lucide-react"
 import { useAppDispatch, useAppSelector } from "../../app/hooks"
 import { callFailure } from "../../app/functions/temp"
 import { useContext } from "react"
-import { RtcContext, WSContext } from "../../context/Contexts"
+import {  WSContext } from "../../context/Contexts"
 import { ChatEventsEnum } from "../../context/constant"
 import { IoClose } from "react-icons/io5"
 import { useDispatch } from "react-redux"
 import { setCalling } from "../../app/functions/call"
 import useLocalMedia from "../../hooks/useLocalMedia"
-import type { RtpCapabilities } from "mediasoup-client/types"
+// import type { RtpCapabilities } from "mediasoup-client/types"
 
 
 export const RequestedVideoCall = () => {
@@ -64,47 +64,31 @@ export const IncomingVideoCall = () => {
     const { getAndSetLocalStream } = useLocalMedia()
 
     const socketContext = useContext(WSContext)
-    const rtcContext = useContext(RtcContext);
 
-    if (!socketContext || !rtcContext) {
+    if (!socketContext) {
         throw Error("Socket not found")
     }
 
     const { socket } = socketContext
-    const {connectReciverTransport, createReciverTransport, createSendTransport, loadDevice, setRtpCapabilities} = rtcContext;
 
     async function answerTheCall() {
         try {
             if (socketContext) {
-                disp(setCalling({ trigger: true }))
-                await getAndSetLocalStream()
-
-                socket?.emit(ChatEventsEnum.ANSWER_VIDEO_CALL,
-                    {
-                        roomId: callDet.roomId,
-                        callId: callDet.callId,
-                        avatar: callDet.avatar,
-                        searchTag: callDet.searchTag,
-                        callerId: user._id
-                    },
-                    async (data: { rtpCapabilities: RtpCapabilities }) => {
-                        console.log("rtpCapabilities recived: ", data.rtpCapabilities)
-                        setRtpCapabilities(data.rtpCapabilities)
-                        await loadDevice(data.rtpCapabilities);
-                        console.log("the device locaded")
-                        await createSendTransport()
-                        await createReciverTransport();
-                        await connectReciverTransport();
-
-                    })
+                socket?.emit(ChatEventsEnum.JOIN_VIDEO_ROOM_TEST, {
+                    roomId: callDet.roomId,
+                    callId: callDet.callId,
+                    avatar: callDet.avatar,
+                    searchTag: callDet.searchTag,
+                    callerId: callDet.callerId,
+                    userId: user._id
+                }, ()=>{
+                    console.log("Call made success fully with CALLBACK")
+                });
             }
         } catch (error) {
             console.log("Error in answer call: ", error)
         }
-
     }
-
-
 
     async function declineCall() {
         if (socketContext) {

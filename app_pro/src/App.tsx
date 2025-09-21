@@ -10,6 +10,7 @@ import Auth, { RevAuth } from './middleware/Auth'
 import Signup from './Components/Auth/Signup'
 import LoginForm from './Components/Auth/Login'
 import VideoCallPage from './Components/Calling/VideoCallPage'
+import JitsiComponent from './Components/JitsiMeeting/JitsiMeeting '
 function App() {
 
   return (
@@ -25,6 +26,7 @@ function App() {
         <Route path='/user/find-chats' element={<Auth ><FindChat /></Auth>} />
         <Route path='/user/settings' element={<Auth ><Settings /></Auth>} />
         <Route path='/user/call/video' element={<Auth ><VideoCallPage /></Auth>} />
+        <Route path='/user/call/video-test' element={<Auth ><JitsiComponent /></Auth>} />
       </Routes>
     
   )

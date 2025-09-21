@@ -4,12 +4,15 @@ interface initialStateTypes {
     audioEnabled: boolean;
     videoEnable: boolean;
     isCalling: boolean;
+    memberCount: number;
+    isAnswered: boolean;
     callingDet: {
         roomId: string;
         callId: string;
         avatar: string;
         searchTag: string;
         callerId: string;
+        email: string;
     }
 }
 
@@ -18,19 +21,21 @@ export interface callerTypes {
     callerId: string;
     avatar: string;
     callId: string;
-    stream: MediaStream;
 }
 
 const initialState: initialStateTypes = {
     isCalling: false,
     audioEnabled: true,
     videoEnable: true,
+    memberCount: 0,
+    isAnswered: false,
     callingDet: {
         avatar: "",
         callerId: "",
         callId: "",
         roomId: "",
-        searchTag: ""
+        searchTag: "",
+        email: ""
     }
 }
 
@@ -48,12 +53,49 @@ function setCallDetailsFunc(state: initialStateTypes, action: PayloadAction<{
     avatar: string;
     searchTag: string;
     callerId: string;
+    email: string;
 }>) {
-    state.callingDet.avatar = action.payload.avatar
-    state.callingDet.callId = action.payload.callId
-    state.callingDet.callerId = action.payload.callerId
-    state.callingDet.roomId = action.payload.roomId
-    state.callingDet.searchTag = action.payload.searchTag
+    state.callingDet.avatar = action.payload.avatar;
+    state.callingDet.callId = action.payload.callId;
+    state.callingDet.callerId = action.payload.callerId;
+    state.callingDet.roomId = action.payload.roomId;
+    state.callingDet.searchTag = action.payload.searchTag;
+    state.callingDet.email = action.payload.email;
+}
+
+function setMemberCountFunc(state: initialStateTypes, action: PayloadAction<{type: "INC" | "DEC"}>){
+    if(action.payload.type === "INC"){
+        state.memberCount = state.memberCount + 1;
+        console.log("function is calling: ", state.memberCount)
+    }
+    else if(action.payload.type === "DEC"){
+        state.memberCount = state.memberCount - 1;
+    }
+
+    if(state.memberCount > 2){
+        console.log("answered")
+        state.isAnswered = true
+    }
+}
+
+function pickUpCallfunc(state: initialStateTypes){
+    state.isAnswered = true;
+}
+
+function clearCalling(state: initialStateTypes){
+    state.isCalling = false
+    state.audioEnabled = true
+    state.videoEnable = true
+    state.memberCount = 0
+    state.isAnswered = false
+    state.callingDet = {
+        avatar: "",
+        callerId: "",
+        callId: "",
+        roomId: "",
+        searchTag: "",
+        email: ""
+    }
 }
 
 export const CallSlice = createSlice({
@@ -66,10 +108,13 @@ export const CallSlice = createSlice({
         setCalling: (state: initialStateTypes, action: PayloadAction<{ trigger: boolean; }>) => {
             state.isCalling = action.payload.trigger;
         },
-        setCallDetails: setCallDetailsFunc
+        setCallDetails: setCallDetailsFunc,
+        setMemberCount: setMemberCountFunc,
+        pickUpCall: pickUpCallfunc,
+        clearCall: clearCalling
     }
 })
 
-export const { toggleAudio, toggleVideo, setCalling, setCallDetails } = CallSlice.actions
+export const { toggleAudio, toggleVideo, setCalling, setCallDetails, setMemberCount, clearCall, pickUpCall } = CallSlice.actions
 
 export default CallSlice.reducer

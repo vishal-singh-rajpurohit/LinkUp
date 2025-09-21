@@ -49,11 +49,15 @@ const chatEventEnumNew = {
   CREATE_WEB_RTC_TRANSPORT: 'createWebRtcTransport',
   TRANSPORT_CONNECT: 'transport_connect',
   TRANSPORT_PRODUCE: 'transprt_produce',
-  TRANSPORT_RECIVER_CONNECT: "transport_recv_connect",
-  CONSUME: "consume",
-  ON_CONSUMER_RESUME: "on_consumer_resume",
+  TRANSPORT_RECIVER_CONNECT: 'transport_recv_connect',
+  CONSUME: 'consume',
+  ON_CONSUMER_RESUME: 'on_consumer_resume',
   ACCEPTED_VIDEO_CALL: 'accepted_video_call',
   OFFLINE_CALLER: 'offline_caller',
+  REQUEST_VIDEO_ROOM_TEST: 'request_video_call_test',
+  INCOMING_VIDEO_ROOM_TEST: 'incoming_video_call_test',
+  JOIN_VIDEO_ROOM_TEST: 'join_video_test',
+  JOINED_VIDEO_ROOM_TEST: 'joinee_video_test',
 };
 
 const LoadLimits = Object.freeze({

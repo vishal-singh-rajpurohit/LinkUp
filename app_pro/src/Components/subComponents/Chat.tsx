@@ -58,7 +58,7 @@ export const ChatTop = () => {
 
     async function requestForVideoCall() {
         try {
-            socket?.emit(ChatEventsEnum.REQUEST_VIDEO_CALL, {
+            socket?.emit(ChatEventsEnum.REQUEST_VIDEO_ROOM_TEST, {
                 contactId: room._id,
                 callerId: user._id,
                 username: user.searchTag,

@@ -484,7 +484,7 @@ const starterSocketIo = async (io) => {
             rtpParameters,
           });
           console.log('Producer  created: ', newProducer);
-          
+
           producersMap.set(userId, newProducer);
 
           newProducer.on('transportclose', () => {
@@ -507,12 +507,14 @@ const starterSocketIo = async (io) => {
         },
       );
 
-      socket.on( chatEventEnumNew.CONSUME, async ({ rtpCapabilities, callerId }, callback) => {
+      socket.on(
+        chatEventEnumNew.CONSUME,
+        async ({ rtpCapabilities, callerId }, callback) => {
           try {
-            const producer = producersMap.get(callerId)
-            
-            if(!producer){
-              throw new Error("Producer not found")
+            const producer = producersMap.get(callerId);
+
+            if (!producer) {
+              throw new Error('Producer not found');
             }
 
             console.log('CONSUME Prodcer', producer.id, producer);
@@ -558,9 +560,7 @@ const starterSocketIo = async (io) => {
         await consumer.resume();
       });
 
-      socket.on(
-        chatEventEnumNew.REJECT_VIDEO_CALL,
-        async ({ callId, roomId, userId }) => {
+      socket.on(chatEventEnumNew.REJECT_VIDEO_CALL,async ({ callId, roomId, userId }) => {
           console.log('Rejected video call');
           const contact = await Contact.findById(roomId);
           if (!contact) {
@@ -602,6 +602,124 @@ const starterSocketIo = async (io) => {
         },
       );
 
+
+
+      socket.on(chatEventEnumNew.REQUEST_VIDEO_ROOM_TEST,async ({ contactId, callerId, username, avatar, email }) => {
+          console.log('Video call requested: ', callerId);
+          const contact = await Contact.findById(contactId);
+
+          if (!contact) {
+            console.log('Contacts not found');
+            socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
+              message: 'contacts not found',
+            });
+          }
+
+          //Right Here
+          const reciver = await getContactsForCall(contact._id);
+
+          const recivers = await reciver[0].member.filter(
+            (val) => val.online === true,
+          );
+
+          const newCall = await makeCall(
+            callerId,
+            contact._id,
+            recivers.length,
+          );
+
+          // callRooms.set(newCall.id, [callerId]);
+
+          if (recivers.length > 1) {
+            for (const reciver of recivers) {
+              if (reciver.online) {
+                if (callerId === reciver._id) {
+                  socket.join(newCall._id);
+                }
+
+                io.to(`${reciver.socketId}`).emit(
+                  `${chatEventEnumNew.INCOMING_VIDEO_ROOM_TEST}`,
+                  {
+                    roomId: contact._id,
+                    callerId: callerId,
+                    searchTag: contact.groupName || username,
+                    avatar: contact.groupAvatar || avatar,
+                    callId: newCall._id,
+                    email,
+                  },
+                );
+                console.log(`call ${newCall._id} created.`);
+              }
+            }
+          } else {
+            socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
+              message: 'contacts not found',
+            });
+          }
+        },
+      );
+
+      socket.on(chatEventEnumNew.JOIN_VIDEO_ROOM_TEST, 
+        async ({ roomId, callId, callerId, searchTag, email, userId }) => {
+          const contact = await Contact.findById(roomId);
+
+          if (!contact) {
+            socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
+              message: 'contacts not found',
+            });
+          }
+
+          const addedContact = await addMemberToCall(callId, callerId);
+          const members = await getContactsInCall(callId);
+
+          const myUser = await User.findById(userId);
+          const caller = await User.findById(callerId);
+
+          if (!User) {
+            throw new ApiError(401, 'User not found');
+          }
+
+
+          if (members[0].members.length) {
+            console.log("Caller's socket id: ", caller.socketId)
+            console.log("myUser.socketId id: ", myUser.socketId)
+            io.to(caller.socketId).emit(
+              chatEventEnumNew.JOINED_VIDEO_ROOM_TEST,
+              {
+                callId: callId,
+                roomId: roomId,
+                callerId: callerId,
+                userId: myUser._id,
+                searchTag: searchTag,
+                email,
+              },
+            );
+
+            io.to(myUser.socketId).emit(
+              chatEventEnumNew.JOINED_VIDEO_ROOM_TEST,
+              {
+                callId: callId,
+                roomId: roomId,
+                callerId: callerId,
+                userId: myUser._id,
+                searchTag: searchTag,
+                email,
+              },
+            );
+            
+          } else {
+            throw new ApiError(
+              400,
+              'Answer video call Error: Contacts not found',
+            );
+          }
+
+          if (!addedContact) {
+            throw new ApiError(400, 'Contact not added');
+          }
+        },
+      );
+
       socket.on(ChatEventEnum.DISCONNECT_EVENT, async () => {
         console.log('user has disconnected userId: ' + socket.user?._id);
         if (socket.user?._id) {
@@ -618,6 +736,7 @@ const starterSocketIo = async (io) => {
           await setUserOffline(user._id);
         }
       });
+
     } catch (error) {
       socket.emit(
         ChatEventEnum.SOCKET_ERROR_EVENT,
@@ -820,4 +939,9 @@ const getContactsInCall = async (callId) => {
   }
 };
 
-module.exports = { starterSocketIo, emiterSocket, emiterCall };
+module.exports = {
+  starterSocketIo,
+  emiterSocket,
+  emiterCall,
+  getContactsForCall,
+};

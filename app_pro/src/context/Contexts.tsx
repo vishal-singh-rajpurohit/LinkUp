@@ -1,6 +1,6 @@
-import { createContext, type RefObject } from "react";
+import { createContext } from "react";
 import type { Socket } from "socket.io-client";
-import { Device, types } from "mediasoup-client";
+
 
 export interface appContextTypes {
     selectToTalk: (id: string) => void;
@@ -18,14 +18,6 @@ export interface WSCTypes {
 
 export const WSContext = createContext<WSCTypes | null>(null);
 
-export interface RtcTypes {
-    deviceRef: RefObject<Device | null>;
-    loadDevice: (rtpCapabilities: types.RtpCapabilities) => void;
-    createSendTransport: () => Promise<void>;
-    connectSendTransport: () => Promise<void>;
-    createReciverTransport: () => Promise<void>;
-    connectReciverTransport: () => Promise<void>;
-    setRtpCapabilities: (value: types.RtpCapabilities) => void;
-}
 
-export const RtcContext = createContext<RtcTypes | null>(null);
+
+export const RtcContext = createContext<null>(null);
