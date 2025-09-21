@@ -1,29 +1,47 @@
-const ApiError = require("../utils/ApiError.utils");
-const jwt = require("jsonwebtoken");
-const { Socket } = require("socket.io");
-const { ChatEventEnum, chatEventEnumNew } = require("../constants/constants");
-const User = require("../models/user.model");
-const Contact = require("../models/contacts.model");
-const { default: mongoose } = require("mongoose");
-const Message = require("../models/message.modal");
-const Call = require("../models/calls.model");
+const ApiError = require('../utils/ApiError.utils');
+const jwt = require('jsonwebtoken');
+const { ChatEventEnum, chatEventEnumNew } = require('../constants/constants');
+const User = require('../models/user.model');
+const Contact = require('../models/contacts.model');
+const { default: mongoose } = require('mongoose');
+const Message = require('../models/message.modal');
+const Call = require('../models/calls.model');
 const {
   makeCall,
   endVideoCall,
   addMemberToCall,
   changeVideoCallMember,
-} = require("./caller.helpers");
-const { createWorker, routerRtpCapabilities } = require("../mediasoup/worker");
-const config = require("../mediasoup/config");
-const mediasoup = require("mediasoup");
+} = require('./caller.helpers');
+
+const {
+  startMediaSoup,
+  createWebRtcTransport,
+} = require('../mediasoup/worker');
+
+const config = require('../mediasoup/mediasoup-config');
+const mediasoup = require('mediasoup');
 
 /**
  * @description event happens when user switches between chats or contacts based on contactId
  * @param {Socket<import("socket.io")}
  */
+
+let router;
+let producer;
+let consumer;
+let producerTransport;
+let consumerTransport;
+const producersMap = new Map();
+
+(async () => {
+  router = await startMediaSoup();
+})();
+
+const callRooms = new Map();
+
 const ChatJoinEvent = (socket) => {
   socket.on(ChatEventEnum.JOIN_CHAT_EVENT, (chatId) => {
-    console.log("User Joined the chat");
+    console.log('User Joined the chat');
     socket.join(chatId);
   });
 };
@@ -34,46 +52,28 @@ const ChatJoinEvent = (socket) => {
  * @returns io connection
  */
 
-let mediasoupRouter;
-const rooms = new Map();
-
-const routerFunction = async () => {
-  try {
-    mediasoupRouter = await createWorker();
-
-    console.log("Mediasoup worker and router created!");
-  } catch (error) {
-    throw new ApiError(400, "Error in creating mediasoup router", { error });
-  }
-};
-
-const onCreateProducerTransport = async(event, ws) =>{
-  
-}
-
-
 const starterSocketIo = async (io) => {
-  return io.on("connection", async (socket) => {
+  return io.on('connection', async (socket) => {
     try {
-      console.log("Socket connected to server", socket.id);
+      console.log('Socket connected to server', socket.id);
       const accessToken = socket.handshake.auth?.token;
 
       if (!accessToken) {
-        console.log("Access token not found in cookies");
-        throw new ApiError(400, "Unauthorized Access");
+        console.log('Access token not found in cookies');
+        throw new ApiError(400, 'Unauthorized Access');
       }
 
       const decodedToken = jwt.verify(
         accessToken,
-        process.env.ACCESS_TOKEN_SECRET
+        process.env.ACCESS_TOKEN_SECRET,
       );
 
       const user = await User.findById(decodedToken?._id).select(
-        "-password -refreshToken"
+        '-password -refreshToken',
       );
 
       if (!user) {
-        throw new ApiError(400, "Unauthorized User");
+        throw new ApiError(400, 'Unauthorized User');
       }
 
       user.socketId = socket.id;
@@ -88,11 +88,11 @@ const starterSocketIo = async (io) => {
         socket.join(roomId);
         // console.log(`User joined room: ${roomId}`);
 
-        socket.to(roomId).emit("message", {
+        socket.to(roomId).emit('message', {
           user: socket.id,
           text: `${socket.id} has joined the room`,
         });
-        socket.emit("joinedRoom", roomId); // Confirm joining the room
+        socket.emit('joinedRoom', roomId); // Confirm joining the room
 
         const room = io.sockets.adapter.rooms.get(roomId);
 
@@ -106,7 +106,7 @@ const starterSocketIo = async (io) => {
       for (let con of contactsOnline) {
         io.to(`${con.userId}`).emit(`${chatEventEnumNew.ONLINE_EVENT}`, {
           contactId: con._id,
-          message: "your friend is online",
+          message: 'your friend is online',
         });
       }
 
@@ -114,7 +114,7 @@ const starterSocketIo = async (io) => {
         const contact = await Contact.findById(payload.contactId);
 
         if (!contact) {
-          console.log("contacts not found");
+          console.log('contacts not found');
         }
 
         if (!contact.isGroup) {
@@ -127,20 +127,20 @@ const starterSocketIo = async (io) => {
             },
             {
               $lookup: {
-                from: "contactmembers",
-                localField: "_id",
-                foreignField: "contactId",
-                as: "members",
+                from: 'contactmembers',
+                localField: '_id',
+                foreignField: 'contactId',
+                as: 'members',
               },
             },
             {
               $addFields: {
                 member: {
                   $filter: {
-                    input: "$members",
-                    as: "member",
+                    input: '$members',
+                    as: 'member',
                     cond: {
-                      $ne: ["$$member.userId", payload.userId],
+                      $ne: ['$$member.userId', payload.userId],
                     },
                   },
                 },
@@ -148,38 +148,38 @@ const starterSocketIo = async (io) => {
             },
             {
               $lookup: {
-                from: "users",
-                localField: "member.userId",
-                foreignField: "_id",
-                as: "member.user",
+                from: 'users',
+                localField: 'member.userId',
+                foreignField: '_id',
+                as: 'member.user',
               },
             },
             {
-              $unwind: "$member.user",
+              $unwind: '$member.user',
             },
 
             {
               $group: {
-                _id: "$_id",
+                _id: '$_id',
                 member: {
-                  $first: "$member.user",
+                  $first: '$member.user',
                 },
               },
             },
             {
               $group: {
-                _id: "$_id",
+                _id: '$_id',
                 userId: {
-                  $first: "$member._id",
+                  $first: '$member._id',
                 },
                 isOnline: {
-                  $first: "$member.online",
+                  $first: '$member.online',
                 },
                 socketId: {
-                  $first: "$member.socketId",
+                  $first: '$member.socketId',
                 },
                 avatar: {
-                  $first: "$member.avatar",
+                  $first: '$member.avatar',
                 },
               },
             },
@@ -194,7 +194,7 @@ const starterSocketIo = async (io) => {
             // Working on this
             io.to(`${reciver[0].socketId}`).emit(
               `${chatEventEnumNew.TYPING_ON}`,
-              { avatar: payload.avatar }
+              { avatar: payload.avatar },
             );
           }
         } else {
@@ -207,21 +207,21 @@ const starterSocketIo = async (io) => {
             },
             {
               $lookup: {
-                from: "contactmembers",
-                localField: "_id",
-                foreignField: "contactId",
-                as: "members",
+                from: 'contactmembers',
+                localField: '_id',
+                foreignField: 'contactId',
+                as: 'members',
               },
             },
             {
               $addFields: {
                 member: {
                   $filter: {
-                    input: "$members",
-                    as: "member",
+                    input: '$members',
+                    as: 'member',
                     cond: {
                       $ne: [
-                        "$$member.userId",
+                        '$$member.userId',
                         new mongoose.Types.ObjectId(payload.userId),
                       ],
                     },
@@ -231,34 +231,34 @@ const starterSocketIo = async (io) => {
             },
             {
               $lookup: {
-                from: "users",
-                localField: "member.userId",
-                foreignField: "_id",
-                as: "member.user",
+                from: 'users',
+                localField: 'member.userId',
+                foreignField: '_id',
+                as: 'member.user',
               },
             },
             {
-              $unwind: "$member.user",
+              $unwind: '$member.user',
             },
             {
               $match: {
-                "member.user.online": true,
+                'member.user.online': true,
               },
             },
             {
               $group: {
-                _id: "$_id",
+                _id: '$_id',
                 member: {
-                  $addToSet: "$member.user",
+                  $addToSet: '$member.user',
                 },
               },
             },
             {
               $project: {
-                "member._id": 1,
-                "member.socketId": 1,
-                "member.avatar": 1,
-                "member.searchTag": 1,
+                'member._id': 1,
+                'member.socketId': 1,
+                'member.avatar': 1,
+                'member.searchTag': 1,
               },
             },
           ]);
@@ -267,7 +267,7 @@ const starterSocketIo = async (io) => {
             for (let reciver of recivers[0].member) {
               io.to(`${reciver.socketId}`).emit(
                 `${chatEventEnumNew.TYPING_ON}`,
-                { avatar: payload.avatar }
+                { avatar: payload.avatar },
               );
             }
           }
@@ -277,23 +277,23 @@ const starterSocketIo = async (io) => {
       socket.on(chatEventEnumNew.MARK_READ, async (payload) => {
         const user = await User.findById(payload.id);
         if (!user) {
-          throw new ApiError(501, "Unautharized Request");
+          throw new ApiError(501, 'Unautharized Request');
         }
         const message = await Message.findByIdAndUpdate(
           payload.msgId,
           {
             $addToSet: { readBy: user._id },
           },
-          { new: true }
+          { new: true },
         );
         if (!message) {
-          throw new ApiError(400, "Message not found:");
+          throw new ApiError(400, 'Message not found:');
         }
 
         const sender = await User.findById(message.userId);
 
         if (!sender) {
-          throw new ApiError(400, "Sender not found");
+          throw new ApiError(400, 'Sender not found');
         }
 
         socket.to(sender.socketId).emit(chatEventEnumNew.MARKED, {
@@ -305,13 +305,14 @@ const starterSocketIo = async (io) => {
 
       socket.on(
         chatEventEnumNew.REQUEST_VIDEO_CALL,
-        async (payload, callback) => {
-          const contact = await Contact.findById(payload.contactId);
+        async ({ contactId, callerId, username, avatar }) => {
+          console.log('Video call requested: ', producersMap);
+          const contact = await Contact.findById(contactId);
 
           if (!contact) {
-            console.log("Contacts not found");
+            console.log('Contacts not found');
             socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
-              message: "contacts not found",
+              message: 'contacts not found',
             });
           }
 
@@ -319,140 +320,252 @@ const starterSocketIo = async (io) => {
           const reciver = await getContactsForCall(contact._id);
 
           const recivers = await reciver[0].member.filter(
-            (val) => val.online === true
+            (val) => val.online === true,
           );
 
           const newCall = await makeCall(
-            payload.userId,
+            callerId,
             contact._id,
-            recivers.length
+            recivers.length,
           );
+
+          // callRooms.set(newCall.id, [callerId]);
 
           if (recivers.length > 1) {
             for (const reciver of recivers) {
               if (reciver.online) {
-                if (payload.userId === reciver._id) {
-                  await routerFunction();
-                  rooms.set(newCall._id, {
-                    router: mediasoupRouter,
-                    peers: new Map(),
-                  });
-
+                if (callerId === reciver._id) {
                   socket.join(newCall._id);
-
-                  const routerCapabilities = rooms.get(newCall._id).router
-                    .rtpCapabilities;
-                  callback({ routerRtpCapabilities: routerCapabilities });
-
-                  socket
-                    .to(newCall._id)
-                    .emit("new-member-in-call", { peerId: socket.id });
                 }
+
                 io.to(`${reciver.socketId}`).emit(
                   `${chatEventEnumNew.INCOMING_VIDEO_CALL}`,
                   {
                     roomId: contact._id,
-                    userId: payload.userId,
-                    searchTag: contact.groupName || payload.userId,
-                    avatar: contact.groupAvatar || payload.avatar,
+                    callerId: callerId,
+                    searchTag: contact.groupName || username,
+                    avatar: contact.groupAvatar || avatar,
                     callId: newCall._id,
-                    mediasoupRouter: mediasoupRouter,
-                  }
+                    mediasoupRouter: router,
+                  },
                 );
-
                 console.log(`call ${newCall._id} created.`);
               }
             }
           } else {
             socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
-              message: "contacts not found",
+              message: 'contacts not found',
             });
           }
-        }
+        },
       );
 
       socket.on(
         chatEventEnumNew.CANCELLED_VIDEO_CALL,
         async ({ callId, roomId }) => {
+          console.log('Video Call Cancelld');
           const contact = await Contact.findById(roomId);
 
           if (!contact) {
             socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
-              message: "contacts not found",
+              message: 'contacts not found',
             });
           }
 
           const ended = await endVideoCall(callId);
 
           if (!ended.successs) {
-            console.log("Error in ending call");
+            console.log('Error in ending call');
           }
 
           const reciver = await getContactsForCall(contact._id);
 
           const recivers = reciver[0].member.filter(
-            (val) => val.online === true
+            (val) => val.online === true,
           );
+
+          callRooms.delete(callId);
 
           for (let reciver of recivers) {
             if (reciver.online) {
+              producersMap.delete(reciver._id);
               io.to(`${reciver.socketId}`).emit(
                 `${chatEventEnumNew.OFFLINE_CALLER}`,
                 {
-                  message: "Call Ended",
-                }
+                  message: 'Call Ended',
+                },
               );
             }
           }
-        }
+        },
       );
 
       socket.on(
         chatEventEnumNew.ANSWER_VIDEO_CALL,
-        async ({ callId, roomId, userId, rtpCapabilities }) => {
+        async ({ roomId, callId, callerId, searchTag }, cb) => {
+          cb({
+            rtpCapabilities: router.rtpCapabilities,
+          });
+
+          console.log('The Answer called');
+
           const contact = await Contact.findById(roomId);
+
           if (!contact) {
             socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
-              message: "contacts not found",
+              message: 'contacts not found',
             });
           }
 
-          const addedContact = await addMemberToCall(callId, userId);
+          const addedContact = await addMemberToCall(callId, callerId);
           const members = await getContactsInCall(callId);
 
           // Logic to Implement
-
           if (members[0].members.length) {
             for (const member of members[0].members) {
               io.to(member.socketId).emit(
                 chatEventEnumNew.ACCEPTED_VIDEO_CALL,
                 {
-                  userId: userId,
                   callId: callId,
                   roomId: roomId,
-                }
+                  callerId: callerId,
+                  searchTag: searchTag,
+                },
               );
             }
           } else {
             throw new ApiError(
               400,
-              "Answer video call Error: Contacts not found"
+              'Answer video call Error: Contacts not found',
             );
           }
 
           if (!addedContact) {
-            throw new ApiError(400, "Contact not added");
+            throw new ApiError(400, 'Contact not added');
           }
-        }
+        },
       );
+
+      socket.on(
+        chatEventEnumNew.CREATE_WEB_RTC_TRANSPORT,
+        async ({ sender }, callback) => {
+          console.log(
+            'CREATE_WEB_RTC_TRANSPORT is this a sender transport?',
+            sender,
+          );
+
+          if (typeof callback === 'function') {
+            if (sender)
+              producerTransport = await createWebRtcTransport(callback);
+            else consumerTransport = await createWebRtcTransport(callback);
+          } else {
+            console.error(
+              'Callback is not a function, cannot create transport.',
+            );
+          }
+        },
+      );
+
+      socket.on(
+        chatEventEnumNew.TRANSPORT_CONNECT,
+        async ({ dtlsParameters }) => {
+          await producerTransport.connect({ dtlsParameters });
+          console.log('TRANSPORT_CONNECT Connected the producer transport: ');
+        },
+      );
+
+      socket.on(
+        chatEventEnumNew.TRANSPORT_PRODUCE,
+        async ({ kind, rtpParameters, appData, userId }, callback) => {
+          console.log('TRANSPORT_PRODUCE: ');
+
+          const newProducer = await producerTransport.produce({
+            kind,
+            rtpParameters,
+          });
+          console.log('Producer  created: ', newProducer);
+          
+          producersMap.set(userId, newProducer);
+
+          newProducer.on('transportclose', () => {
+            console.log('transport for this producer closed');
+            newProducer.close();
+          });
+
+          callback({ id: newProducer.id });
+        },
+      );
+
+      socket.on(
+        chatEventEnumNew.TRANSPORT_RECIVER_CONNECT,
+        async ({ dtlsParameters }) => {
+          console.log(
+            'TRANSPORT_RECIVER_CONNECT DTLS PARAMS RECIVER: ',
+            dtlsParameters,
+          );
+          await consumerTransport.connect({ dtlsParameters });
+        },
+      );
+
+      socket.on( chatEventEnumNew.CONSUME, async ({ rtpCapabilities, callerId }, callback) => {
+          try {
+            const producer = producersMap.get(callerId)
+            
+            if(!producer){
+              throw new Error("Producer not found")
+            }
+
+            console.log('CONSUME Prodcer', producer.id, producer);
+            if (
+              router.canConsume({
+                producerId: producer.id,
+                rtpCapabilities,
+              })
+            ) {
+              console.log('CONSUME Prodcer can cosumes: ');
+              consumer = await consumerTransport.consume({
+                producerId: producer.id,
+                rtpCapabilities,
+                paused: true,
+              });
+
+              consumer.on('transportclosed', () => {
+                console.log('transport close from consumer');
+              });
+
+              const params = {
+                id: consumer.id,
+                producerId: producer.id,
+                kind: consumer.kind,
+                rtpParameters: consumer.rtpParameters,
+              };
+
+              callback({ params });
+            }
+          } catch (error) {
+            console.log('Error in consume: ', error);
+            callback({
+              params: {
+                error: error,
+              },
+            });
+          }
+        },
+      );
+
+      socket.on(chatEventEnumNew.ON_CONSUMER_RESUME, async () => {
+        console.log('consumer resume');
+        await consumer.resume();
+      });
 
       socket.on(
         chatEventEnumNew.REJECT_VIDEO_CALL,
         async ({ callId, roomId, userId }) => {
+          console.log('Rejected video call');
           const contact = await Contact.findById(roomId);
           if (!contact) {
             socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
-              message: "contacts not found",
+              message: 'contacts not found',
             });
           }
 
@@ -476,62 +589,47 @@ const starterSocketIo = async (io) => {
                     userId: userId,
                     callId: callId,
                     roomId: roomId,
-                  }
+                  },
                 );
               }
             }
           } else {
             throw new ApiError(
               400,
-              "Reject Call video call Error: Contacts not found"
+              'Reject Call video call Error: Contacts not found',
             );
           }
-        }
+        },
       );
 
       socket.on(ChatEventEnum.DISCONNECT_EVENT, async () => {
-        console.log("user has disconnected userId: " + socket.user?._id);
+        console.log('user has disconnected userId: ' + socket.user?._id);
         if (socket.user?._id) {
           const contactsOnline = await getUserOnlineFriends(user._id);
-
-          rooms.forEach((room, roomId) => {
-            if (room.peers.has(socket.id)) {
-              room.peers.delete(socket.id);
-              console.log(`User ${socket.id} left room ${roomId}.`);
-              if (room.peers.size === 0) {
-                // If the room is empty, close the mediasoup router and delete the room
-                room.router.close();
-                rooms.delete(roomId);
-                console.log(
-                  `Room ${roomId} is now empty and has been deleted.`
-                );
-              }
-            }
-          });
 
           for (let con of contactsOnline) {
             io.to(`${con.userId}`).emit(`${chatEventEnumNew.OFFLINE_EVENT}`, {
               contactId: con._id,
-              message: "your friend is Gone Offline",
+              message: 'your friend is Gone Offline',
             });
           }
 
           socket.leave(socket.user._id);
           await setUserOffline(user._id);
-          delete peers[socket.id];
         }
       });
     } catch (error) {
       socket.emit(
         ChatEventEnum.SOCKET_ERROR_EVENT,
-        error?.message || "Something went wrong while connecting to the socket."
+        error?.message ||
+          'Something went wrong while connecting to the socket.',
       );
     }
   });
 };
 
 const emiterSocket = async (req, roomId, event, Payload) => {
-  await req.app.get("io").to(roomId).emit(event, Payload);
+  await req.app.get('io').to(roomId).emit(event, Payload);
 };
 
 const emiterSocketDIr = async (io, roomId, event, Payload) => {
@@ -539,24 +637,24 @@ const emiterSocketDIr = async (io, roomId, event, Payload) => {
 };
 
 const emiterCall = (req, userId, event, Payload) => {
-  req.app.get("io").to(userId).emit(event, Payload);
+  req.app.get('io').to(userId).emit(event, Payload);
 };
 
 const setUserOffline = async (userId) => {
-  console.log("setting use offline");
+  console.log('setting use offline');
 
   try {
     const user = await User.findById(userId);
 
     if (!user) {
-      console.log("user does not found");
-      throw new ApiError(400, "User not found");
+      console.log('user does not found');
+      throw new ApiError(400, 'User not found');
     }
     user.online = false;
     await user.save();
-    console.log("now user is offline");
+    console.log('now user is offline');
   } catch (error) {
-    throw new ApiError(501, "Error in setting Offline");
+    throw new ApiError(501, 'Error in setting Offline');
   }
 };
 
@@ -573,20 +671,20 @@ const getUserOnlineFriends = async (userId) => {
       },
       {
         $lookup: {
-          from: "contactmembers",
-          localField: "_id",
-          foreignField: "contactId",
-          as: "members",
+          from: 'contactmembers',
+          localField: '_id',
+          foreignField: 'contactId',
+          as: 'members',
         },
       },
       {
         $addFields: {
           member: {
             $filter: {
-              input: "$members",
-              as: "member",
+              input: '$members',
+              as: 'member',
               cond: {
-                $ne: ["$$member.userId", userId],
+                $ne: ['$$member.userId', userId],
               },
             },
           },
@@ -594,35 +692,35 @@ const getUserOnlineFriends = async (userId) => {
       },
       {
         $lookup: {
-          from: "users",
-          localField: "member.userId",
-          foreignField: "_id",
-          as: "member.user",
+          from: 'users',
+          localField: 'member.userId',
+          foreignField: '_id',
+          as: 'member.user',
         },
       },
       {
-        $unwind: "$member.user",
+        $unwind: '$member.user',
       },
 
       {
         $group: {
-          _id: "$_id",
+          _id: '$_id',
           member: {
-            $first: "$member.user",
+            $first: '$member.user',
           },
         },
       },
       {
         $group: {
-          _id: "$_id",
+          _id: '$_id',
           userId: {
-            $first: "$member._id",
+            $first: '$member._id',
           },
           isOnline: {
-            $first: "$member.online",
+            $first: '$member.online',
           },
           socketId: {
-            $first: "$member.socketId",
+            $first: '$member.socketId',
           },
         },
       },
@@ -634,7 +732,7 @@ const getUserOnlineFriends = async (userId) => {
     ]);
     return contactsOnline;
   } catch (error) {
-    throw new ApiError(5001, "error in searching contacts");
+    throw new ApiError(5001, 'error in searching contacts');
   }
 };
 
@@ -649,29 +747,29 @@ const getContactsForCall = async (roomId) => {
       },
       {
         $lookup: {
-          from: "contactmembers",
-          localField: "_id",
-          foreignField: "contactId",
-          as: "members",
+          from: 'contactmembers',
+          localField: '_id',
+          foreignField: 'contactId',
+          as: 'members',
         },
       },
       {
-        $unwind: "$members",
+        $unwind: '$members',
       },
       {
         $lookup: {
-          from: "users",
-          localField: "members.userId",
-          foreignField: "_id",
-          as: "members.user",
+          from: 'users',
+          localField: 'members.userId',
+          foreignField: '_id',
+          as: 'members.user',
         },
       },
       {
         $group: {
-          _id: "$_id",
+          _id: '$_id',
           member: {
             $addToSet: {
-              $first: "$members.user",
+              $first: '$members.user',
             },
           },
         },
@@ -679,7 +777,7 @@ const getContactsForCall = async (roomId) => {
     ]);
     return contacts;
   } catch (error) {
-    throw new ApiError(400, "Error in getting contacts");
+    throw new ApiError(400, 'Error in getting contacts');
   }
 };
 
@@ -687,7 +785,7 @@ const getContactsInCall = async (callId) => {
   try {
     const call = await Call.findById(callId);
     if (!call) {
-      throw new ApiError(400, "Call not found");
+      throw new ApiError(400, 'Call not found');
     }
 
     const contacts = await Call.aggregate([
@@ -698,27 +796,27 @@ const getContactsInCall = async (callId) => {
       },
       {
         $lookup: {
-          from: "users",
-          localField: "members",
-          foreignField: "_id",
-          as: "members.user",
+          from: 'users',
+          localField: 'members',
+          foreignField: '_id',
+          as: 'members.user',
         },
       },
       {
-        $unwind: "$members.user",
+        $unwind: '$members.user',
       },
       {
         $group: {
-          _id: "$roomId",
+          _id: '$roomId',
           members: {
-            $addToSet: "$members.user",
+            $addToSet: '$members.user',
           },
         },
       },
     ]);
     return contacts;
   } catch (error) {
-    throw new ApiError(400, "Error in getting contacts");
+    throw new ApiError(400, 'Error in getting contacts');
   }
 };
 

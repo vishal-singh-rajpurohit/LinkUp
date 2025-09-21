@@ -1,32 +1,19 @@
 import React, { useEffect, useMemo } from "react";
 import io from "socket.io-client"
 import { useAppDispatch, useAppSelector } from "../app/hooks";
-import { callFailure, cancelVideoCall, incomingVideoCall, kickedMeTemp, markTempAsRead, newMessageInRoom, notificationPup, rejectVideoCall, removeTempMessage, requestVideoCall, toggleTyping, triggerOnline, uploadedMeidaTemp } from "../app/functions/temp";
+import {kickedMeTemp, markTempAsRead, newMessageInRoom, notificationPup, removeTempMessage,  toggleTyping, triggerOnline, uploadedMeidaTemp } from "../app/functions/temp";
 import { deleteMessage, kickedMeAuth, kickOutAuth, markAsRead, messageMediaSent, messageRecived, saveContact, saveGroup, triggerConOnline, type groupMssageType, type groupsResp, type newChatTypes } from "../app/functions/auth";
+
 import { WSContext, type WSCTypes } from "./Contexts";
 import { ChatEventsEnum } from "./constant"
-import {
-    Device,
-    types,
-    
-} from "mediasoup-client"
-
-
-let device: Device
-
-
 
 
 const WSProvider = ({ children }: { children: React.ReactNode }) => {
     const disp = useAppDispatch();
+    
     const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn)
     const user = useAppSelector((state) => state.auth.user)
-
-    // const selectedContact = useAppSelector((state) => state.temp.selectedContact)
-
-    const isIncomingVideoCall = useAppSelector((state) => state.temp.incomingVideoCall)
-    const isCalling = useAppSelector((state) => state.temp.isCalling)
-
+    
     const socket = useMemo(() => {
         if (isLoggedIn) {
             const newSocket = io(`http://localhost:5000`, {
@@ -42,18 +29,7 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         return null
     }, [isLoggedIn])
 
-
-    const loadDevice = async (routerRtpCapabilities: types.RtpCapabilities) => { 
-        try {
-            device = new Device()
-        } catch (error) {
-            if (error instanceof Error) {
-                console.log('Error in creating device: ', error)
-                throw new Error("Error in creating device")
-            }
-        }
-        await device.load({routerRtpCapabilities})
-    }
+    
 
     useEffect(() => {
         if (!isLoggedIn) return;
@@ -73,7 +49,7 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         })
 
         socket?.on(ChatEventsEnum.APPROACHED_TALK, ({ newContact, userId }: { newContact: newChatTypes, userId: string }) => {
-            if(userId === user._id){
+            if (userId === user._id) {
                 // Publish the media
 
             }
@@ -140,64 +116,14 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
             disp(markTempAsRead({ messageId: messageId, contactId: contactId, viewerId }))
         })
 
-        socket?.on(ChatEventsEnum.INCOMING_VIDEO_CALL, ({
-            roomId,
-            userId,
-            searchTag,
-            avatar,
-            callId,
-            mediasoupRouter
-        }) => {
-            if (!isCalling && !isIncomingVideoCall) {
-                if (userId === user._id) {
-                    disp(requestVideoCall({ details: { avatar, callId, roomId, searchTag } }))
-                    loadDevice(mediasoupRouter)
-                    console.log('rtc Capabilities: ', device.rtpCapabilities)
-                    // Directly publish the media
-                } else {
-                    disp(incomingVideoCall({
-                        details: {
-                            avatar,
-                            callId,
-                            roomId,
-                            searchTag
-                        }
-                    }))
-                }
-            }
-            // Emit Busy
-        })
-
-        socket?.on(ChatEventsEnum.ACCEPTED_VIDEO_CALL, () => {
-            console.log("Accepted video call")
-            // Logic to implement
-        })
-
-        socket?.on(ChatEventsEnum.REJECTED_VIDEO_CALL, () => {
-            console.log("Rejected video call")
-        })
-
-        socket?.on(ChatEventsEnum.OFFLINE_CALLER, () => {
-            disp(callFailure({ trigger: true }))
-            disp(rejectVideoCall())
-            disp(cancelVideoCall())
-        })
-
-        socket?.on(ChatEventsEnum.CANCELLED_VIDEO_CALL, () => {
-            disp(callFailure({ trigger: true }))
-            disp(cancelVideoCall())
-        })
-
-        // socket?.on(ChatEventsEnum.REJECT_VIDEO_CALL, () => {
-        //     disp(callFailure({ trigger: true }))
-        // })
+        
 
     }, [socket, isLoggedIn])
 
     const data: WSCTypes = {
         socket,
-        device
     }
+
     return <WSContext.Provider value={data} >{children}</WSContext.Provider>
 
 }

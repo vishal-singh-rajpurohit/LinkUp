@@ -1,11 +1,13 @@
 {
-  "name": "Linkup",
+  "name": "linkup-api",
   "version": "1.0.0",
   "description": "The chat Backend",
   "main": "index.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "format": "prettier --write .",
+  "format:check": "prettier --check ."
   },
   "keywords": [
     "Linkup"
@@ -13,8 +15,9 @@
   "author": "Vishal Singh",
   "license": "ISC",
   "devDependencies": {
+    "eslint-config-prettier": "^10.1.8",
     "nodemon": "^3.1.9",
-    "prettier": "^3.4.2"
+    "prettier": "^3.6.2"
   },
   "dependencies": {
     "axios": "^1.11.0",

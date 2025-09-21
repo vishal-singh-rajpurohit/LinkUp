@@ -91,7 +91,7 @@ export interface contactTypes {
     isGroup?: boolean;
     lastMessage: string;
     isOnline: boolean;
-    time?: Date;
+    time?: Date | number;
     messages?: groupMssageType[];
     members?: groupMemberTypes[];
     unseen?: number;

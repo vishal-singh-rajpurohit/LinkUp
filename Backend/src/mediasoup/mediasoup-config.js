@@ -1,5 +1,4 @@
 const os = require("os");
-const {} = require("mediasoup");
 
 const config = {
   listenIp: "0.0.0.0",

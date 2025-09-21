@@ -311,7 +311,7 @@ function setGroupAvatar(state: initialStateTypes, action: PayloadAction<{ avatar
 function setOnline(state: initialStateTypes, action: PayloadAction<{ contactId: string; trigger: boolean }>) {
     if (state.selectedContact._id === action.payload.contactId) {
         state.selectedContact.isOnline = action.payload.trigger;
-        state.selectedContact.time = new Date();
+        state.selectedContact.time = Date.now();
     }
 }
 

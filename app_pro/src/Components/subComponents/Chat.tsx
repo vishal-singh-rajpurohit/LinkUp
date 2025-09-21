@@ -10,7 +10,7 @@ import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { getTimeDifference } from '../../helpers/timeConverter'
 import { NavLink, useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { incomingVideoCall, requestVideoCall, setEmojiSelection, setFileSelection, setHasAttechments, setReplyState, toggleTyping, triggetUploadType } from '../../app/functions/temp'
+import { setEmojiSelection, setFileSelection, setHasAttechments, setReplyState, toggleTyping, triggetUploadType } from '../../app/functions/temp'
 import { ChatEventsEnum } from '../../context/constant'
 import { AppContext, WSContext } from '../../context/Contexts'
 import EmojiPicker from 'emoji-picker-react';
@@ -44,13 +44,11 @@ export const ChatArea = () => {
 
 export const ChatTop = () => {
     const router = useNavigate()
-    const disp = useAppDispatch()
     const room = useAppSelector((state) => state.temp.selectedContact)
-    const user = useAppSelector((state)=>state.auth.user)
+    const user = useAppSelector((state) => state.auth.user)
     const chatTypes = useAppSelector((state) => state.temp.chatListTypes)
-    const lastOnline = getTimeDifference(room?.time || Date())
+    const lastOnline = getTimeDifference(room?.time || Date.now())
     const socketContext = useContext(WSContext)
-    
 
     if (!socketContext) {
         throw Error("Context not found")
@@ -58,12 +56,17 @@ export const ChatTop = () => {
 
     const { socket } = socketContext
 
-    async function requestForVideoCall(){
+    async function requestForVideoCall() {
         try {
-            socket?.emit(ChatEventsEnum.REQUEST_VIDEO_CALL, {contactId: room._id, userId: user._id, username: room.searchTag, avatar: room.avatar})
-            
+            socket?.emit(ChatEventsEnum.REQUEST_VIDEO_CALL, {
+                contactId: room._id,
+                callerId: user._id,
+                username: user.searchTag,
+                avatar: room.avatar
+            })
+
             console.log("Requested")
-            
+
         } catch (error) {
             console.log('Error in Requesting video call: ', error);
         }

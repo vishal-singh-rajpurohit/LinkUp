@@ -2,13 +2,15 @@ import { configureStore } from "@reduxjs/toolkit";
 import AuthSliceReducer from "./functions/auth";
 import TriggersSlice from './functions/triggers';
 import TempSlice from './functions/temp'
+import CallSlice from "./functions/call";
 
 
 export const store = configureStore({
     reducer: {
         auth: AuthSliceReducer,
         triggers: TriggersSlice,
-        temp: TempSlice
+        temp: TempSlice,
+        call: CallSlice
     }
 })
 

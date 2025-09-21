@@ -1,5 +1,6 @@
-const Call = require("../models/calls.model");
-const ApiError = require("../utils/ApiError.utils");
+const { default: mongoose } = require('mongoose');
+const Call = require('../models/calls.model');
+const ApiError = require('../utils/ApiError.utils');
 
 const makeCall = async (userId, roomId, count) => {
   try {
@@ -15,41 +16,51 @@ const makeCall = async (userId, roomId, count) => {
     await call.save();
 
     if (!call) {
-      throw new ApiError(400, "Error in creating Call in db: Not saved");
+      throw new ApiError(400, 'Error in creating Call in db: Not saved');
     }
 
     return call;
   } catch (error) {
-    throw new ApiError(400, "Error in creating Call in db: Not saved");
+    throw new ApiError(400, 'Error in creating Call in db: Not saved');
   }
 };
 
 const addMemberToCall = async (callId, userId) => {
   try {
-    const call = await Call.findByIdAndUpdate(
+    const call = await Call.findById(callId);
+
+    const members = new Set(call.members);
+    members.add(new mongoose.Types.ObjectId(userId));
+
+    const updatedCall = await Call.findByIdAndUpdate(
       callId,
       {
         $addToSet: {
-          members: [userId],
+          members: new mongoose.Types.ObjectId(userId),
         },
         isAnswered: true,
       },
       {
         new: true,
-      }
+      },
     );
-    await call.save();
-    if (!call) {
-      throw new ApiError(400, "Error in saving Call in db: Not saved");
+    await updatedCall.save();
+    if (!updatedCall) {
+      throw new ApiError(400, 'Error in saving Call in db: Not saved');
     }
 
-    console.log("Added to calll members")
+    const newCall = await Call.findById(callId);
+
+    if (!newCall) {
+      throw new ApiError(400, 'newCall in ');
+    }
 
     return {
       successs: true,
+      newCall,
     };
   } catch (error) {
-    throw new ApiError(400, "Error in saving Call in db: Not saved");
+    throw new ApiError(400, 'Error in saving Call in db: Not saved');
   }
 };
 
@@ -59,14 +70,14 @@ const endVideoCall = async (callId) => {
     call.isEnded = true;
     await call.save();
     if (!call) {
-      throw new ApiError(400, "Error in Ending Call in db: Not saved");
+      throw new ApiError(400, 'Error in Ending Call in db: Not saved');
     }
 
     return {
       successs: true,
     };
   } catch (error) {
-    throw new ApiError(400, "Error in Ending Call in db: Not saved");
+    throw new ApiError(400, 'Error in Ending Call in db: Not saved');
   }
 };
 
@@ -76,14 +87,14 @@ const changeVideoCallMember = async (callId) => {
     call.expectedCount = call.expectedCount - 1;
     await call.save();
     if (!call) {
-      throw new ApiError(400, "Error in Ending Call in db: Not saved");
+      throw new ApiError(400, 'Error in Ending Call in db: Not saved');
     }
 
     return {
       count: call.expectedCount,
     };
   } catch (error) {
-    throw new ApiError(400, "Error in Ending Call in db: Not saved");
+    throw new ApiError(400, 'Error in Ending Call in db: Not saved');
   }
 };
 
@@ -91,5 +102,5 @@ module.exports = {
   makeCall,
   addMemberToCall,
   endVideoCall,
-  changeVideoCallMember
+  changeVideoCallMember,
 };
