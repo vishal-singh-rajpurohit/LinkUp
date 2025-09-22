@@ -1,21 +1,17 @@
 import g from "../../assets/no_dp.png"
 import { PhoneCall, PhoneOff } from "lucide-react"
 import { useAppDispatch, useAppSelector } from "../../app/hooks"
-import { callFailure } from "../../app/functions/temp"
 import { useContext } from "react"
-import {  WSContext } from "../../context/Contexts"
+import { WSContext } from "../../context/Contexts"
 import { ChatEventsEnum } from "../../context/constant"
 import { IoClose } from "react-icons/io5"
 import { useDispatch } from "react-redux"
-import { setCalling } from "../../app/functions/call"
-import useLocalMedia from "../../hooks/useLocalMedia"
-// import type { RtpCapabilities } from "mediasoup-client/types"
-
+import { setCallingStatus } from "../../app/functions/call"
 
 export const RequestedVideoCall = () => {
-    const isRequestedCall = useAppSelector((state) => state.temp.requestedVideoCall)
     const room = useAppSelector((state) => state.temp.selectedContact)
-    const callDet = useAppSelector((state) => state.temp.callDetails)
+    const callDet = useAppSelector((state) => state.call.callingDet)
+    const call_status = useAppSelector((state) => state.call.callStatus)
 
     const socketContext = useContext(WSContext)
 
@@ -32,7 +28,7 @@ export const RequestedVideoCall = () => {
     }
 
     return (
-        isRequestedCall ? (
+        call_status === "OUTGOING" ? (
             <section className="selection:bg-transparent w-full h-full fixed top-0 left-0 flex items-center justify-center z-50">
                 <div className="w-[17rem] h-[16rem] bg-slate-900 rounded-md flex flex-col gap-4 items-center justify-center">
                     <div className="">
@@ -57,11 +53,10 @@ export const RequestedVideoCall = () => {
 
 export const IncomingVideoCall = () => {
     const disp = useDispatch()
-    const isIncoming = useAppSelector((state) => state.temp.incomingVideoCall)
     const room = useAppSelector((state) => state.temp.selectedContact)
     const callDet = useAppSelector((state) => state.call.callingDet)
     const user = useAppSelector((state) => state.auth.user)
-    const { getAndSetLocalStream } = useLocalMedia()
+    const call_status = useAppSelector((state) => state.call.callStatus)
 
     const socketContext = useContext(WSContext)
 
@@ -81,7 +76,7 @@ export const IncomingVideoCall = () => {
                     searchTag: callDet.searchTag,
                     callerId: callDet.callerId,
                     userId: user._id
-                }, ()=>{
+                }, () => {
                     console.log("Call made success fully with CALLBACK")
                 });
             }
@@ -93,9 +88,9 @@ export const IncomingVideoCall = () => {
     async function declineCall() {
         if (socketContext) {
             try {
-                disp(setCalling({ trigger: true }))
-                await getAndSetLocalStream()
-                socket?.emit(ChatEventsEnum.REJECT_VIDEO_CALL, { roomId: callDet.roomId, userId: user._id, callId: callDet.callId })
+                disp(setCallingStatus({ status: "ENDED" }))
+
+                // socket?.emit(ChatEventsEnum.REJECT_VIDEO_CALL, { roomId: callDet.roomId, userId: user._id, callId: callDet.callId })
             } catch (error) {
                 console.log("Error in reject call: ", error)
             }
@@ -104,7 +99,7 @@ export const IncomingVideoCall = () => {
 
 
     return (
-        isIncoming ? (
+        call_status === "INCOMING" ? (
             <section className="selection:bg-transparent w-full h-full fixed top-0 left-0 flex items-center justify-center">
                 <div className="w-[17rem] h-[16rem] bg-slate-900 rounded-md flex flex-col gap-4 items-center justify-center">
                     <div className="">
@@ -133,16 +128,16 @@ export const IncomingVideoCall = () => {
 
 export const FailVideoCall = () => {
     const disp = useAppDispatch();
-    const open = useAppSelector((state) => state.temp.cannotConnect)
     const room = useAppSelector((state) => state.temp.selectedContact)
+    const call_status = useAppSelector((state) => state.call.callStatus)
 
 
     function close() {
-        disp(callFailure({ trigger: false }))
+        disp(setCallingStatus({ status: 'OFF' }))
     }
 
     return (
-        open ? (
+        call_status === "ENDED" ? (
             <section className="selection:bg-transparent w-full h-full fixed top-0 left-0 flex items-center justify-center">
                 <div className="w-[17rem] h-[16rem] bg-slate-900 rounded-md flex flex-col gap-4 items-center justify-center">
                     <div className="">

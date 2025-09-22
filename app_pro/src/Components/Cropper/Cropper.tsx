@@ -213,6 +213,7 @@ export const SampleCropper2 = ({ open, image, setImage, contactId }: {
 
     );
 };
+
 export const SampleCropper3 = ({ open, setOpen, image, setImage, setPiblicId }: {
     open: boolean;
     image: string;

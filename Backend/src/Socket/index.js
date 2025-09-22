@@ -303,9 +303,7 @@ const starterSocketIo = async (io) => {
         });
       });
 
-      socket.on(
-        chatEventEnumNew.REQUEST_VIDEO_CALL,
-        async ({ contactId, callerId, username, avatar }) => {
+      socket.on(chatEventEnumNew.REQUEST_VIDEO_CALL,async ({ contactId, callerId, username, avatar }) => {
           console.log('Video call requested: ', producersMap);
           const contact = await Contact.findById(contactId);
 
@@ -360,9 +358,7 @@ const starterSocketIo = async (io) => {
         },
       );
 
-      socket.on(
-        chatEventEnumNew.CANCELLED_VIDEO_CALL,
-        async ({ callId, roomId }) => {
+      socket.on(chatEventEnumNew.CANCELLED_VIDEO_CALL,async ({ callId, roomId }) => {
           console.log('Video Call Cancelld');
           const contact = await Contact.findById(roomId);
 
@@ -400,9 +396,7 @@ const starterSocketIo = async (io) => {
         },
       );
 
-      socket.on(
-        chatEventEnumNew.ANSWER_VIDEO_CALL,
-        async ({ roomId, callId, callerId, searchTag }, cb) => {
+      socket.on(chatEventEnumNew.ANSWER_VIDEO_CALL,async ({ roomId, callId, callerId, searchTag }, cb) => {
           cb({
             rtpCapabilities: router.rtpCapabilities,
           });
@@ -446,9 +440,7 @@ const starterSocketIo = async (io) => {
         },
       );
 
-      socket.on(
-        chatEventEnumNew.CREATE_WEB_RTC_TRANSPORT,
-        async ({ sender }, callback) => {
+      socket.on(chatEventEnumNew.CREATE_WEB_RTC_TRANSPORT,async ({ sender }, callback) => {
           console.log(
             'CREATE_WEB_RTC_TRANSPORT is this a sender transport?',
             sender,
@@ -466,17 +458,13 @@ const starterSocketIo = async (io) => {
         },
       );
 
-      socket.on(
-        chatEventEnumNew.TRANSPORT_CONNECT,
-        async ({ dtlsParameters }) => {
+      socket.on(chatEventEnumNew.TRANSPORT_CONNECT,async ({ dtlsParameters }) => {
           await producerTransport.connect({ dtlsParameters });
           console.log('TRANSPORT_CONNECT Connected the producer transport: ');
         },
       );
 
-      socket.on(
-        chatEventEnumNew.TRANSPORT_PRODUCE,
-        async ({ kind, rtpParameters, appData, userId }, callback) => {
+      socket.on(chatEventEnumNew.TRANSPORT_PRODUCE,async ({ kind, rtpParameters, appData, userId }, callback) => {
           console.log('TRANSPORT_PRODUCE: ');
 
           const newProducer = await producerTransport.produce({
@@ -496,9 +484,7 @@ const starterSocketIo = async (io) => {
         },
       );
 
-      socket.on(
-        chatEventEnumNew.TRANSPORT_RECIVER_CONNECT,
-        async ({ dtlsParameters }) => {
+      socket.on(chatEventEnumNew.TRANSPORT_RECIVER_CONNECT,async ({ dtlsParameters }) => {
           console.log(
             'TRANSPORT_RECIVER_CONNECT DTLS PARAMS RECIVER: ',
             dtlsParameters,
@@ -507,9 +493,7 @@ const starterSocketIo = async (io) => {
         },
       );
 
-      socket.on(
-        chatEventEnumNew.CONSUME,
-        async ({ rtpCapabilities, callerId }, callback) => {
+      socket.on(chatEventEnumNew.CONSUME,async ({ rtpCapabilities, callerId }, callback) => {
           try {
             const producer = producersMap.get(callerId);
 
@@ -604,121 +588,121 @@ const starterSocketIo = async (io) => {
 
 
 
-      socket.on(chatEventEnumNew.REQUEST_VIDEO_ROOM_TEST,async ({ contactId, callerId, username, avatar, email }) => {
-          console.log('Video call requested: ', callerId);
-          const contact = await Contact.findById(contactId);
+      // socket.on(chatEventEnumNew.REQUEST_VIDEO_ROOM_TEST,async ({ contactId, callerId, username, avatar, email }) => {
+      //     console.log('Video call requested: ', callerId);
+      //     const contact = await Contact.findById(contactId);
 
-          if (!contact) {
-            console.log('Contacts not found');
-            socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
-              message: 'contacts not found',
-            });
-          }
+      //     if (!contact) {
+      //       console.log('Contacts not found');
+      //       socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
+      //         message: 'contacts not found',
+      //       });
+      //     }
 
-          //Right Here
-          const reciver = await getContactsForCall(contact._id);
+      //     //Right Here
+      //     const reciver = await getContactsForCall(contact._id);
 
-          const recivers = await reciver[0].member.filter(
-            (val) => val.online === true,
-          );
+      //     const recivers = await reciver[0].member.filter(
+      //       (val) => val.online === true,
+      //     );
 
-          const newCall = await makeCall(
-            callerId,
-            contact._id,
-            recivers.length,
-          );
+      //     const newCall = await makeCall(
+      //       callerId,
+      //       contact._id,
+      //       recivers.length,
+      //     );
 
-          // callRooms.set(newCall.id, [callerId]);
+      //     // callRooms.set(newCall.id, [callerId]);
 
-          if (recivers.length > 1) {
-            for (const reciver of recivers) {
-              if (reciver.online) {
-                if (callerId === reciver._id) {
-                  socket.join(newCall._id);
-                }
+      //     if (recivers.length > 1) {
+      //       for (const reciver of recivers) {
+      //         if (reciver.online) {
+      //           if (callerId === reciver._id) {
+      //             socket.join(newCall._id);
+      //           }
 
-                io.to(`${reciver.socketId}`).emit(
-                  `${chatEventEnumNew.INCOMING_VIDEO_ROOM_TEST}`,
-                  {
-                    roomId: contact._id,
-                    callerId: callerId,
-                    searchTag: contact.groupName || username,
-                    avatar: contact.groupAvatar || avatar,
-                    callId: newCall._id,
-                    email,
-                  },
-                );
-                console.log(`call ${newCall._id} created.`);
-              }
-            }
-          } else {
-            socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
-              message: 'contacts not found',
-            });
-          }
-        },
-      );
+      //           io.to(`${reciver.socketId}`).emit(
+      //             `${chatEventEnumNew.INCOMING_VIDEO_ROOM_TEST}`,
+      //             {
+      //               roomId: contact._id,
+      //               callerId: callerId,
+      //               searchTag: contact.groupName || username,
+      //               avatar: contact.groupAvatar || avatar,
+      //               callId: newCall._id,
+      //               email,
+      //             },
+      //           );
+      //           console.log(`call ${newCall._id} created.`);
+      //         }
+      //       }
+      //     } else {
+      //       socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
+      //         message: 'contacts not found',
+      //       });
+      //     }
+      //   },
+      // );
 
-      socket.on(chatEventEnumNew.JOIN_VIDEO_ROOM_TEST, 
-        async ({ roomId, callId, callerId, searchTag, email, userId }) => {
-          const contact = await Contact.findById(roomId);
+      // socket.on(chatEventEnumNew.JOIN_VIDEO_ROOM_TEST, 
+      //   async ({ roomId, callId, callerId, searchTag, email, userId }) => {
+      //     const contact = await Contact.findById(roomId);
 
-          if (!contact) {
-            socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
-              message: 'contacts not found',
-            });
-          }
+      //     if (!contact) {
+      //       socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
+      //         message: 'contacts not found',
+      //       });
+      //     }
 
-          const addedContact = await addMemberToCall(callId, callerId);
-          const members = await getContactsInCall(callId);
+      //     const addedContact = await addMemberToCall(callId, callerId);
+      //     const members = await getContactsInCall(callId);
 
-          const myUser = await User.findById(userId);
-          const caller = await User.findById(callerId);
+      //     const myUser = await User.findById(userId);
+      //     const caller = await User.findById(callerId);
 
-          if (!User) {
-            throw new ApiError(401, 'User not found');
-          }
+      //     if (!User) {
+      //       throw new ApiError(401, 'User not found');
+      //     }
 
 
-          if (members[0].members.length) {
-            console.log("Caller's socket id: ", caller.socketId)
-            console.log("myUser.socketId id: ", myUser.socketId)
-            io.to(caller.socketId).emit(
-              chatEventEnumNew.JOINED_VIDEO_ROOM_TEST,
-              {
-                callId: callId,
-                roomId: roomId,
-                callerId: callerId,
-                userId: myUser._id,
-                searchTag: searchTag,
-                email,
-              },
-            );
+      //     if (members[0].members.length) {
+      //       console.log("Caller's socket id: ", caller.socketId)
+      //       console.log("myUser.socketId id: ", myUser.socketId)
+      //       io.to(caller.socketId).emit(
+      //         chatEventEnumNew.JOINED_VIDEO_ROOM_TEST,
+      //         {
+      //           callId: callId,
+      //           roomId: roomId,
+      //           callerId: callerId,
+      //           userId: myUser._id,
+      //           searchTag: searchTag,
+      //           email,
+      //         },
+      //       );
 
-            io.to(myUser.socketId).emit(
-              chatEventEnumNew.JOINED_VIDEO_ROOM_TEST,
-              {
-                callId: callId,
-                roomId: roomId,
-                callerId: callerId,
-                userId: myUser._id,
-                searchTag: searchTag,
-                email,
-              },
-            );
+      //       io.to(myUser.socketId).emit(
+      //         chatEventEnumNew.JOINED_VIDEO_ROOM_TEST,
+      //         {
+      //           callId: callId,
+      //           roomId: roomId,
+      //           callerId: callerId,
+      //           userId: myUser._id,
+      //           searchTag: searchTag,
+      //           email,
+      //         },
+      //       );
             
-          } else {
-            throw new ApiError(
-              400,
-              'Answer video call Error: Contacts not found',
-            );
-          }
+      //     } else {
+      //       throw new ApiError(
+      //         400,
+      //         'Answer video call Error: Contacts not found',
+      //       );
+      //     }
 
-          if (!addedContact) {
-            throw new ApiError(400, 'Contact not added');
-          }
-        },
-      );
+      //     if (!addedContact) {
+      //       throw new ApiError(400, 'Contact not added');
+      //     }
+      //   },
+      // );
 
       socket.on(ChatEventEnum.DISCONNECT_EVENT, async () => {
         console.log('user has disconnected userId: ' + socket.user?._id);

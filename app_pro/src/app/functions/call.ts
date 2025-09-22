@@ -1,17 +1,17 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
+
 interface initialStateTypes {
     audioEnabled: boolean;
     videoEnable: boolean;
-    isCalling: boolean;
+    callStatus: "OFF" | "CALLING" | "INCOMING" | "OUTGOING" | "ENDED";
     memberCount: number;
-    isAnswered: boolean;
     callingDet: {
         roomId: string;
+        callerId: string;
         callId: string;
         avatar: string;
         searchTag: string;
-        callerId: string;
         email: string;
     }
 }
@@ -24,16 +24,15 @@ export interface callerTypes {
 }
 
 const initialState: initialStateTypes = {
-    isCalling: false,
+    callStatus: "OFF",
     audioEnabled: true,
     videoEnable: true,
     memberCount: 0,
-    isAnswered: false,
     callingDet: {
-        avatar: "",
+        roomId: "",
         callerId: "",
         callId: "",
-        roomId: "",
+        avatar: "",
         searchTag: "",
         email: ""
     }
@@ -63,31 +62,24 @@ function setCallDetailsFunc(state: initialStateTypes, action: PayloadAction<{
     state.callingDet.email = action.payload.email;
 }
 
-function setMemberCountFunc(state: initialStateTypes, action: PayloadAction<{type: "INC" | "DEC"}>){
-    if(action.payload.type === "INC"){
+function setMemberCountFunc(state: initialStateTypes, action: PayloadAction<{ type: "INC" | "DEC" }>) {
+    if (action.payload.type === "INC") {
         state.memberCount = state.memberCount + 1;
-        console.log("function is calling: ", state.memberCount)
     }
-    else if(action.payload.type === "DEC"){
+    else if (action.payload.type === "DEC") {
         state.memberCount = state.memberCount - 1;
     }
-
-    if(state.memberCount > 2){
-        console.log("answered")
-        state.isAnswered = true
-    }
 }
 
-function pickUpCallfunc(state: initialStateTypes){
-    state.isAnswered = true;
+function callingStatusFunction(state: initialStateTypes, action: PayloadAction<{ status: "OFF" | "CALLING" | "INCOMING" | "OUTGOING" | "ENDED"; }>) {
+    state.callStatus = action.payload.status
 }
 
-function clearCalling(state: initialStateTypes){
-    state.isCalling = false
+function clearCalling(state: initialStateTypes) {
+    state.callStatus = "OFF"
     state.audioEnabled = true
     state.videoEnable = true
     state.memberCount = 0
-    state.isAnswered = false
     state.callingDet = {
         avatar: "",
         callerId: "",
@@ -105,16 +97,13 @@ export const CallSlice = createSlice({
     reducers: {
         toggleAudio: toggleAudioFunc,
         toggleVideo: toggleVideoFunc,
-        setCalling: (state: initialStateTypes, action: PayloadAction<{ trigger: boolean; }>) => {
-            state.isCalling = action.payload.trigger;
-        },
         setCallDetails: setCallDetailsFunc,
         setMemberCount: setMemberCountFunc,
-        pickUpCall: pickUpCallfunc,
-        clearCall: clearCalling
+        clearCall: clearCalling,
+        setCallingStatus: callingStatusFunction
     }
 })
 
-export const { toggleAudio, toggleVideo, setCalling, setCallDetails, setMemberCount, clearCall, pickUpCall } = CallSlice.actions
+export const { toggleAudio, toggleVideo, setCallDetails, setMemberCount, clearCall, setCallingStatus } = CallSlice.actions
 
 export default CallSlice.reducer
