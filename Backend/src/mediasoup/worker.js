@@ -8,7 +8,7 @@ let nextMediaSoupWorkerIdx = 0;
 
 const startMediaSoup = async () => {
   
-  worker = await mediasoup.createWorker({
+  const worker = await mediasoup.createWorker({
     logTags: config.mediasoup.worker.logTags,
     logLevel: config.mediasoup.worker.logLevel,
     rtcMinPort: config.mediasoup.worker.rtcMinPort,
@@ -25,17 +25,17 @@ const startMediaSoup = async () => {
   });
 
   const mediaSoupCodecs = config.mediasoup.worker.router.mediaCodes;
-  router = await worker.createRouter({
+  const localRouter = await worker.createRouter({
     mediaCodecs: mediaSoupCodecs,
   });
 
   console.log("media soup startede " )
   
-  return router
+  return localRouter
 
 };
 
-const createWebRtcTransport= async(callback) =>{
+const createWebRtcTransport = async(callback) =>{
     try {
       const {
         maxIncomeBitRate,

@@ -29,35 +29,28 @@ const addMemberToCall = async (callId, userId) => {
   try {
     const call = await Call.findById(callId);
 
-    const members = new Set(call.members);
-    members.add(new mongoose.Types.ObjectId(userId));
+    if (!call) {
+      throw new ApiError(500, 'invalid call id: Call not found');
+    }
+
+    const userObjectId = new mongoose.Types.ObjectId(userId);
 
     const updatedCall = await Call.findByIdAndUpdate(
       callId,
       {
-        $addToSet: {
-          members: new mongoose.Types.ObjectId(userId),
-        },
+        $addToSet: { members: userObjectId },
         isAnswered: true,
       },
-      {
-        new: true,
-      },
+      { new: true },
     );
-    await updatedCall.save();
+
     if (!updatedCall) {
       throw new ApiError(400, 'Error in saving Call in db: Not saved');
     }
 
-    const newCall = await Call.findById(callId);
-
-    if (!newCall) {
-      throw new ApiError(400, 'newCall in ');
-    }
-
     return {
       successs: true,
-      newCall,
+      newCall: updatedCall,
     };
   } catch (error) {
     throw new ApiError(400, 'Error in saving Call in db: Not saved');
@@ -97,8 +90,6 @@ const changeVideoCallMember = async (callId) => {
     throw new ApiError(400, 'Error in Ending Call in db: Not saved');
   }
 };
-
-
 
 module.exports = {
   makeCall,

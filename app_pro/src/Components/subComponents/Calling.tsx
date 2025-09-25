@@ -3,10 +3,12 @@ import { PhoneCall, PhoneOff } from "lucide-react"
 import { useAppDispatch, useAppSelector } from "../../app/hooks"
 import { useContext } from "react"
 import { WSContext } from "../../context/Contexts"
-import { ChatEventsEnum } from "../../context/constant"
+import { CallEventEnum, ChatEventsEnum } from "../../context/constant"
 import { IoClose } from "react-icons/io5"
 import { useDispatch } from "react-redux"
 import { setCallingStatus } from "../../app/functions/call"
+import type { types } from "mediasoup-client"
+import useLocalMedia from "../../hooks/useLocalMedia"
 
 export const RequestedVideoCall = () => {
     const room = useAppSelector((state) => state.temp.selectedContact)
@@ -58,8 +60,9 @@ export const IncomingVideoCall = () => {
     const user = useAppSelector((state) => state.auth.user)
     const call_status = useAppSelector((state) => state.call.callStatus)
 
-    const socketContext = useContext(WSContext)
+    const {setLRtpCapabilities } = useLocalMedia()
 
+    const socketContext = useContext(WSContext)
     if (!socketContext) {
         throw Error("Socket not found")
     }
@@ -69,15 +72,16 @@ export const IncomingVideoCall = () => {
     async function answerTheCall() {
         try {
             if (socketContext) {
-                socket?.emit(ChatEventsEnum.JOIN_VIDEO_ROOM_TEST, {
+                socket?.emit(CallEventEnum.ANSWER_VIDEO_CALL, {
                     roomId: callDet.roomId,
                     callId: callDet.callId,
                     avatar: callDet.avatar,
                     searchTag: callDet.searchTag,
                     callerId: callDet.callerId,
                     userId: user._id
-                }, () => {
+                }, async(rtpCapabilities: types.RtpCapabilities) => {
                     console.log("Call made success fully with CALLBACK")
+                    setLRtpCapabilities(rtpCapabilities)
                 });
             }
         } catch (error) {

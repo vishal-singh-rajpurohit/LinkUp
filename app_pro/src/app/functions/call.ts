@@ -4,7 +4,7 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 interface initialStateTypes {
     audioEnabled: boolean;
     videoEnable: boolean;
-    callStatus: "OFF" | "CALLING" | "INCOMING" | "OUTGOING" | "ENDED";
+    callStatus: "OFF" | "ACTIVE" | "INCOMING" | "OUTGOING" | "ENDED";
     memberCount: number;
     callingDet: {
         roomId: string;
@@ -71,7 +71,7 @@ function setMemberCountFunc(state: initialStateTypes, action: PayloadAction<{ ty
     }
 }
 
-function callingStatusFunction(state: initialStateTypes, action: PayloadAction<{ status: "OFF" | "CALLING" | "INCOMING" | "OUTGOING" | "ENDED"; }>) {
+function callingStatusFunction(state: initialStateTypes, action: PayloadAction<{ status: "OFF" | "ACTIVE" | "INCOMING" | "OUTGOING" | "ENDED"; }>) {
     state.callStatus = action.payload.status
 }
 
@@ -99,8 +99,8 @@ export const CallSlice = createSlice({
         toggleVideo: toggleVideoFunc,
         setCallDetails: setCallDetailsFunc,
         setMemberCount: setMemberCountFunc,
+        setCallingStatus: callingStatusFunction,
         clearCall: clearCalling,
-        setCallingStatus: callingStatusFunction
     }
 })
 

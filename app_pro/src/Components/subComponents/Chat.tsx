@@ -11,7 +11,7 @@ import { getTimeDifference } from '../../helpers/timeConverter'
 import { NavLink, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { setEmojiSelection, setFileSelection, setHasAttechments, setReplyState, toggleTyping, triggetUploadType } from '../../app/functions/temp'
-import { ChatEventsEnum } from '../../context/constant'
+import { CallEventEnum, ChatEventsEnum } from '../../context/constant'
 import { AppContext, WSContext } from '../../context/Contexts'
 import EmojiPicker from 'emoji-picker-react';
 
@@ -58,7 +58,7 @@ export const ChatTop = () => {
 
     async function requestForVideoCall() {
         try {
-            socket?.emit(ChatEventsEnum.REQUEST_VIDEO_ROOM_TEST, {
+            socket?.emit(CallEventEnum.REQUEST_VIDEO_CALL, {
                 contactId: room._id,
                 callerId: user._id,
                 username: user.searchTag,

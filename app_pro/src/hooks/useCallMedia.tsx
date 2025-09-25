@@ -1,4 +1,5 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import {types} from "mediasoup-client"
 
 export interface callerTypes {
     callerName: string;
@@ -8,8 +9,24 @@ export interface callerTypes {
     stream: MediaStream;
 }
 
+
+export interface videoType{
+    userName: string;
+    userId: string;
+    stream: MediaStream;
+    producerId: string;
+    isPaused: boolean;
+}
+
+export interface Consumer extends types.Consumer{
+    producerId: string;
+    isPaused: boolean;
+}
+
 const useCallMedia = () => {
     const [members, setMembers] = useState<callerTypes[]>([]);
+    const [remoteStream, setRemoteStream] = useState<videoType[]>([]);
+    const consumers = useRef<Map<string, types.Consumer>>(new Map())
 
     const addTrack = useCallback((track: MediaStreamTrack, callerInfo: Omit<callerTypes, 'stream'>)=>{
         setMembers((prevMembers)=>{
@@ -33,6 +50,9 @@ const useCallMedia = () => {
         members,
         removeParticipant,
         addTrack,
+        remoteStream,
+        setRemoteStream,
+        consumers
     }
 }
 
