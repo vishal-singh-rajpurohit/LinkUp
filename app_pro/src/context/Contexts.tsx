@@ -24,3 +24,7 @@ export interface RtcTypes{
 }
 
 export const RtcContext = createContext<RtcTypes | null>(null);
+
+export interface PeerTypes{}
+
+export const PeerContext = createContext<RtcTypes | null>(null)

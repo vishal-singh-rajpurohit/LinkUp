@@ -37,6 +37,8 @@ export const CallEventEnum = {
     INCOMING_VIDEO_CALL: "incoming_video_call",
     ANSWER_VIDEO_CALL: "answer_video_call",
     ACCEPTED_VIDEO_CALL: "accepted_video_call",
+
+
     CREATE_WEB_RTC_TRANSPORT: 'createWebRtcTransport',
     CREATED_WEB_RTC_TRANSPORT: 'sendWebRtcTransport',
 
@@ -57,4 +59,34 @@ export const CallEventEnum = {
     CONNECTED_TRANSPORT: "Connected_Transport",
 
     CALL_EVENT_ERROR: "call_event"
+}
+
+
+export const CallEventEnum_2 = {
+    REQUEST_VIDEO_CALL : "request_video_call",
+    REJECT_VIDEO_CALL: "reject_video_call",
+
+    // ANSWER_VIDEO_CALLl: "answer_video_call",
+    // ANSWERED_VIDEO_CALL: "answered_video_call",
+
+    // the main part for handle web rtc Started>>>>>
+    
+    CALLER_UPDATE: 'caller_update'
+
+    // the main part for handle web rtc  Ended <<<<<
+
+    // END_VIDEO_CALL: "end_video_call",
+    // ENDED_VIDOE_CALL: "end_video_call",
+
+
+}
+
+export const STUN_SERVERS = [
+  { urls: 'stun:stun.l.google.com:19302' }, // Public Google STUN server
+  // Add other STUN/TURN servers here
+];
+
+export const PeerConfig: RTCConfiguration = {
+    iceServers: STUN_SERVERS,
+    iceCandidatePoolSize: 10
 }
