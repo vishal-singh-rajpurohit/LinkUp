@@ -1,26 +1,14 @@
 const ApiError = require('../utils/ApiError.utils');
 const jwt = require('jsonwebtoken');
-const {
-  ChatEventEnum,
-  chatEventEnumNew,
-  CallEventEnum,
-} = require('../constants/constants');
+const { ChatEventEnum, chatEventEnumNew, CallEventEnum } = require('../constants/constants');
 const User = require('../models/user.model');
 const Contact = require('../models/contacts.model');
 const { default: mongoose } = require('mongoose');
 const Message = require('../models/message.modal');
 const Call = require('../models/calls.model');
-const {
-  makeCall,
-  endVideoCall,
-  addMemberToCall,
-  changeVideoCallMember,
-} = require('./caller.helpers');
+const { makeCall, endVideoCall, addMemberToCall, changeVideoCallMember } = require('./caller.helpers');
 
-const {
-  startMediaSoup,
-  createWebRtcTransport,
-} = require('../mediasoup/worker');
+const { startMediaSoup, createWebRtcTransport } = require('../mediasoup/worker');
 
 const config = require('../mediasoup/mediasoup-config');
 const mediasoup = require('mediasoup');
@@ -68,9 +56,7 @@ const starterSocketIo = async (io) => {
         process.env.ACCESS_TOKEN_SECRET,
       );
 
-      const user = await User.findById(decodedToken?._id).select(
-        '-password -refreshToken',
-      );
+      const user = await User.findById(decodedToken?._id).select('-password -refreshToken');
 
       if (!user) {
         throw new ApiError(400, 'Unauthorized User');
@@ -303,493 +289,157 @@ const starterSocketIo = async (io) => {
         });
       });
 
-      socket.on(
-        CallEventEnum.REQUEST_VIDEO_CALL,
-        async ({ contactId, callerId, username, avatar }) => {
-          const contact = await Contact.findById(contactId);
-          const user = await User.findById(callerId);
+      socket.on(CallEventEnum.REQUEST_VIDEO_CALL, async ({ contactId, callerId, username, avatar, offer }) => {
+        const contact = await Contact.findById(contactId);
+        const user = await User.findById(callerId);
 
-          if (!contact || !user) {
-            console.log('Contacts not found');
-            socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
-              message: 'contacts not found',
-            });
-          }
+        if (!contact || !user) {
+          console.log('Contacts not found');
+          socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
+            message: 'contacts not found',
+          });
+        }
 
-          const reciver = await getContactsForCall(contact._id);
+        //Getting members from the contacts
+        const reciver = await getContactsForCall(contact._id);
 
-          const recivers = await reciver[0].member.filter(
-            (val) => val.online === true,
-          );
+        // TODO -> Send email to all users in the in the chat
+        const recivers = await reciver[0].member.filter(
+          (val) => val.online === true,
+        );
 
-          const newCall = await makeCall(
-            callerId,
-            contact._id,
-            recivers.length,
-          );
-
-          socket.join(String(newCall._id));
-
-          const router = await startMediaSoup();
-
-          callRooms[String(newCall._id)] = {
-            router: router,
-            transports: new Map(), // recvTransport, sendTransport
-            producers: new Map(),
-            consumers: new Map(),
-          };
-
-          if (recivers.length > 1) {
-            for (const reciver of recivers) {
-              if (reciver.online) {
-                if (callerId === String(reciver._id)) {
-                  io.to(`${reciver.socketId}`).emit(
-                    `${CallEventEnum.REQUESTED_VIDEO_CALL}`,
-                    {
-                      roomId: contact._id,
-                      callerId: callerId,
-                      searchTag: contact.groupName || username,
-                      avatar: contact.groupAvatar || avatar,
-                      callId: newCall._id,
-                      mediasoupRouter: router,
-                    },
-                  );
-                } else {
-                  io.to(`${reciver.socketId}`).emit(
-                    `${CallEventEnum.INCOMING_VIDEO_CALL}`,
-                    {
-                      roomId: contact._id,
-                      callerId: callerId,
-                      searchTag: contact.groupName || username,
-                      avatar: contact.groupAvatar || avatar,
-                      callId: newCall._id,
-                      mediasoupRouter: router,
-                    },
-                  );
-                }
-              }
-            }
-          } else {
-            socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
-              message: 'contacts not found',
-            });
-          }
-        },
-      );
-
-      socket.on(
-        chatEventEnumNew.CANCELLED_VIDEO_CALL,
-        async ({ callId, roomId }) => {
-          console.log('Video Call Cancelld');
-          const contact = await Contact.findById(roomId);
-
-          if (!contact) {
-            socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
-              message: 'contacts not found',
-            });
-          }
-
-          const ended = await endVideoCall(callId);
-
-          if (!ended.successs) {
-            console.log('Error in ending call');
-          }
-
-          const reciver = await getContactsForCall(contact._id);
-
-          const recivers = reciver[0].member.filter(
-            (val) => val.online === true,
-          );
-
-          delete callRooms[callId];
-
-          for (let reciver of recivers) {
-            if (reciver.online) {
-              producersMap.delete(reciver._id);
-              io.to(`${reciver.socketId}`).emit(
-                `${chatEventEnumNew.OFFLINE_CALLER}`,
-                {
-                  message: 'Call Ended',
-                },
-              );
-            }
-          }
-        },
-      );
-
-      socket.on(
-        CallEventEnum.ANSWER_VIDEO_CALL,
-        async ({ roomId, callId, callerId, searchTag, userId }, cb) => {
-          const { router } = callRooms[callId];
-          cb({ rtpCapabilities: router.rtpCapabilities });
-
-          const contact = await Contact.findById(roomId);
-          const user = await User.findById(userId);
-
-          if (!contact || !user) {
-            socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
-              message: 'user or contacts not found',
-            });
-          }
-
-          const addedContact = await addMemberToCall(callId, callerId);
-
-          if (!addedContact) {
-            throw new ApiError(400, 'Contact not added');
-          }
-
-          if (!callRooms[callId]) {
-            const router = await startMediaSoup();
-
-            callRooms[callId] = {
-              router: router,
-              transports: new Map(),
-              producers: new Map(),
-              consumers: new Map(),
-            };
-          }
-
-          socket.join(callId);
-          socket.callId = callId;
-
-          const members = await getContactsInCall(callId);
-
-          if (members[0].members.length) {
-            io.to(callId).emit(CallEventEnum.ACCEPTED_VIDEO_CALL, {
-              callId: callId,
-              roomId: roomId,
-              callerId: callerId,
-              searchTag: user.searchTag,
-              userId: user._id,
-              avatar: user.avatar,
-            });
-          } else {
-            throw new ApiError(
-              400,
-              'Answer video call Error: Contacts not found',
-            );
-          }
-        },
-      );
-
-      socket.on(
-        CallEventEnum.CREATE_WEB_RTC_TRANSPORT,
-        async ({ sender, callId, userId, callerId }, callback) => {
-          try {
-            console.log(
-              'CREATE_WEB_RTC_TRANSPORT is this a sender transport?',
-              sender,
-            );
-
-            if (typeof callback === 'function') {
-              const { router } = callRooms[callId];
-
-              if (!router)
-                return socket.emit(CallEventEnum.CALL_EVENT_ERROR, {
-                  message:
-                    'ERROR IN CREATE_WEB_RTC_TRANSPORT: Router not found',
-                });
-
-              const transport = await createWebRtcTransport(callback);
-
-              if (!callRooms[callId].transports.has(socket.id)) {
-                callRooms[callId].transport.set(socket.id, {});
-              }
-
-              if (!sender) {
-                callRooms[callId].transports.get(socket.id).sendTransport =
-                  transport;
-              } else {
-                callRooms[callId].transports.get(socket.id).recvTransport =
-                  transport;
-              }
-
-              socket.emit(CallEventEnum.SEND_WEB_RTC_TRANSPORT, {
-                id: transport.id,
-                iceParameters: transport.iceParameters,
-                iceCandidates: transport.iceCandidates,
-                dtlsParameters: transport.dtlsParameters,
-                sctpParameters: transport.sctpParameters,
-                isSender: sender,
-              });
-            } else {
-              console.error(
-                'Callback is not a function, cannot create transport.',
-              );
-              socket.emit(CallEventEnum.CALL_EVENT_ERROR, {
-                message: 'ERROR IN CREATE_WEB_RTC_TRANSPORT:',
-              });
-            }
-          } catch (error) {
-            socket.emit(CallEventEnum.CALL_EVENT_ERROR, {
-              message: 'ERROR IN CREATE_WEB_RTC_TRANSPORT: Router not found',
-            });
-            throw new Error('Error in create web rtc transport: ', error);
-          }
-        },
-      );
-
-      socket.on(
-        CallEventEnum.TRANSPORT_CONNECT,
-        async ({
-          dtlsParameters,
-          transportId,
-          callId,
+        // Making new call 
+        const newCall = await makeCall(
           callerId,
-          userId,
-          sender,
-        }) => {
-          try {
-            await producerTransport.connect({ dtlsParameters });
-            console.log('TRANSPORT_CONNECT Connected the producer transport: ');
+          contact._id,
+          recivers.length,
+        );
 
-            const { transports } = callRooms[callId];
-
-            const transport = sender
-              ? transports.get(socket.id).sendTransport
-              : transports.get(socket.id).recvTransport;
-            if (!transport || transport.id !== transportId)
-              return socket.emit(CallEventEnum.CALL_EVENT_ERROR, {
-                message:
-                  'TRANSPORT_CONNECT Erro : Transport not found or invalid transport id',
-              });
-            await transport.connect();
-            socket.emit(CallEventEnum.TRANSPORT_CONNECTED, { dtlsParameters });
-          } catch (error) {
-            console.log('Erorr in TRANSPORT_CONNECT');
-            socket.emit(CallEventEnum.CALL_EVENT_ERROR, {
-              message: 'ERROR IN TRANSPORT_CONNECT',
-            });
-            throw new Error('Error in TRANSPORT_CONNECT: ', error);
-          }
-        },
-      );
-
-      socket.on(
-        CallEventEnum.TRANSPORT_PRODUCE,
-        async ({ kind, rtpParameters, appData, userId, callId }, callback) => {
-          try {
-            console.log('TRANSPORT_PRODUCE: ');
-
-            const { transports, producers } = callRooms[callId];
-
-            const sendTransport = transports(socket.id).get().sendTransport;
-
-            if (!sendTransport)
-              return socket.emit(CallEventEnum.CALL_EVENT_ERROR, {
-                message: 'TRANSPORT_PRODUCE Error: send transport not found',
-              });
-
-            const producer = await sendTransport.produce({
-              kind,
-              rtpParameters,
-              appData,
-            });
-
-            producers.set(producer.id, producer);
-            callback({ id: producer.id });
-
-            producer.on('transportclose', () => {
-              console.log('Producer transport closed:', producer.id);
-              producers.delete(producer.id);
-            });
-
-            // GET APP DETAILS OF USER INCLUDING AVATAR
-            // get all members in the chat
-            const newUser = await User.findById(userId);
-            if (!newUser)
-              throw new ApiError(400, 'User not found invalid user id');
-
-            // ###########################################
-            // ###########################################
-            // ###########################################
-            // NOTIFY OTHER PARTICIPANTS ABOUT NEW MEMBER
-            // ###########################################
-            // ###########################################
-            // ###########################################
-
-            socket.to(callId).emit(CallEventEnum.NEW_PRODUCER, {
-              producerId: producer.id,
-              userId: newUser._id,
-              searchTag: newUser.searchTag,
-              kind: producer.kind,
-            });
-
-            socket.emit(CallEventEnum.PRODUCER_CREATED, {
-              producerId: producer.id,
-            });
-          } catch (error) {
-            console.log('Erorr in TRANSPORT_PRODUCE');
-            socket.emit(CallEventEnum.CALL_EVENT_ERROR, {
-              message: 'ERROR IN TRANSPORT_PRODUCE',
-            });
-            throw new Error('Error in TRANSPORT_PRODUCE: ', error);
-          }
-        },
-      );
-
-      // socket.on(
-      //   chatEventEnumNew.TRANSPORT_RECIVER_CONNECT,
-      //   async ({ dtlsParameters }) => {
-      //     console.log(
-      //       'TRANSPORT_RECIVER_CONNECT DTLS PARAMS RECIVER: ',
-      //       dtlsParameters,
-      //     );
-      //     await consumerTransport.connect({ dtlsParameters });
-      //   },
-      // );
-
-      socket.on(
-        CallEventEnum.CONSUME,
-        async (
-          { rtpCapabilities, producerId, callerId, callId, searchTag },
-          callback,
-        ) => {
-          try {
-            const { transports, producers, router, consumers } =
-              callRooms[callId];
-
-            const recvTransport = transports.get(socket.id).recvTransport;
-            const producer = producers.get(producerId);
-
-            if (!recvTransport || !producer)
-              return socket.emit(CallEventEnum.CALL_EVENT_ERROR, {
-                message: 'CONSUME Recv transport or producer not found.',
-              });
-
-            if (
-              !router.canConsume({ producerId: producer.id, rtpCapabilities })
-            ) {
-              return socket.emit(CallEventEnum.CALL_EVENT_ERROR, {
-                message: 'Cannot consume producer with client capabilities.',
-              });
-            }
-
-            const consumer = await recvTransport.consume({
-              producerId: producer.id,
-              rtpCapabilities,
-              paused: producer.paused,
-            });
-            consumers.set(consumer.id, consumer);
-
-            consumer.on('transportclose', () => {
-              console.log('Consumer transport closed:', consumer.id);
-              consumers.delete(consumer.id);
-            });
-            consumer.on('producerclose', () => {
-              console.log('Consumer producer closed:', consumer.id);
-              consumers.delete(consumer.id);
-              socket.emit(CallEventEnum.PRODUCER_CLOSED, { producerId }); // Notify client -> self
-            });
-
-            socket.emit(ChatEventEnum.CONSUMER_CREATED, {
-              consumerId: consumer.id,
-              producerId: producer.id,
-              kind: consumer.kind,
-              rtpParameters: consumer.rtpParameters,
-              callerId,
-              callId,
-              searchTag,
-            });
-
-            callback({ params });
-          } catch (error) {
-            console.log('Error in consume: ', error);
-            callback({
-              params: {
-                error: error,
-              },
-            });
-          }
-        },
-      );
-
-      // Working on it
-      socket.on(
-        CallEventEnum.ON_CONSUMER_RESUME,
-        async ({ callId, producerId, action }) => {
-          try {
-            const { producers } = rooms[callId];
-            const producer = producers.get(producerId);
-
-            if (!producer)
-              return socket.emit(
-                CallEventEnum.CALL_EVENT_ERROR,
-                'ON_CONSUMER_RESUME producer not found.',
-              );
-
-            if (action === 'pause') {
-              await producer.pause();
-            } else if (action === 'resume') {
-              await producer.resume();
-            } else {
-              return socket.emit(
-                CallEventEnum.CALL_EVENT_ERROR,
-                'Invalid action for producer.',
-              );
-            }
-
-            // Know all users state is changed
-            socket.broadcast
-              .to(callId)
-              .emit(CallEventEnum.PRODUCER_STATE_CHANGED, {
-                producerId: producer.id,
-                paused: producer.paused,
-              });
-          } catch (error) {
-            console.log('Erorr in ON_CONSUMER_RESUME');
-
-            socket.emit(CallEventEnum.CALL_EVENT_ERROR, {
-              message: 'ERROR IN ON_CONSUMER_RESUME',
-            });
-
-            throw new Error('Error in ON_CONSUMER_RESUME: ', error);
-          }
-        },
-      );
-
-      socket.on(
-        chatEventEnumNew.REJECT_VIDEO_CALL,
-        async ({ callId, roomId, userId }) => {
-          console.log('Rejected video call');
-          const contact = await Contact.findById(roomId);
-          if (!contact) {
-            socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
-              message: 'contacts not found',
-            });
-          }
-
-          const currentCount = await changeVideoCallMember(callId);
-          const members = await getContactsInCall(callId);
-
-          // Logic to Implement
-
-          if (members[0].members.length) {
-            for (const member of members[0].members) {
-              if (currentCount < 2) {
-                io.to(member.socketId).emit(chatEventEnumNew.OFFLINE_CALLER, {
-                  userId: userId,
-                  callId: callId,
-                  roomId: roomId,
-                });
-              } else {
-                io.to(member.socketId).emit(
-                  chatEventEnumNew.REJECTED_VIDEO_CALL,
+        if (recivers.length > 1) {
+          for (const reciver of recivers) {
+            if (reciver.online) {
+              if (callerId === String(reciver._id)) {
+                io.to(`${reciver.socketId}`).emit(
+                  `${CallEventEnum.REQUESTED_VIDEO_CALL}`,
                   {
-                    userId: userId,
-                    callId: callId,
-                    roomId: roomId,
+                    roomId: contact._id,
+                    callerId: callerId,
+                    searchTag: contact.groupName || username,
+                    avatar: contact.groupAvatar || avatar,
+                    callId: newCall._id
+                  },
+                );
+              } else {
+                io.to(`${reciver.socketId}`).emit(
+                  `${CallEventEnum.INCOMING_VIDEO_CALL}`,
+                  {
+                    roomId: contact._id,
+                    callerId: callerId,
+                    offer: offer,
+                    searchTag: contact.groupName || username,
+                    avatar: contact.groupAvatar || avatar,
+                    callId: newCall._id
                   },
                 );
               }
             }
-          } else {
-            throw new ApiError(
-              400,
-              'Reject Call video call Error: Contacts not found',
+          }
+        } else {
+          socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
+            message: 'contacts not found',
+          });
+        }
+      },
+      );
+
+      socket.on(chatEventEnumNew.CANCELLED_VIDEO_CALL, async ({ callId, roomId }) => {
+        console.log('Video Call Cancelld');
+        const contact = await Contact.findById(roomId);
+
+        if (!contact) {
+          socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
+            message: 'contacts not found',
+          });
+        }
+
+        const ended = await endVideoCall(callId);
+
+        if (!ended.successs) {
+          console.log('Error in ending call');
+        }
+
+        const reciver = await getContactsForCall(contact._id);
+
+        const recivers = reciver[0].member.filter(
+          (val) => val.online === true,
+        );
+
+        delete callRooms[callId];
+
+        for (let reciver of recivers) {
+          if (reciver.online) {
+            // producersMap.delete(reciver._id);
+            io.to(`${reciver.socketId}`).emit(
+              `${chatEventEnumNew.OFFLINE_CALLER}`,
+              {
+                message: 'Call Ended',
+              },
             );
           }
-        },
+        }
+      },
+      );
+
+      socket.on(CallEventEnum.ANSWER_VIDEO_CALL, async ({ roomId, callId, callerId, searchTag, userId, offer }) => {
+        const { router } = callRooms[callId];
+
+        const contact = await Contact.findById(roomId);
+        const user = await User.findById(userId);
+
+        if (!contact || !user) {
+          socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
+            message: 'user or contacts not found',
+          });
+        }
+
+        const addedContact = await addMemberToCall(callId, callerId);
+
+        if (!addedContact) {
+          throw new ApiError(400, 'Contact not added');
+        }
+
+        // if (!callRooms[callId]) {
+        //   const router = await startMediaSoup();
+
+        //   callRooms[callId] = {
+        //     router: router,
+        //     transports: new Map(),
+        //     producers: new Map(),
+        //     consumers: new Map(),
+        //   };
+        // }
+
+        socket.join(callId);
+        socket.callId = callId;
+
+        const members = await getContactsInCall(callId);
+
+        if (members[0].members.length) {
+          io.to(callId).emit(CallEventEnum.ACCEPTED_VIDEO_CALL, {
+            callId: callId,
+            roomId: roomId,
+            callerId: callerId,
+            searchTag: user.searchTag,
+            userId: user._id,
+            avatar: user.avatar,
+          });
+        } else {
+          throw new ApiError(
+            400,
+            'Answer video call Error: Contacts not found',
+          );
+        }
+      },
       );
 
       socket.on(ChatEventEnum.DISCONNECT_EVENT, async () => {
@@ -813,11 +463,12 @@ const starterSocketIo = async (io) => {
           await setUserOffline(user._id);
         }
       });
+
     } catch (error) {
       socket.emit(
         ChatEventEnum.SOCKET_ERROR_EVENT,
         error?.message ||
-          'Something went wrong while connecting to the socket.',
+        'Something went wrong while connecting to the socket.',
       );
     }
   });

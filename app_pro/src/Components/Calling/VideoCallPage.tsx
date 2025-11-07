@@ -62,7 +62,7 @@ const Participant = (
 const LocalStream =()=>{
     const socketContext = useContext(WSContext)
 
-    const {localVideoRef} = useLocalMedia()
+    
 
     if (!socketContext) {
         throw Error("Context not found")
@@ -76,13 +76,13 @@ const LocalStream =()=>{
             className="relative bg-black rounded-2xl overflow-hidden shadow-md flex items-center justify-center"
         >
             {/* Video */}
-            <video
+            {/* <video
                 ref={localVideoRef}
                 autoPlay
                 playsInline
                 muted
                 className={`w-full h-full object-cover `}
-            />
+            /> */}
         </motion.div>
     );
 }

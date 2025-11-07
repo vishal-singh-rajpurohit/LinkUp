@@ -5,15 +5,17 @@ import { RiSendPlaneFill } from 'react-icons/ri'
 import { BsEmojiWink } from 'react-icons/bs'
 import { BottomButton, DeletedMessage, DeletedMessageMe, Mail, MailAttechment, MailAttechmentMe, MailMe, MailMenu, SendingMedia, TypingIndicator, UploadingMedia } from './Mails'
 import { FaAngleLeft } from 'react-icons/fa'
-import React, { useContext, useEffect, useRef, useState, type SetStateAction } from 'react'
+import React, { useCallback, useContext, useEffect, useRef, useState, type SetStateAction } from 'react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { getTimeDifference } from '../../helpers/timeConverter'
 import { NavLink, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { setEmojiSelection, setFileSelection, setHasAttechments, setReplyState, toggleTyping, triggetUploadType } from '../../app/functions/temp'
-import { CallEventEnum, ChatEventsEnum } from '../../context/constant'
+import { CallEventEnum_2, ChatEventsEnum } from '../../context/constant'
 import { AppContext, WSContext } from '../../context/Contexts'
 import EmojiPicker from 'emoji-picker-react';
+import useLocalMedia from '../../hooks/useLocalMedia'
+import peer from "../../context/PeerPackages"
 
 const api = import.meta.env.VITE_API;
 
@@ -50,27 +52,28 @@ export const ChatTop = () => {
     const lastOnline = getTimeDifference(room?.time || Date.now())
     const socketContext = useContext(WSContext)
 
+    const { localStream } = useLocalMedia()
+
     if (!socketContext) {
         throw Error("Context not found")
     }
 
     const { socket } = socketContext
 
-    async function requestForVideoCall() {
-        try {
-            socket?.emit(CallEventEnum.REQUEST_VIDEO_CALL, {
-                contactId: room._id,
-                callerId: user._id,
-                username: user.searchTag,
-                avatar: room.avatar
-            })
+    const handleMakeVideoCall = useCallback(async () => {
+        // TODO SETTING 
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        localStream.current = stream;
+        
+        const offer = await peer.createOffer();
 
-            console.log("Requested")
-
-        } catch (error) {
-            console.log('Error in Requesting video call: ', error);
-        }
-    }
+        socket?.emit(CallEventEnum_2.REQUEST_VIDEO_CALL, {
+            offer: offer,
+            contactId: room._id,
+            callerId: user._id,
+            username: user.searchTag
+        })
+    },[])
 
     async function getDetails() {
         router(`/chat/details/?room_id=${room?._id}`)
@@ -95,7 +98,7 @@ export const ChatTop = () => {
                 </div>
                 <div className="flex gap-3 justify-center items-center">
                     <NavLink to={'/user/call/video'}>X</NavLink>
-                    <MdVideoCall size={20} onClick={requestForVideoCall} />
+                    <MdVideoCall size={20} onClick={handleMakeVideoCall} />
                     <MdCall size={20} />
                 </div>
                 {/* <div className="">

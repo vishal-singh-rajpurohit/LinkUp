@@ -28,32 +28,17 @@ const useCallMedia = () => {
     const [remoteStream, setRemoteStream] = useState<videoType[]>([]);
     const consumers = useRef<Map<string, types.Consumer>>(new Map())
 
-    const addTrack = useCallback((track: MediaStreamTrack, callerInfo: Omit<callerTypes, 'stream'>)=>{
-        setMembers((prevMembers)=>{
-            const existingStream = prevMembers.find((m)=>m.callerId === callerInfo.callerId)
-
-            if(existingStream){
-                existingStream.stream.addTrack(track)
-                return [...prevMembers]
-            }
-
-            const newStream = new MediaStream([track])
-            return [...prevMembers, {stream: newStream, ...callerInfo}]
-        });
-    }, []);
-
-    const removeParticipant = useCallback((callerId: string)=>{
-        setMembers((prev)=>prev.filter(m =>m.callerId !== callerId))
-    }, []);
+    // const removeParticipant = useCallback((callerId: string)=>{
+    //     setMembers((prev)=>prev.filter(m =>m.callerId !== callerId))
+    // }, []);
 
     return {
         members,
-        removeParticipant,
-        addTrack,
+        // removeParticipant,
         remoteStream,
         setRemoteStream,
         consumers
     }
-}
+} 
 
 export default useCallMedia;

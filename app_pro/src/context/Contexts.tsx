@@ -1,4 +1,3 @@
-import { types } from "mediasoup-client";
 import { createContext } from "react";
 import type { Socket } from "socket.io-client";
 
@@ -19,9 +18,7 @@ export interface WSCTypes {
 
 export const WSContext = createContext<WSCTypes | null>(null);
 
-export interface RtcTypes{
-    toggleLocalMedia: (kind:types.MediaKind)=> void    
-}
+export interface RtcTypes{}
 
 export const RtcContext = createContext<RtcTypes | null>(null);
 

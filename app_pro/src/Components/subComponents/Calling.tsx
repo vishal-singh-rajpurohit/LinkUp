@@ -3,30 +3,17 @@ import { PhoneCall, PhoneOff } from "lucide-react"
 import { useAppDispatch, useAppSelector } from "../../app/hooks"
 import { useContext } from "react"
 import { WSContext } from "../../context/Contexts"
-import { CallEventEnum, ChatEventsEnum } from "../../context/constant"
 import { IoClose } from "react-icons/io5"
-import { useDispatch } from "react-redux"
 import { setCallingStatus } from "../../app/functions/call"
-import type { types } from "mediasoup-client"
-import useLocalMedia from "../../hooks/useLocalMedia"
 
 export const RequestedVideoCall = () => {
     const room = useAppSelector((state) => state.temp.selectedContact)
-    const callDet = useAppSelector((state) => state.call.callingDet)
     const call_status = useAppSelector((state) => state.call.callStatus)
 
     const socketContext = useContext(WSContext)
 
     if (!socketContext) {
         throw Error("Socket not found")
-    }
-
-    const { socket } = socketContext
-
-    function cancelCall() {
-        if (socketContext) {
-            socket?.emit(ChatEventsEnum.CANCELLED_VIDEO_CALL, { roomId: callDet.roomId, callId: callDet.callId })
-        }
     }
 
     return (
@@ -43,7 +30,7 @@ export const RequestedVideoCall = () => {
                         <h3 className="uppercase sfont-bold text-md">Thor</h3>
                     </div>
                     <div className="flex gap-8">
-                        <div onClick={cancelCall} className="w-[3rem] h-[3rem] bg-red-500 flex items-center justify-center rounded-[50%] cursor-pointer">
+                        <div className="w-[3rem] h-[3rem] bg-red-500 flex items-center justify-center rounded-[50%] cursor-pointer">
                             <PhoneOff size={20} />
                         </div>
                     </div>
@@ -54,52 +41,8 @@ export const RequestedVideoCall = () => {
 }
 
 export const IncomingVideoCall = () => {
-    const disp = useDispatch()
     const room = useAppSelector((state) => state.temp.selectedContact)
-    const callDet = useAppSelector((state) => state.call.callingDet)
-    const user = useAppSelector((state) => state.auth.user)
     const call_status = useAppSelector((state) => state.call.callStatus)
-
-    const {setLRtpCapabilities } = useLocalMedia()
-
-    const socketContext = useContext(WSContext)
-    if (!socketContext) {
-        throw Error("Socket not found")
-    }
-
-    const { socket } = socketContext
-
-    async function answerTheCall() {
-        try {
-            if (socketContext) {
-                socket?.emit(CallEventEnum.ANSWER_VIDEO_CALL, {
-                    roomId: callDet.roomId,
-                    callId: callDet.callId,
-                    avatar: callDet.avatar,
-                    searchTag: callDet.searchTag,
-                    callerId: callDet.callerId,
-                    userId: user._id
-                }, async(rtpCapabilities: types.RtpCapabilities) => {
-                    console.log("Call made success fully with CALLBACK")
-                    setLRtpCapabilities(rtpCapabilities)
-                });
-            }
-        } catch (error) {
-            console.log("Error in answer call: ", error)
-        }
-    }
-
-    async function declineCall() {
-        if (socketContext) {
-            try {
-                disp(setCallingStatus({ status: "ENDED" }))
-
-                // socket?.emit(ChatEventsEnum.REJECT_VIDEO_CALL, { roomId: callDet.roomId, userId: user._id, callId: callDet.callId })
-            } catch (error) {
-                console.log("Error in reject call: ", error)
-            }
-        }
-    }
 
 
     return (
@@ -116,10 +59,10 @@ export const IncomingVideoCall = () => {
                         <h3 className="uppercase font-bold text-md">Thor</h3>
                     </div>
                     <div className="flex gap-8">
-                        <div onClick={answerTheCall} className="w-[3rem] h-[3rem] bg-green-500 flex items-center justify-center rounded-[50%] cursor-pointer">
+                        <div className="w-[3rem] h-[3rem] bg-green-500 flex items-center justify-center rounded-[50%] cursor-pointer">
                             <PhoneCall size={20} />
                         </div>
-                        <div onClick={declineCall} className="w-[3rem] h-[3rem] bg-red-500 flex items-center justify-center rounded-[50%] cursor-pointer">
+                        <div className="w-[3rem] h-[3rem] bg-red-500 flex items-center justify-center rounded-[50%] cursor-pointer">
                             <PhoneOff size={20} />
                         </div>
                     </div>
