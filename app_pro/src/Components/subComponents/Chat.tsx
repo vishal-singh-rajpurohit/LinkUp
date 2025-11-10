@@ -5,17 +5,16 @@ import { RiSendPlaneFill } from 'react-icons/ri'
 import { BsEmojiWink } from 'react-icons/bs'
 import { BottomButton, DeletedMessage, DeletedMessageMe, Mail, MailAttechment, MailAttechmentMe, MailMe, MailMenu, SendingMedia, TypingIndicator, UploadingMedia } from './Mails'
 import { FaAngleLeft } from 'react-icons/fa'
-import React, { useCallback, useContext, useEffect, useRef, useState, type SetStateAction } from 'react'
+import React, { useContext, useEffect, useRef, useState, type SetStateAction } from 'react'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
 import { getTimeDifference } from '../../helpers/timeConverter'
 import { NavLink, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { setEmojiSelection, setFileSelection, setHasAttechments, setReplyState, toggleTyping, triggetUploadType } from '../../app/functions/temp'
-import { CallEventEnum_2, ChatEventsEnum } from '../../context/constant'
+import { ChatEventsEnum } from '../../context/constant'
 import { AppContext, WSContext } from '../../context/Contexts'
 import EmojiPicker from 'emoji-picker-react';
-import useLocalMedia from '../../hooks/useLocalMedia'
-import peer from "../../context/PeerPackages"
+import useCallMedia from '../../hooks/useCallMedia'
 
 const api = import.meta.env.VITE_API;
 
@@ -45,35 +44,12 @@ export const ChatArea = () => {
 }
 
 export const ChatTop = () => {
-    const router = useNavigate()
-    const room = useAppSelector((state) => state.temp.selectedContact)
-    const user = useAppSelector((state) => state.auth.user)
-    const chatTypes = useAppSelector((state) => state.temp.chatListTypes)
-    const lastOnline = getTimeDifference(room?.time || Date.now())
-    const socketContext = useContext(WSContext)
+    const router = useNavigate();
+    const room = useAppSelector((state) => state.temp.selectedContact);
+    const chatTypes = useAppSelector((state) => state.temp.chatListTypes);
+    const lastOnline = getTimeDifference(room?.time || Date.now());
 
-    const { localStream } = useLocalMedia()
-
-    if (!socketContext) {
-        throw Error("Context not found")
-    }
-
-    const { socket } = socketContext
-
-    const handleMakeVideoCall = useCallback(async () => {
-        // TODO SETTING 
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-        localStream.current = stream;
-        
-        const offer = await peer.createOffer();
-
-        socket?.emit(CallEventEnum_2.REQUEST_VIDEO_CALL, {
-            offer: offer,
-            contactId: room._id,
-            callerId: user._id,
-            username: user.searchTag
-        })
-    },[])
+    const { makeVideoCall } = useCallMedia()
 
     async function getDetails() {
         router(`/chat/details/?room_id=${room?._id}`)
@@ -98,7 +74,7 @@ export const ChatTop = () => {
                 </div>
                 <div className="flex gap-3 justify-center items-center">
                     <NavLink to={'/user/call/video'}>X</NavLink>
-                    <MdVideoCall size={20} onClick={handleMakeVideoCall} />
+                    <MdVideoCall size={20} onClick={makeVideoCall} />
                     <MdCall size={20} />
                 </div>
                 {/* <div className="">
@@ -123,6 +99,7 @@ interface geoLocType {
     latitude: string;
     longitude: string;
 }
+
 const MailOptions = () => {
     const disp = useAppDispatch()
     const contact = useAppSelector((state) => state.temp.selectedContact);
@@ -185,6 +162,7 @@ const MailOptions = () => {
                     }
                 )
             }
+
             messageFormData.delete('attechment')
             messageFormData.delete('fileType')
             messageFormData.delete('contactId')
@@ -218,6 +196,7 @@ const MailOptions = () => {
 
     useEffect(() => {
         if (message.length) {
+            console.log("typing..")
             socketContext.socket?.emit(ChatEventsEnum.TYPING_ON, { contactId: contact._id, searchTag: user.searchTag, avatar: user.avatar, userId: user._id });
         }
     }, [message, setMessage])
@@ -402,8 +381,6 @@ const ChatBox = () => {
 
         getItemsInView();
     }, []);
-
-
 
     return (
         <section id='chatBox' className="h-full overflow-y-auto flex flex-col gap-5 p-1 pb-4" style={{ scrollbarWidth: 'none' }}>

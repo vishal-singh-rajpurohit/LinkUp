@@ -18,6 +18,8 @@ const RtcProvider = ({ children }: { children: React.ReactNode }) => {
 
     const { socket } = SocketContext;
 
+    // async function make
+
     useEffect(() => {
         if (!isLoggedIn) return;
 
@@ -25,8 +27,17 @@ const RtcProvider = ({ children }: { children: React.ReactNode }) => {
             console.log("Error => ", message)
         }
 
+        async function handleIncomingVideoCall({}:{}){
+            console.log('incoming video call')
+        }
+
+        socket?.on(CallEventEnum.REQUESTED_VIDEO_CALL, handleIncomingVideoCall)
+
+        socket?.on(CallEventEnum.CALL_EVENT_ERROR, onCallError);
+
         return () => {
             socket?.off(CallEventEnum.CALL_EVENT_ERROR, onCallError)
+            socket?.off(CallEventEnum.REQUESTED_VIDEO_CALL, handleIncomingVideoCall)
         }
     }, [socket, isLoggedIn])
 

@@ -8,7 +8,6 @@ import { AppContextProvider } from './context/AppContext.tsx'
 import WSProvider from './context/WSContext.tsx'
 import { FailVideoCall, IncomingVideoCall, RequestedVideoCall } from './Components/subComponents/Calling.tsx'
 import RtcProvider from './context/RtcContext.tsx'
-import PeerProvider from './context/PeerContext.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <Provider store={store}>
@@ -16,12 +15,10 @@ createRoot(document.getElementById('root')!).render(
       <WSProvider >
         <RtcProvider>
           <AppContextProvider>
-            <PeerProvider>
-              <App />
-              <RequestedVideoCall />
-              <IncomingVideoCall />
-              <FailVideoCall />
-            </PeerProvider>
+            <App />
+            <RequestedVideoCall />
+            <IncomingVideoCall />
+            <FailVideoCall />
           </AppContextProvider>
         </RtcProvider>
       </WSProvider>

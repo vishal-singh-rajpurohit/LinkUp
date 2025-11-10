@@ -1,4 +1,4 @@
-const ChatEventEnum = Object({
+const chatEventEnumNew = {
   CONNECTED_EVENT: 'connected',
   DISCONNECT_EVENT: 'disconnect',
   JOIN_CHAT_EVENT: 'joinChat',
@@ -9,26 +9,23 @@ const ChatEventEnum = Object({
   MESSAGE_UNDO_EVENT: 'messageUndo',
   NEW_CHAT_EVENT: 'newChat',
   SOCKET_EVENT_ERROR: 'socketError',
+  DELETED_MESSAGE: "deleted_message",
   STOP_TYPING_EVENT: 'stopTyping',
   TYPING_EVENT: 'typing',
   MESSAGE_DELETE_EVENT: 'messageDeleted',
   SOCKET_ERROR_EVENT: 'socketError',
-
-  REQUEST_VIDEO_CALL: 'requestVideoCall',
-  REJECT_VIDEO_CALL: 'rejectVideoCall',
-  ACCEPT_VIDEO_CALL: 'acceptVideoCall',
-  CLOSE_VIDEO_CALL: 'closeVideoCall',
-  REQUEST_AUDIO_CALL: 'requestAudioCall',
-  ACCEPT_AUDIO_CALL: 'acceptAudioCall',
-  REJECT_AUDIO_CALL: 'rejectAudioCall',
-  CLOSE_AUDIO_CALL: 'closeAudioCall',
-});
+  NEW_MESSAGE: "message",
+}
 
 const CallEventEnum = {
   REQUEST_VIDEO_CALL: "request_video_call",
+
   REQUESTED_VIDEO_CALL: 'requested_video_call',
+
   INCOMING_VIDEO_CALL: 'incoming_video_call',
+
   ANSWER_VIDEO_CALL: 'answer_video_call',
+  
   ACCEPTED_VIDEO_CALL: 'accepted_video_call',
 }
 
@@ -37,4 +34,4 @@ const LoadLimits = Object.freeze({
   CHAT_LIMIT: 100,
 });
 
-module.exports = { ChatEventEnum, CallEventEnum, chatEventEnumNew, LoadLimits };
+module.exports = { chatEventEnumNew, CallEventEnum,  LoadLimits };

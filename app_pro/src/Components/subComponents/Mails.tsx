@@ -1002,11 +1002,14 @@ export const MailMenu = ({ mailRef, }: {
   // const chatType = useAppSelector((state) => state.temp.chatListTypes)
 
   async function undoMessage() {
+    console.log(`undo message is called`)
     try {
       await axios.post(`${api}/chat/message/del-msg`, {
         messageId,
         contactId: contact._id
-      }, { withCredentials: true });
+      },
+        { withCredentials: true }
+      );
 
       disp(setTempString({ text: "" }));
 

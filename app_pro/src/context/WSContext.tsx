@@ -39,6 +39,7 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         })
 
         socket?.on(ChatEventsEnum.ONLINE_EVENT, ({ contactId }: { contactId: string; message: string }) => {
+            console.log("you are online")
             disp(triggerOnline({ contactId: contactId, trigger: true }))
             disp(triggerConOnline({ contactId: contactId, trigger: true }))
         })
@@ -77,6 +78,7 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         })
 
         socket?.on(ChatEventsEnum.NEW_MESSAGE, ({ newMessage, contactId }: { newMessage: groupMssageType; contactId: string; }) => {
+            console.log("new message recived")
             disp(messageRecived({ contactId: contactId, newMsg: newMessage }));
             disp(newMessageInRoom({ contactId: contactId, newMsg: newMessage }));
             disp(notificationPup({ trigger: true }))

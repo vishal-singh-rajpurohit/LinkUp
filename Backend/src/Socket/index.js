@@ -1,17 +1,13 @@
 const ApiError = require('../utils/ApiError.utils');
 const jwt = require('jsonwebtoken');
-const { ChatEventEnum, chatEventEnumNew, CallEventEnum } = require('../constants/constants');
+const { ChatEventEnumNew, chatEventEnumNew, CallEventEnum } = require('../constants/constants');
 const User = require('../models/user.model');
 const Contact = require('../models/contacts.model');
 const { default: mongoose } = require('mongoose');
 const Message = require('../models/message.modal');
 const Call = require('../models/calls.model');
-const { makeCall, endVideoCall, addMemberToCall, changeVideoCallMember } = require('./caller.helpers');
+const { makeCall, endVideoCall, addMemberToCall } = require('./caller.helpers');
 
-const { startMediaSoup, createWebRtcTransport } = require('../mediasoup/worker');
-
-const config = require('../mediasoup/mediasoup-config');
-const mediasoup = require('mediasoup');
 
 /**
  * @description event happens when user switches between chats or contacts based on contactId
@@ -28,7 +24,7 @@ const producersMap = new Map();
 const callRooms = {};
 
 const ChatJoinEvent = (socket) => {
-  socket.on(ChatEventEnum.JOIN_CHAT_EVENT, (chatId) => {
+  socket.on(ChatEventEnumNew.JOIN_CHAT_EVENT, (chatId) => {
     console.log('User Joined the chat');
     socket.join(chatId);
   });
@@ -67,7 +63,7 @@ const starterSocketIo = async (io) => {
       socket.user = user;
       socket.userId = user._id.toString();
       socket.join(user._id.toString());
-      socket.emit(ChatEventEnum.CONNECTED_EVENT);
+      socket.emit(ChatEventEnumNew.CONNECTED_EVENT);
 
       socket.on(chatEventEnumNew.JOIN_ROOM, async (payload) => {
         const roomId = payload.roomId.toString();
@@ -289,7 +285,12 @@ const starterSocketIo = async (io) => {
         });
       });
 
+      socket.on("call", ()=>{
+        console.log("incoming video call")
+      })
+
       socket.on(CallEventEnum.REQUEST_VIDEO_CALL, async ({ contactId, callerId, username, avatar, offer }) => {
+        console.log("incoming video call request")
         const contact = await Contact.findById(contactId);
         const user = await User.findById(callerId);
 
@@ -317,7 +318,7 @@ const starterSocketIo = async (io) => {
 
         if (recivers.length > 1) {
           for (const reciver of recivers) {
-            if (reciver.online) {
+            if (reciver.online) {  
               if (callerId === String(reciver._id)) {
                 io.to(`${reciver.socketId}`).emit(
                   `${CallEventEnum.REQUESTED_VIDEO_CALL}`,
@@ -442,7 +443,7 @@ const starterSocketIo = async (io) => {
       },
       );
 
-      socket.on(ChatEventEnum.DISCONNECT_EVENT, async () => {
+      socket.on(ChatEventEnumNew.DISCONNECT_EVENT, async () => {
         console.log('user has disconnected userId: ' + socket.user?._id);
         if (socket.user?._id) {
           const contactsOnline = await getUserOnlineFriends(user._id);
@@ -466,7 +467,7 @@ const starterSocketIo = async (io) => {
 
     } catch (error) {
       socket.emit(
-        ChatEventEnum.SOCKET_ERROR_EVENT,
+        chatEventEnumNew.SOCKET_ERROR_EVENT,
         error?.message ||
         'Something went wrong while connecting to the socket.',
       );
@@ -475,6 +476,7 @@ const starterSocketIo = async (io) => {
 };
 
 const emiterSocket = async (req, roomId, event, Payload) => {
+  // console.log("emiited to the user: ", roomId)
   await req.app.get('io').to(roomId).emit(event, Payload);
 };
 

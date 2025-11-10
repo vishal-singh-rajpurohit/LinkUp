@@ -4,7 +4,6 @@ import { Mic, MicOff, PhoneOff, Video } from "lucide-react";
 import { WSContext } from "../../context/Contexts";
 import { useAppSelector } from "../../app/hooks";
 import useCallMedia from "../../hooks/useCallMedia";
-import useLocalMedia from "../../hooks/useLocalMedia";
 
 
 const Participant = (
@@ -89,17 +88,17 @@ const LocalStream =()=>{
 
 const VideoCallPage: React.FC = () => {
 
-    const {members } = useCallMedia()
+    // const {members } = useCallMedia()
 
     return (
         <div className="flex flex-col h-screen bg-gray-900">
             {/* Video Grid */}
-            <div className="flex-1 grid gap-2 p-2 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {/* <div className="flex-1 grid gap-2 p-2 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                 <LocalStream />
                 {members.map((p, idx) => (
                     <Participant key={idx} name={p.callerName}  video={p.stream} />
                 ))}
-            </div>
+            </div> */}
 
             {/* Control Bar */}
             <div className="flex justify-center items-center gap-4 p-4 bg-black/80">

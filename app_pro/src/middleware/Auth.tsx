@@ -24,6 +24,7 @@ const Auth = ({ children }: { children: ReactNode }) => {
 
 
   const checkLogIn = async () => {
+    console.log('api url is: ', api)
     try {
       interface RegisterResponse {
         data: {
@@ -51,23 +52,22 @@ const Auth = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!isLoggedIn && formData.latitude) {
       console.log('called first');
-
       checkLogIn()
     }
   }, [formData, setFormData])
 
   useEffect(() => {
 
-    // navigator.geolocation.getCurrentPosition(
-    //   (position) => {
-    //     console.log('getting locaiton')
-    //     setFormData({
-    //       ...formData,
-    //       latitude: String(position.coords.latitude),
-    //       longitude: String(position.coords.longitude)
-    //     })
-    //   },
-    // )
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        console.log('getting locaiton')
+        setFormData({
+          ...formData,
+          latitude: String(position.coords.latitude),
+          longitude: String(position.coords.longitude)
+        })
+      },
+    )
     // Disable in Production
     if (!formData.latitude) {
       console.log('offline');
@@ -79,8 +79,6 @@ const Auth = ({ children }: { children: ReactNode }) => {
       })
     }
   }, [])
-
-
 
   return (
     <>
@@ -103,6 +101,7 @@ export const RevAuth = ({ children }: { children: ReactNode }) => {
   )
 
   const checkLogIn = async () => {
+    console.log('api url is: ', api)
     try {
       interface RegisterResponse {
         data: {

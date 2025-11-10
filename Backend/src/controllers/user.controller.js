@@ -20,6 +20,7 @@ const { emiterSocket } = require("../Socket");
 /**
  * @description these function will pre check the searchTag and Email Avilability
  */
+
 const liveCheckTagSignup = asyncHandler(async (req, resp) => {
   const { searchTag } = req.body;
   console.log(`function called ${searchTag}`);
@@ -29,7 +30,6 @@ const liveCheckTagSignup = asyncHandler(async (req, resp) => {
 
   const isUserExists = await User.findOne({ searchTag });
 
-  // console.log(`chaeck one ${JSON.stringify(isUserExists, null, 2)}`);
   if (isUserExists?._id) {
     console.log(`success`);
     throw new ApiError(204, "search tag already taken", {
@@ -37,11 +37,7 @@ const liveCheckTagSignup = asyncHandler(async (req, resp) => {
       message: "search tag already taken",
     });
   }
-  console.log(`last check`);
 
-  console.log(`tag avilable`);
-
-  // console.log(`last check`);
 
   resp.status(200).json(
     new ApiResponse(200, "tag is avilable", {
