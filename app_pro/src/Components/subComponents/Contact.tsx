@@ -21,7 +21,7 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
     searchTag: string,
     avatar: string,
     lastMessage?: string,
-    time?: Date | null,
+    time?: Date | null | number,
     isOnline: boolean
 }) => {
     const context = useContext(AppContext)
@@ -46,11 +46,13 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
     }, [contacts, isSearching])
 
     function talk(id: string = _id) {
+        
         if (window.innerWidth < 768) {
             selectToTalk(id)
             router(`/chat?id=${id}`)
         } else {
             selectToTalk(id)
+            console.log("talk funcion called")
         }
     }
 
@@ -63,7 +65,7 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
                     }
                 }
 
-                const resp = await axios.post<respTypes>(`${api}/chat/save-contact`,
+                await axios.post<respTypes>(`${api}/chat/save-contact`,
                     { reciverId: _id },
                     { withCredentials: true }
                 )
@@ -416,7 +418,7 @@ export const ContactList = () => {
     const archUsers = useAppSelector((state) => state.auth.safer)
     const groups = useAppSelector((state) => state.auth.groups);
     const isSearching = useAppSelector((state) => state.triggers.searching);
-    const chatType: number = useAppSelector((state) => state.temp.chatListTypes)
+    const chatType: number = useAppSelector((state) => state.temp.chatListTypes) 
 
     const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -447,6 +449,7 @@ export const ContactList = () => {
         if (searchQuery.length <= 3) {
             disp(setSearching({ trigger: false }))
         } else {
+            
             disp(setSearching({ trigger: true }))
             search(searchQuery)
         }

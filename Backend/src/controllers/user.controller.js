@@ -108,9 +108,7 @@ const signUp = asyncHandler(async (req, resp) => {
       !userName ||
       !searchTag ||
       !email ||
-      !password ||
-      !longitude ||
-      !latitude
+      !password 
     ) {
       throw new ApiError(401, "all data must required :");
     }
@@ -131,8 +129,8 @@ const signUp = asyncHandler(async (req, resp) => {
       email,
       password,
       online: true,
-      longitude,
-      latitude,
+      longitude: longitude || "0000",
+      latitude: latitude || "0000"
     });
 
     await newUser.save();

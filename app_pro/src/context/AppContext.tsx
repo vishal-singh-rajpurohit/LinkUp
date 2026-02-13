@@ -17,6 +17,7 @@ export const AppContextProvider = ({ children }: {
 
     function selectToTalk(id: string) {
         if (chatTypes === 1) {
+            console.log("select To talk called")
             const chat = contacts.filter((val) => val._id === id)
             // console.log(`contac is ${JSON.stringify(chat[0], null, 2)}`);
             disp(selectContact({ chat: chat[0] }))

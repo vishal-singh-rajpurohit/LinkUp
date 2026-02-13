@@ -7,140 +7,104 @@ import axios from "axios";
 import { getTimeDifference } from "../../helpers/timeConverter";
 import { FcDown } from "react-icons/fc";
 import { AppContext, WSContext } from "../../context/Contexts";
-import { ChatEventsEnum } from "../../context/constant";
 import { FaFile, FaImage, FaVideo, FaDownload, FaTimes, FaFileImage, FaFileVideo, FaFileAudio, FaFileCode, FaFileAlt, } from "react-icons/fa";
 import { IoMdCloudUpload } from "react-icons/io"
 import { RiCheckDoubleLine } from "react-icons/ri";
 import sound from '../../assets/sound.mp3'
+import { ChatEventsEnum } from "../../context/constant"
 
 const api = import.meta.env.VITE_API;
 
-export const Mail = (
-  {
-    mailOptions,
-    mailRef,
-    avatar,
-    readBy,
-    message,
-    _id,
-    senderTag,
-    time = null
-  }: {
-    mailOptions: React.RefObject<HTMLDivElement | null>;
-    mailRef: React.RefObject<HTMLDivElement | null>;
-    message: string;
-    readBy: string[];
-    _id: string;
-    avatar: string;
-    senderTag: string;
-    time: Date | null
-  }) => {
-  const disp = useAppDispatch()
-  const currMessageRef = useRef<HTMLDivElement | null>(null)
-  const messageRef = useRef<HTMLDivElement | null>(null)
-  const [timer, setTimer] = useState<string>("")
-  const userId = useAppSelector((state) => state.auth.user._id)
-  const socketContext = useContext(WSContext)
-  const [wrapEnable, setWrapEnable] = useState<boolean>(false)
-  useEffect(() => {
-    if (message.length > 80) {
-      setWrapEnable(true)
-    }
-  }, [])
-
-  if (!socketContext) {
-    throw new Error("socket context not found")
-  }
-
-  const { socket } = socketContext
+export const Mail = ({
+  mailOptions,
+  avatar,
+  readBy,
+  _id,
+  senderTag,
+  time = null,
+  cipherText,
+  displayText,
+}: {
+  mailOptions: React.RefObject<HTMLDivElement | null>;
+  avatar: string;
+  readBy: string[];
+  _id: string;
+  senderTag: string;
+  time: Date | null;
+  cipherText: string;
+  displayText: string;
+}) => {
+  const disp = useAppDispatch();
+  const currMessageRef = useRef<HTMLDivElement | null>(null);
+  const [timer, setTimer] = useState("");
+  const [wrapEnable, setWrapEnable] = useState(false);
 
   useEffect(() => {
-    if (time) {
-      const currTime: string = getTimeDifference(time)
-      setTimer(currTime)
-    }
-  }, [time])
+    if (displayText.length > 80) setWrapEnable(true);
+  }, [displayText]);
 
   useEffect(() => {
-    disp(setTempString({ text: _id }))
-    const currMessageEl = currMessageRef.current;
-    if (currMessageEl) {
-      const handleClick = (e: MouseEvent) => {
-        if (mailOptions.current) {
-          mailOptions.current.style.display = 'flex'
-          mailOptions.current.style.top = `${e.clientY}px`
-          mailOptions.current.style.left = `${e.clientX}px`
-          mailOptions.current.addEventListener('mouseleave', () => {
-            if (mailOptions.current) mailOptions.current.style.display = 'none';
-          })
-        }
-      };
+    if (time) setTimer(getTimeDifference(time));
+  }, [time]);
 
-      currMessageEl.addEventListener('click', handleClick);
-      return () => {
-        currMessageEl.removeEventListener('click', handleClick);
-      };
-    }
-  }, []);
-
+  // ✅ menu click without leaking mouseleave listeners
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          const msgIdx = readBy.indexOf(userId)
+    const el = currMessageRef.current;
+    if (!el) return;
 
-          if (msgIdx === -1) {
-            socket?.emit(ChatEventsEnum.MARK_READ, ({
-              id: userId,
-              msgId: _id
-            }))
-          }
+    const handleClick = (e: MouseEvent) => {
+      const menu = mailOptions.current;
+      if (!menu) return;
 
-          // Stop observing to avoid multiple events
-          if (messageRef.current) observer.unobserve(messageRef.current);
-
-        }
-      },
-      { threshold: 0.5 } // Trigger when 50% of the element is visible
-    );
-
-    if (messageRef.current) {
-      observer.observe(messageRef.current);
-    }
-
-    return () => {
-      if (messageRef.current) {
-        observer.unobserve(messageRef.current);
-      }
+      menu.style.display = "flex";
+      menu.style.top = `${e.clientY}px`;
+      menu.style.left = `${e.clientX}px`;
     };
-  }, [message, socket]);
 
-  // for sent messaes => bg-[#00F0FF] text-[#0F172A]
+    el.addEventListener("click", handleClick);
+    return () => el.removeEventListener("click", handleClick);
+  }, [mailOptions]);
+
   return (
-    <div id={_id} ref={messageRef} className={`flex gap-2 text-white`}>
-      <div className="">
-        <div className='w-[1.3rem] h-[1.3rem] flex items-center shadow-[0_0_10px_#00F0FF55] justify-center overflow-hidden rounded-[16px] font-[#0F172A] bg-slate-600 md:h-[1.5rem] md:w-[1.5rem]'>
-          <img src={avatar || g} alt="" className="max-h-[1.5rem] h-full" />
+    <div
+      id={_id}
+      data-msgid={_id}
+      data-tag={senderTag}
+      data-cipher={cipherText}
+      className="flex gap-2 text-white"
+    >
+      <div>
+        <div className="w-[1.3rem] h-[1.3rem] flex items-center shadow-[0_0_10px_#00F0FF55] justify-center overflow-hidden rounded-[16px] bg-slate-600 md:h-[1.5rem] md:w-[1.5rem]">
+          <img src={avatar} alt="" className="max-h-[1.5rem] h-full" />
         </div>
       </div>
-      <div className="the-msg min-h-5 max-w-[80%] min-w-[3rem] ">
-        <div ref={mailRef} data-msgId={_id} data-tag={senderTag} className={`${wrapEnable && 'max-h-[8rem] overflow-hidden'} bg-[#334155] text-[#F8FAFC] p-1 rounded-md text-[12px]`}>
+
+      <div className="the-msg min-h-5 max-w-[80%] min-w-[3rem]">
+        <div className={`${wrapEnable ? "max-h-[8rem] overflow-hidden" : ""} bg-[#334155] text-[#F8FAFC] p-1 rounded-md text-[12px]`}>
           <div className="text-[7px]">{senderTag}</div>
-          {message}
+          {displayText}
         </div>
+
         <div className="text-[10px]">
-          <div className={`underline font-bold cursor-pointer ${message.length > 80 ? 'flex' : 'hidden'}`} onClick={() => setWrapEnable(!wrapEnable)}>
-            {
-              wrapEnable ? 'show more' : 'show less'
-            }
-          </div>
+          {displayText.length > 80 && (
+            <div
+              className="underline font-bold cursor-pointer"
+              onClick={() => setWrapEnable((s) => !s)}
+            >
+              {wrapEnable ? "show more" : "show less"}
+            </div>
+          )}
           <div>{timer}</div>
         </div>
       </div>
-      <div ref={currMessageRef} className="flex"><CiMenuKebab cursor={'pointer'} className="current-message" /></div>
+
+      <div ref={currMessageRef} className="flex">
+        <CiMenuKebab cursor="pointer" className="current-message" />
+      </div>
     </div>
-  )
-}
+  );
+};
+
 
 export const MailMe = (
   {
@@ -151,7 +115,9 @@ export const MailMe = (
     message,
     _id,
     senderTag,
-    time = null
+    time = null,
+    cipherText,
+    displayText
   }: {
     mailOptions: React.RefObject<HTMLDivElement | null>;
     mailRef: React.RefObject<HTMLDivElement | null>;
@@ -161,6 +127,8 @@ export const MailMe = (
     avatar?: string;
     senderTag?: string;
     time: Date | null;
+    cipherText: string;
+    displayText: string;
   }) => {
   const disp = useAppDispatch()
   const currMessageRef = useRef<HTMLDivElement | null>(null);
@@ -168,7 +136,7 @@ export const MailMe = (
 
   const [wrapEnable, setWrapEnable] = useState<boolean>(false)
   useEffect(() => {
-    if (message.length > 80) {
+    if (typeof message === 'string' && message.length > 80) {
       setWrapEnable(true)
     }
   }, [])
@@ -204,7 +172,7 @@ export const MailMe = (
 
   return (
     <>
-      <div id={_id} className={`flex gap-2 text-white flex-row-reverse selection:bg-[#fff0]`}>
+      <div id={_id} data-msgid={_id} data-tag={senderTag} data-cipher={cipherText} className={`flex gap-2 text-white flex-row-reverse selection:bg-[#fff0]`}>
         <div className="">
           <div className='w-[1.3rem] h-[1.3rem] flex items-center shadow-[0_0_10px_#00F0FF55] justify-center overflow-hidden rounded-[16px] font-[#0F172A] bg-slate-600 md:h-[1.5rem] md:w-[1.5rem]'>
             <img src={avatar || g} alt="" className="max-h-[1.5rem] h-full" />
@@ -216,7 +184,7 @@ export const MailMe = (
             className={` bg-[#00F0FF] ${wrapEnable && 'max-h-[8rem] overflow-hidden'} text-[#0F172A] p-1 rounded-md cursor-pointer text-[12px]`}>
             <div className="text-[7px] flex flex-row-reverse ">{senderTag}</div>
             <div className="text-[12px]">
-              {message}
+              {displayText}
             </div>
             <div className="text-[10px] w-full flex items-end justify-end">
               {
@@ -227,7 +195,7 @@ export const MailMe = (
             </div>
           </div>
           <div className="text-[10px]">
-            <div className={`underline font-bold cursor-pointer ${message.length > 80 ? 'flex' : 'hidden'}`} onClick={() => setWrapEnable(!wrapEnable)}>
+            <div className={`underline font-bold cursor-pointer ${typeof displayText === 'string' && displayText.length > 80 ? 'flex' : 'hidden'}`} onClick={() => setWrapEnable(!wrapEnable)}>
               {
                 wrapEnable ? 'show more' : 'show less'
               }
@@ -251,7 +219,9 @@ export const MailAttechmentMe = (
     _id,
     senderTag,
     time = null,
-    attechmentLink = ""
+    attechmentLink = "",
+    cipherText,
+    displayText
   }: {
     mailOptions: React.RefObject<HTMLDivElement | null>;
     mailRef: React.RefObject<HTMLDivElement | null>;
@@ -261,7 +231,9 @@ export const MailAttechmentMe = (
     avatar?: string;
     senderTag?: string;
     time: Date | null;
-    attechmentLink?: string
+    attechmentLink?: string;
+    cipherText: string;
+    displayText: string;
   }
 ) => {
   const disp = useAppDispatch()
@@ -304,7 +276,7 @@ export const MailAttechmentMe = (
   }, []);
 
   return (
-    <div className="flex flex-col items-end gap-2 text-white selection:bg-[#fff0]">
+    <div data-msgid={_id} data-tag={senderTag} data-cipher={cipherText} className="flex flex-col items-end gap-2 text-white selection:bg-[#fff0]">
       {
         attechmentLink !== "" && (
           <div className="flex gap-2 text-white flex-row-reverse selection:bg-[#fff0]">
@@ -328,7 +300,7 @@ export const MailAttechmentMe = (
           <div ref={mailRef} data-msgid={_id} data-tag={senderTag} className={`bg-[#00F0FF] ${wrapEnable && 'max-h-[8rem] overflow-hidden'} text-[#0F172A] p-0.5 rounded-md cursor-pointer`}>
             <div className="text-[7px] flex flex-row-reverse">{senderTag}</div>
             <div className="text-[12px]">
-              {message}
+              {displayText}
             </div>
             <div className="text-[10px] w-full flex items-end justify-end">
               {
@@ -339,7 +311,7 @@ export const MailAttechmentMe = (
             </div>
           </div>
           <div className="text-[10px]">
-            <div className={`underline font-bold cursor-pointer ${message.length > 80 ? 'flex' : 'hidden'}`} onClick={() => setWrapEnable(!wrapEnable)}>
+            <div className={`underline font-bold cursor-pointer ${typeof message === 'string' && message.length > 80 ? 'flex' : 'hidden'}`} onClick={() => setWrapEnable(!wrapEnable)}>
               {
                 wrapEnable ? 'show more' : 'show less'
               }
@@ -362,11 +334,12 @@ export const MailAttechment = (
     _id,
     senderTag,
     time = null,
-    attechmentLink = ""
+    attechmentLink = "",
+    cipherText,
+    displayText
   }: {
     mailOptions: React.RefObject<HTMLDivElement | null>;
     mailRef: React.RefObject<HTMLDivElement | null>;
-
     message: string;
     readBy: string[];
     _id: string;
@@ -375,6 +348,8 @@ export const MailAttechment = (
     time: Date | null;
     fileType: string | null;
     attechmentLink: string;
+    cipherText: string;
+    displayText: string;
   }
 ) => {
 
@@ -391,7 +366,7 @@ export const MailAttechment = (
 
   const [timer, setTimer] = useState<string>("")
   useEffect(() => {
-    if (message.length > 80) {
+    if (typeof message === 'string' && message.length > 80) {
       setWrapEnable(true)
     }
   }, [])
@@ -428,7 +403,7 @@ export const MailAttechment = (
 
 
   return (
-    <div className="flex flex-col gap-2 text-white selection:bg-[#fff0]">
+    <div data-msgid={_id} data-tag={senderTag} data-cipher={cipherText} className="flex flex-col gap-2 text-white selection:bg-[#fff0]">
       {
         attechmentLink !== "" && (
           <div className="flex gap-2 text-white selection:bg-[#fff0]">
@@ -451,10 +426,10 @@ export const MailAttechment = (
         <div className="the-msg min-h-7 max-w-[80%] min-w-[3rem] ">
           <div ref={mailRef} data-msgId={_id} data-tag={senderTag} className={` bg-[#334155] ${wrapEnable && 'max-h-[8rem] overflow-hidden'} text-[#F8FAFC] p-1 rounded-md text-[12px]`}>
             <div className="text-[7px]">{senderTag}</div>
-            {message}
+            {displayText}
           </div>
           <div className="text-[10px]">
-            <div className={`underline font-bold cursor-pointer ${message.length > 80 ? 'flex' : 'hidden'}`} onClick={() => setWrapEnable(!wrapEnable)}>
+            <div className={`underline font-bold cursor-pointer ${typeof displayText === 'string' && displayText.length > 80 ? 'flex' : 'hidden'}`} onClick={() => setWrapEnable(!wrapEnable)}>
               {
                 wrapEnable ? 'show more' : 'show less'
               }
@@ -474,11 +449,12 @@ export const SendingMedia = (
     mailRef,
     readBy,
     avatar,
-    message,
     _id,
     senderTag,
     time = null,
-    attechmentType
+    attechmentType,
+    cipherText,
+    displayText
   }: {
     mailOptions: React.RefObject<HTMLDivElement | null>;
     mailRef: React.RefObject<HTMLDivElement | null>;
@@ -488,7 +464,9 @@ export const SendingMedia = (
     avatar?: string;
     senderTag?: string;
     time: Date | null;
-    attechmentType: string
+    attechmentType: string;
+    cipherText: string;
+    displayText: string;
   }
 ) => {
   const disp = useAppDispatch()
@@ -525,7 +503,7 @@ export const SendingMedia = (
   }, []);
 
   return (
-    <div className="flex flex-col items-end gap-2 text-white selection:bg-[#fff0]">
+    <div data-msgid={_id} data-tag={senderTag} data-cipher={cipherText} className="flex flex-col items-end gap-2 text-white selection:bg-[#fff0]">
       <div className="flex gap-2 text-white flex-row-reverse selection:bg-[#fff0]">
         <div className="w-[1.3rem] h-[1.3rem]"></div>
         <div className="bg-[#29927b] px-2 selection:hidden w-[6rem] text-white h-8 rounded-e-md rounded-b-md rounded-t-md gap-3 flex items-center justify-between">
@@ -545,7 +523,7 @@ export const SendingMedia = (
           <div ref={mailRef} data-msgid={_id} data-tag={senderTag} className={`bg-[#00F0FF] text-[#0F172A] p-1 rounded-md cursor-pointer`}>
             <div className="text-[10px] flex flex-row-reverse">{senderTag}</div>
             <div className="">
-              {message}
+              {displayText}
             </div>
             <div className="text-[10px] w-full flex items-end justify-end">
               {

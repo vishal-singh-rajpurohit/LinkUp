@@ -105,7 +105,7 @@ function searchingFunc(state: initialStateTypes, action: PayloadAction<{ users: 
 }
 
 function selectConFunc(state: initialStateTypes, action: PayloadAction<{ chat: contactTypes }>) {
-    console.log('chat is: ', action.payload.chat);
+    // console.log('chat is: ', action.payload.chat);
 
     state.selectedContact = {
         _id: action.payload.chat._id,

@@ -1,4 +1,3 @@
-import { FailVideoCall, IncomingVideoCall, RequestedVideoCall } from "./subComponents/Calling"
 import { ChatArea } from "./subComponents/Chat"
 import { ContactList } from "./subComponents/Contact"
 import { Notification } from "./subComponents/Mails"

@@ -15,6 +15,7 @@ import { ChatEventsEnum } from '../../context/constant'
 import { AppContext, WSContext } from '../../context/Contexts'
 import EmojiPicker from 'emoji-picker-react';
 import useCallMedia from '../../hooks/useCallMedia'
+import messageDecryptor from '../../helpers/decryptMessage'
 
 const api = import.meta.env.VITE_API;
 
@@ -319,131 +320,245 @@ const AttechMents = () => {
     )
 }
 
+
 const ChatBox = () => {
     const mailOptions = useRef<HTMLDivElement | null>(null);
-    const mailRef = useRef<HTMLDivElement | null>(null);
-    const messages = useAppSelector((state) => state.temp.selectedContact?.messages) || [];
-    const selectedContact = useAppSelector((state) => state.temp.selectedContact);
-    const user = useAppSelector((state) => state.auth.user);
+    const chatBoxRef = useRef<HTMLDivElement | null>(null);
+
+    const messages = useAppSelector((s) => s.temp.selectedContact?.messages) || [];
+    const selectedContact = useAppSelector((s) => s.temp.selectedContact);
+    const user = useAppSelector((s) => s.auth.user);
     const disp = useAppDispatch();
 
-    // Reply Model
+    const [decryptedMap, setDecryptedMap] = useState<Record<string, string>>({});
+    const decryptedSetRef = useRef<Set<string>>(new Set()); // prevents re-decrypt
+
+    async function decryptAndStore(msgId: string, cipherText: string) {
+        try {
+            const plain = await messageDecryptor(cipherText);
+            console.log("decrypting message: ", cipherText)
+            const plainText = plain ? plain.toString() : cipherText;
+            setDecryptedMap((m) => {
+                if (m[msgId] === plainText) return m;
+                return { ...m, [msgId]: plainText };
+            });
+        } catch {
+            setDecryptedMap((m) => {
+                if (m[msgId] === cipherText) return m;
+                return { ...m, [msgId]: cipherText };
+            });
+        }
+    }
+
+    // ✅ Reply on double click (event delegation)
     useEffect(() => {
+        const root = chatBoxRef.current;
+        if (!root) return;
+
         const handleDoubleClick = (e: MouseEvent) => {
-            const target = e.target as HTMLElement
-            const msgId = target.getAttribute("data-msgid");
-            const targetTag = target.getAttribute("data-tag");
-            if (msgId && targetTag) {
-                disp(setReplyState({ messageId: msgId, senderTag: targetTag, trigger: true }))
-                const messageArea = document.getElementById('messageBox')
-                messageArea?.focus()
-            }
+            const target = e.target as HTMLElement;
+            const msgEl = target.closest("[data-msgid]") as HTMLElement | null;
+            if (!msgEl) return;
+
+            const msgId = msgEl.dataset.msgid;
+            const tag = msgEl.dataset.tag;
+            if (!msgId || !tag) return;
+
+            disp(setReplyState({ messageId: msgId, senderTag: tag, trigger: true }));
+            document.getElementById("messageBox")?.focus();
         };
 
-        const element = mailRef.current;
-        if (element) {
-            element.addEventListener("dblclick", handleDoubleClick);
-        }
+        root.addEventListener("dblclick", handleDoubleClick);
+        return () => root.removeEventListener("dblclick", handleDoubleClick);
+    }, [disp]);
 
-        // cleanup to avoid multiple listeners
-        return () => {
-            if (element) {
-                element.removeEventListener("dblclick", handleDoubleClick);
-            }
-        };
-    }, []);
-
+    // ✅ Decrypt only when visible (observer on parent)
     useEffect(() => {
-        const chatViewPort = document.getElementById("chatBox")
+        const root = chatBoxRef.current;
+        if (!root) return;
 
-        function getItemsInView() {
-            const parentView = chatViewPort?.getBoundingClientRect();
-            const msgs = chatViewPort?.children || [];
+        const observer = new IntersectionObserver(
+            (entries) => {
+                for (const entry of entries) {
+                    if (!entry.isIntersecting) continue;
 
-            const onViewMessages = [];
+                    const el = entry.target as HTMLElement;
+                    const msgId = el.dataset.msgid;
+                    const cipherText = el.dataset.cipher;
 
-            for (const child of msgs) {
-                const childRect = child.getBoundingClientRect();
-
-                if (parentView) {
-                    const isVisible = childRect.top < parentView?.bottom && childRect.bottom > parentView?.top;
-
-                    if (isVisible) {
-                        onViewMessages.push(child.attributes.getNamedItem("data-user")?.nodeValue)
+                    if (msgId && cipherText && !decryptedSetRef.current.has(msgId)) {
+                        decryptedSetRef.current.add(msgId);
+                        decryptAndStore(msgId, cipherText);
                     }
+
+                    observer.unobserve(el);
                 }
-            }
+            },
+            { root, threshold: 0.5 }
+        );
 
-            console.clear();
-        }
+        // Observe only nodes that are not already decrypted
+        const nodes = root.querySelectorAll<HTMLElement>("[data-msgid]");
+        nodes.forEach((n) => {
+            const msgId = n.dataset.msgid;
+            if (!msgId || decryptedSetRef.current.has(msgId)) return;
+            observer.observe(n);
+        });
 
-        chatViewPort?.addEventListener("scroll", getItemsInView);
-
-        getItemsInView();
-    }, []);
+        return () => observer.disconnect();
+    }, [messages]); // re-run when new messages arrive
 
     return (
-        <section id='chatBox' className="h-full overflow-y-auto flex flex-col gap-5 p-1 pb-4" style={{ scrollbarWidth: 'none' }}>
-            <MailMenu mailRef={mailOptions} boxRef={mailRef} />
+        <section
+            id="chatBox"
+            ref={chatBoxRef}
+            className="h-full overflow-y-auto flex flex-col gap-5 p-1 pb-4"
+            style={{ scrollbarWidth: "none" }}
+        >
+            <MailMenu mailRef={mailOptions} boxRef={mailOptions} />
             <BottomButton />
+
             {
                 selectedContact.isGroup ? (
-                    messages && messages.map((msg, index) => (
-                        msg.sender?._id === user._id ? (
-                            msg.pending ? (
-                                <SendingMedia attechmentType={msg.attechmentType} mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"you"} mailOptions={mailOptions} time={msg.createdAt} />
-                            ) : (
-                                msg.isDeleted ? (
-                                    <DeletedMessageMe key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"You"} time={msg.createdAt} />
-                                ) : (
-                                    msg.attechmentLink === "" ?
-                                        <MailMe mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"you"} mailOptions={mailOptions} time={msg.createdAt} /> :
-                                        <MailAttechmentMe attechmentLink={msg.attechmentLink} mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
-                                )
-                            )
-                        ) : (
-                            msg.pending || msg.isDeleted ? (
-                                <DeletedMessage key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
-                            ) : (
+                    messages && messages.map((msg, index) => {
+                        const cipherText = msg.message;
+                        const displayText = decryptedMap[msg._id] ?? "Decrypting...";
 
-                                msg.attechmentLink === "" ?
-                                    <Mail mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} mailOptions={mailOptions} time={msg.createdAt} /> :
-                                    <MailAttechment attechmentLink={msg.attechmentLink} fileType={msg.attechmentType} mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
-                            )
-                        )
-                    )
-                    ))
-                    : (
-                        messages && messages.map((msg, index) => (
-                            msg.userId === user._id ? (
+                        return (
+                            msg.sender?._id === user._id ? (
                                 msg.pending ? (
-                                    <SendingMedia attechmentType={msg.attechmentType} mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"you"} mailOptions={mailOptions} time={msg.createdAt} />
+                                    <SendingMedia cipherText={cipherText} displayText={displayText} attechmentType={msg.attechmentType} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"you"} mailOptions={mailOptions} time={msg.createdAt} />
                                 ) : (
                                     msg.isDeleted ? (
-                                        <DeletedMessageMe key={index} avatar={user.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
-                                    ) :
-                                        (
-                                            msg.attechmentLink === "" ?
-                                                <MailMe mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} /> :
-                                                // Working
-                                                <MailAttechmentMe attechmentLink={msg.attechmentLink} mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
-                                        ))
+                                        <DeletedMessageMe key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"You"} time={msg.createdAt} />
+                                    ) : (
+                                        msg.attechmentLink === "" ?
+                                            <MailMe cipherText={cipherText} displayText={displayText} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"you"} mailOptions={mailOptions} time={msg.createdAt} /> :
+                                            <MailAttechmentMe cipherText={cipherText} displayText={displayText} attechmentLink={msg.attechmentLink} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
+                                    )
+                                )
                             ) : (
-                                (
-                                    msg.pending || msg.isDeleted ? (
-                                        <DeletedMessage key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
-                                    ) :
-                                        (
-                                            msg.attechmentLink === "" ?
-                                                <Mail mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={user.searchTag} mailOptions={mailOptions} time={msg.createdAt} /> :
-                                                <MailAttechment attechmentLink={msg.attechmentLink} fileType={msg.attechmentType} mailRef={mailRef} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
-                                        ))
-                            )
+                                msg.pending || msg.isDeleted ? (
+                                    <DeletedMessage key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
+                                ) : (
 
-                        ))
+                                    msg.attechmentLink === "" ?
+                                        <Mail cipherText={cipherText} displayText={displayText} mailOptions={mailOptions} readBy={msg.readBy} key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} /> :
+                                        <MailAttechment cipherText={cipherText} displayText={displayText} attechmentLink={msg.attechmentLink} fileType={msg.attechmentType} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
+                                )
+                            )
+                        )
+                    }
+
+
+                    )
+                )
+                    :
+                    (
+                        messages && messages.map((msg, index) => {
+                            const cipherText = msg.message;
+                            const displayText = decryptedMap[msg._id] ?? "Decrypting...";
+
+                            return (
+                                msg.userId === user._id ? (
+                                    msg.pending ? (
+                                        <SendingMedia cipherText={cipherText} displayText={displayText} attechmentType={msg.attechmentType} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"you"} mailOptions={mailOptions} time={msg.createdAt} />
+                                    ) : (
+                                        msg.isDeleted ? (
+                                            <DeletedMessageMe key={index} avatar={user.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
+                                        ) :
+                                            (
+                                                msg.attechmentLink === "" ?
+                                                    <MailMe cipherText={cipherText} displayText={displayText} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} /> :
+                                                    // Working
+                                                    <MailAttechmentMe cipherText={cipherText} displayText={displayText} attechmentLink={msg.attechmentLink} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
+                                            ))
+                                ) : (
+                                    (
+                                        msg.pending || msg.isDeleted ? (
+                                            <DeletedMessage key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
+                                        ) :
+                                            (
+                                                msg.attechmentLink === "" ?
+                                                    <Mail cipherText={cipherText} displayText={displayText} mailOptions={mailOptions} readBy={msg.readBy} key={index} avatar={user.avatar} _id={msg._id} senderTag={user.searchTag} time={msg.createdAt} /> :
+                                                    <MailAttechment cipherText={cipherText} displayText={displayText} attechmentLink={msg.attechmentLink} fileType={msg.attechmentType} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
+                                            ))
+                                ))
+                        }
+                        )
                     )
             }
 
+
+
+            {/* {
+            messages.map((msg, index) => {
+
+                const cipherText = msg.message;
+
+                const displayText = decryptedMap[msg._id] ?? "Decrypting...";
+
+
+                return (
+
+                    selectedContact.isGroup ? (
+                        messages && messages.map((msg, index) => (
+                            msg.sender?._id === user._id ? (
+                                msg.pending ? (
+                                    <SendingMedia cipherText={cipherText} displayText={displayText} attechmentType={msg.attechmentType} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"you"} mailOptions={mailOptions} time={msg.createdAt} />
+                                ) : (
+                                    msg.isDeleted ? (
+                                        <DeletedMessageMe key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"You"} time={msg.createdAt} />
+                                    ) : (
+                                        msg.attechmentLink === "" ?
+                                            <MailMe cipherText={cipherText} displayText={displayText} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"you"} mailOptions={mailOptions} time={msg.createdAt} /> :
+                                            <MailAttechmentMe cipherText={cipherText} displayText={displayText} attechmentLink={msg.attechmentLink} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
+                                    )
+                                )
+                            ) : (
+                                msg.pending || msg.isDeleted ? (
+                                    <DeletedMessage key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
+                                ) : (
+
+                                    msg.attechmentLink === "" ?
+                                        <Mail cipherText={cipherText} displayText={displayText} mailOptions={mailOptions} readBy={msg.readBy} key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} /> :
+                                        <MailAttechment cipherText={cipherText} displayText={displayText} attechmentLink={msg.attechmentLink} fileType={msg.attechmentType} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
+                                )
+                            )
+                        )
+                        ))
+                        : (
+                            messages && messages.map((msg, index) => (
+                                msg.userId === user._id ? (
+                                    msg.pending ? (
+                                        <SendingMedia cipherText={cipherText} displayText={displayText} attechmentType={msg.attechmentType} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"you"} mailOptions={mailOptions} time={msg.createdAt} />
+                                    ) : (
+                                        msg.isDeleted ? (
+                                            <DeletedMessageMe key={index} avatar={user.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
+                                        ) :
+                                            (
+                                                msg.attechmentLink === "" ?
+                                                    <MailMe cipherText={cipherText} displayText={displayText} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} /> :
+                                                    // Working
+                                                    <MailAttechmentMe cipherText={cipherText} displayText={displayText} attechmentLink={msg.attechmentLink} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
+                                            ))
+                                ) : (
+                                    (
+                                        msg.pending || msg.isDeleted ? (
+                                            <DeletedMessage key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
+                                        ) :
+                                            (
+                                                msg.attechmentLink === "" ?
+                                                    <Mail cipherText={cipherText} displayText={displayText} mailOptions={mailOptions} readBy={msg.readBy} key={index} avatar={user.avatar} _id={msg._id} senderTag={user.searchTag} time={msg.createdAt} /> :
+                                                    <MailAttechment cipherText={cipherText} displayText={displayText} attechmentLink={msg.attechmentLink} fileType={msg.attechmentType} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
+                                            ))
+                                )
+
+                            ))
+                        )
+                )
+            })
+            } */}
         </section>
-    )
-}
+    );
+};

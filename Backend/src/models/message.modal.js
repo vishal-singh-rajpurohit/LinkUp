@@ -1,4 +1,5 @@
 const { Schema, default: mongoose } = require("mongoose");
+const { encryptMessage, decryptMsg } = require("../utils/encryption.utils");
 
 const geoSchcma = new Schema({
   longitude: {
@@ -93,6 +94,16 @@ const newSchema = new Schema(
     timestamps: true,
   }
 );
+
+newSchema.pre('save', async function (next){
+  this.message = await encryptMessage(this.message)
+  next()
+})
+
+// newSchema.pre('find', async function(next){
+//   this.message = await decryptMsg(this.message)
+//   next()
+// })
 
 const Message = mongoose.model("Message", newSchema);
 
