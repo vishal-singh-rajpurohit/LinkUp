@@ -72,7 +72,6 @@ export const SampleCropper = ({ open, image, setImage }: {
                     }
                 })
 
-                console.log(`done`);
                 disp(updateAvatar({ avatar: resp.data.data.avatar }))
                 setImage("")
             } catch (error) {

@@ -76,7 +76,7 @@ const Signup = () => {
                     withCredentials: true,
                  }
             );
-            // console.log(`resp: ${JSON.stringify(resp, null, 2)}`);
+            
             disp(firstEnter({ userData: resp.data.data.User }))
             window.localStorage.setItem("accessToken", resp.data.data.accessToken)
             router('/')
@@ -100,7 +100,6 @@ const Signup = () => {
                 setPass(true)
 
             } catch (error) {
-                // console.log(`error in checking search Tag Avilability: ${JSON.stringify(error, null, 2)}`);
                 setErrors({
                     message: "Search tag Alredy taken",
                     type: "tag"

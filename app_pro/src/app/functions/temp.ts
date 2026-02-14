@@ -105,7 +105,6 @@ function searchingFunc(state: initialStateTypes, action: PayloadAction<{ users: 
 }
 
 function selectConFunc(state: initialStateTypes, action: PayloadAction<{ chat: contactTypes }>) {
-    // console.log('chat is: ', action.payload.chat);
 
     state.selectedContact = {
         _id: action.payload.chat._id,
@@ -165,8 +164,6 @@ function addGroupContact(state: initialStateTypes, action: PayloadAction<{ user:
 function addGroupAdmin(state: initialStateTypes, action: PayloadAction<{ user: groupContactTypes }>) {
     const user = state.groupContact.filter((val) => val._id === action.payload.user._id)
 
-    // console.log(`filtered user: ${JSON.stringify(user, null, 2)}`);
-
     if (!user[0].admin) {
         user[0].admin = true
         const prevUser = state.groupContact.filter((val) => val._id !== action.payload.user._id)
@@ -176,8 +173,6 @@ function addGroupAdmin(state: initialStateTypes, action: PayloadAction<{ user: g
         const prevUser = state.groupContact.filter((val) => val._id !== action.payload.user._id)
         state.groupContact = [...prevUser, user[0]]
     }
-
-    // console.log(`filtered user: ${JSON.stringify(state.groupContact, null, 2)}`);
 }
 
 function clearGroupCon(state: initialStateTypes) {
@@ -439,4 +434,4 @@ const tempSlice = createSlice({
 
 export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp, updateSelectedAvatar, setHasAttechments, removeTempMessage, triggerOnline, kickedMeTemp, newMessageInRoom, setReplyState, toggleTyping, notificationPup, markTempAsRead, setFileSelection, setEmojiSelection, setUploadingState, triggetUploadType, clearUploadState, uploadedMeidaTemp, uploadingMeidaTemp } = tempSlice.actions
 
-export default tempSlice.reducer
+export default tempSlice.reducer;

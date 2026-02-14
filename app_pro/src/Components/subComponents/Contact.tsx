@@ -52,7 +52,6 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
             router(`/chat?id=${id}`)
         } else {
             selectToTalk(id)
-            console.log("talk funcion called")
         }
     }
 

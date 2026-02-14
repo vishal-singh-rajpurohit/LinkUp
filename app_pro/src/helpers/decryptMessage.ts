@@ -61,10 +61,8 @@ export default async function decryptMsg(payload: string): Promise<string> {
 
   const cipherPlusTag = concatU8(cipher, tag);
 
-  console.log("decryptMsg called with payload:");
   const key = await getAesKey();
   const plainBuf = await crypto.subtle.decrypt({ name: "AES-GCM", iv: toArrayBuffer(iv) }, key, toArrayBuffer(cipherPlusTag));
 
-  console.log("Decryption successful, plaintext bytes:", new Uint8Array(plainBuf));
   return new TextDecoder().decode(new Uint8Array(plainBuf));
 }

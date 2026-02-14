@@ -3,8 +3,6 @@ import { motion } from "framer-motion";
 import { Mic, MicOff, PhoneOff, Video } from "lucide-react";
 import { WSContext } from "../../context/Contexts";
 import { useAppSelector } from "../../app/hooks";
-import useCallMedia from "../../hooks/useCallMedia";
-
 
 const Participant = (
     { 

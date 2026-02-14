@@ -16,23 +16,6 @@ export const ChatEventsEnum = {
     SENT_MEDIA: "sent_media",
 }
 
-export const CallEventEnum = {
-    REQUEST_VIDEO_CALL: "request_video_call",
-
-    REQUESTED_VIDEO_CALL: 'requested_video_call',
-    
-    END_VIDEO_CALL: 'end_video_call',
-
-    CALL_EVENT_ERROR: "call_event"
-}
-
-export const CallEventEnum_2 = {
-    REQUEST_VIDEO_CALL: "request_video_call",
-    REJECT_VIDEO_CALL: "reject_video_call",
-
-    CALLER_UPDATE: 'caller_update'
-}
-
 export const STUN_SERVERS = [
     { urls: 'stun:stun.l.google.com:19302' },
 ];

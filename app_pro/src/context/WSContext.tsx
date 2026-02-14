@@ -3,10 +3,10 @@ import io from "socket.io-client"
 import { useAppDispatch, useAppSelector } from "../app/hooks";
 import {kickedMeTemp, markTempAsRead, newMessageInRoom, notificationPup, removeTempMessage,  toggleTyping, triggerOnline, uploadedMeidaTemp } from "../app/functions/temp";
 import { deleteMessage, kickedMeAuth, kickOutAuth, markAsRead, messageMediaSent, messageRecived, saveContact, saveGroup, triggerConOnline, type groupMssageType, type groupsResp, type newChatTypes } from "../app/functions/auth";
-
 import { WSContext, type WSCTypes } from "./Contexts";
 import { ChatEventsEnum } from "./constant"
 
+const SOCKET_API = import.meta.env.VITE_API_;
 
 const WSProvider = ({ children }: { children: React.ReactNode }) => {
     const disp = useAppDispatch();
@@ -16,7 +16,7 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
     
     const socket = useMemo(() => {
         if (isLoggedIn) {
-            const newSocket = io(`http://localhost:5000`, {
+            const newSocket = io(SOCKET_API, {
                 autoConnect: true,
                 withCredentials: true,
                 auth: {
@@ -27,19 +27,17 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
             return newSocket
         }
         return null
-    }, [isLoggedIn])
-
-    
+    }, [isLoggedIn]);
 
     useEffect(() => {
         if (!isLoggedIn) return;
         socket?.connect()
+
         socket?.on('connect', () => {
             console.log(`connected to the socket`);
-        })
+        });
 
         socket?.on(ChatEventsEnum.ONLINE_EVENT, ({ contactId }: { contactId: string; message: string }) => {
-            console.log("you are online")
             disp(triggerOnline({ contactId: contactId, trigger: true }))
             disp(triggerConOnline({ contactId: contactId, trigger: true }))
         })
@@ -56,8 +54,7 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
             }
 
             disp(saveContact({ newChat: newContact }));
-            disp(notificationPup({ trigger: true }))
-            // console.log('you are in a chat room , ', newContact);
+            disp(notificationPup({ trigger: true }));
         })
 
         socket?.on(ChatEventsEnum.NEW_GROUP_CHAT, ({ newGroupDetails }: { newGroupDetails: groupsResp }) => {
@@ -66,22 +63,18 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         })
 
         socket?.on(ChatEventsEnum.KICKED_OUT_MEMBER, ({ updatedGroup }: { updatedGroup: groupsResp }) => {
-            console.log('someone kicked');
             disp(kickOutAuth({ newChat: updatedGroup }))
         })
 
         socket?.on(ChatEventsEnum.KICKED_OUT_YOU, ({ groupId }: { groupId: string }) => {
-            console.log('kicked you out');
-            // Incomplete
             disp(kickedMeAuth({ groupId }))
             disp(kickedMeTemp({ groupId }))
         })
 
         socket?.on(ChatEventsEnum.NEW_MESSAGE, ({ newMessage, contactId }: { newMessage: groupMssageType; contactId: string; }) => {
-            console.log("new message recived")
             disp(messageRecived({ contactId: contactId, newMsg: newMessage }));
             disp(newMessageInRoom({ contactId: contactId, newMsg: newMessage }));
-            disp(notificationPup({ trigger: true }))
+            disp(notificationPup({ trigger: true })) 
         })
 
         socket?.on(ChatEventsEnum.SENDING_MEDIA, ({ newMessage, contactId }: { newMessage: groupMssageType; contactId: string; }) => {
@@ -96,7 +89,6 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         })
 
         socket?.on(ChatEventsEnum.DELETED_MESSAGE, ({ messageId, contactId, isGroup }: { messageId: string; contactId: string; isGroup: boolean }) => {
-            console.log('one message is deleted from the group');
             disp(deleteMessage({ contactId, messageId, isGroup }))
             disp(removeTempMessage({ contactId, messageId }))
         })
@@ -117,8 +109,6 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
             disp(markAsRead({ messageId: messageId, contactId: contactId, viewerId }))
             disp(markTempAsRead({ messageId: messageId, contactId: contactId, viewerId }))
         })
-
-        
 
     }, [socket, isLoggedIn])
 

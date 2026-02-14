@@ -24,7 +24,6 @@ const Auth = ({ children }: { children: ReactNode }) => {
 
 
   const checkLogIn = async () => {
-    console.log('api url is: ', api)
     try {
       interface RegisterResponse {
         data: {
@@ -37,21 +36,18 @@ const Auth = ({ children }: { children: ReactNode }) => {
         formData,
         { withCredentials: true }
       );
-      // console.log(`logged in: ${JSON.stringify(resp, null, 2)}`);
       disp(enterApp({ userData: resp.data.data.User }))
       window.localStorage.setItem("accessToken", resp.data.data.accessToken)
       setFormData({ latitude: '', longitude: '' })
       router('/')
 
     } catch (error) {
-      console.log(`not logged in: ${error}`);
       router('/login')
     }
   };
 
   useEffect(() => {
     if (!isLoggedIn && formData.latitude) {
-      console.log('called first');
       checkLogIn()
     }
   }, [formData, setFormData])
@@ -60,7 +56,6 @@ const Auth = ({ children }: { children: ReactNode }) => {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        console.log('getting locaiton')
         setFormData({
           ...formData,
           latitude: String(position.coords.latitude),
@@ -70,8 +65,6 @@ const Auth = ({ children }: { children: ReactNode }) => {
     )
     // Disable in Production
     if (!formData.latitude) {
-      console.log('offline');
-
       setFormData({
         ...formData,
         latitude: "Not given",
@@ -101,7 +94,6 @@ export const RevAuth = ({ children }: { children: ReactNode }) => {
   )
 
   const checkLogIn = async () => {
-    console.log('api url is: ', api)
     try {
       interface RegisterResponse {
         data: {
@@ -132,7 +124,6 @@ export const RevAuth = ({ children }: { children: ReactNode }) => {
       router('/')
     } else {
       if (formData.latitude) {
-        console.log('called second');
         checkLogIn()
       }
     }

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
 import { selectContact, selectGroup, setHasAttechments } from '../app/functions/temp'
 import { AppContext, type appContextTypes } from "./Contexts";
+const API = import.meta.env.VITE_API;
 
 export const AppContextProvider = ({ children }: {
     children: React.ReactNode
@@ -15,13 +16,12 @@ export const AppContextProvider = ({ children }: {
     const user = useAppSelector((state) => state.auth.user)
     const [isAdmin, setIsAdmin] = useState<boolean>(false)
 
+
     function selectToTalk(id: string) {
         if (chatTypes === 1) {
             console.log("select To talk called")
             const chat = contacts.filter((val) => val._id === id)
-            // console.log(`contac is ${JSON.stringify(chat[0], null, 2)}`);
             disp(selectContact({ chat: chat[0] }))
-            // console.log("chat is: ", chat[0])
         }
         else if (chatTypes === 2) {
             const chat = groups.filter((val) => val._id === id)
@@ -48,7 +48,6 @@ export const AppContextProvider = ({ children }: {
     const fileType = useAppSelector((state) => state.temp.fileType)
 
     async function handelFile(files: FileList | null) {
-        console.log('File Selection called: ', files);
         if (files?.[0]) {
             if (fileType === 'img') {
                 console.log('attachment : ')
@@ -67,8 +66,6 @@ export const AppContextProvider = ({ children }: {
                 messageFormData.append('attechment', files[0])
                 disp(setHasAttechments({trigger: true}))
             }
-
-            console.log('file is: ', messageFormData.get('attechment'));
             
         }
     }

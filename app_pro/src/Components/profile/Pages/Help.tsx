@@ -76,7 +76,6 @@ const AddContactModel = ({ open, setOpen }: {
     open: boolean;
     setOpen: React.Dispatch<SetStateAction<boolean>>;
 }) => {
-    const disp = useAppDispatch()
     const tempUsers = useAppSelector((state) => state.temp.tempUser)
     const contacts = useAppSelector((state) => state.auth.contacts)
 

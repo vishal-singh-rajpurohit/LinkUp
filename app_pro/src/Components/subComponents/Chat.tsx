@@ -14,7 +14,6 @@ import { setEmojiSelection, setFileSelection, setHasAttechments, setReplyState, 
 import { ChatEventsEnum } from '../../context/constant'
 import { AppContext, WSContext } from '../../context/Contexts'
 import EmojiPicker from 'emoji-picker-react';
-import useCallMedia from '../../hooks/useCallMedia'
 import messageDecryptor from '../../helpers/decryptMessage'
 
 const api = import.meta.env.VITE_API;
@@ -50,7 +49,11 @@ export const ChatTop = () => {
     const chatTypes = useAppSelector((state) => state.temp.chatListTypes);
     const lastOnline = getTimeDifference(room?.time || Date.now());
 
-    const { makeVideoCall } = useCallMedia()
+    const socketContext = useContext(WSContext)
+
+    if (!socketContext) {
+        throw new Error("Socket context not found")
+    }
 
     async function getDetails() {
         router(`/chat/details/?room_id=${room?._id}`)
@@ -60,7 +63,9 @@ export const ChatTop = () => {
         <div className='h-[4rem] w-full cursor-pointer bg-slate-800 rounded-t-lg' >
             <div className="grid h-full w-full grid-cols-[0.2fr_1fr_5fr_1fr_0.3fr] items-center px-3 md:grid-cols-[0.2fr_1fr_7fr_1fr_0.3fr] ">
                 <NavLink to={'/'} >
-                    <div className="w-full flex items-center justify-center"><FaAngleLeft size={20} /></div>
+                    <div className="w-full flex items-center justify-center">
+                        <FaAngleLeft size={20} />
+                    </div>
                 </NavLink>
                 <div className="w-full overflow-hidden h-full flex items-center justify-center">
                     <div onClick={getDetails} className='w-[2.5rem] h-[2.5rem] flex items-center justify-center overflow-hidden rounded-[10rem] bg-amber-300 md:h-[2.5rem] md:w-[2.5rem]'>
@@ -75,7 +80,7 @@ export const ChatTop = () => {
                 </div>
                 <div className="flex gap-3 justify-center items-center">
                     <NavLink to={'/user/call/video'}>X</NavLink>
-                    <MdVideoCall size={20} onClick={makeVideoCall} />
+                    <MdVideoCall size={20} />
                     <MdCall size={20} />
                 </div>
                 {/* <div className="">
@@ -336,7 +341,6 @@ const ChatBox = () => {
     async function decryptAndStore(msgId: string, cipherText: string) {
         try {
             const plain = await messageDecryptor(cipherText);
-            console.log("decrypting message: ", cipherText)
             const plainText = plain ? plain.toString() : cipherText;
             setDecryptedMap((m) => {
                 if (m[msgId] === plainText) return m;
@@ -350,7 +354,6 @@ const ChatBox = () => {
         }
     }
 
-    // ✅ Reply on double click (event delegation)
     useEffect(() => {
         const root = chatBoxRef.current;
         if (!root) return;
@@ -372,7 +375,7 @@ const ChatBox = () => {
         return () => root.removeEventListener("dblclick", handleDoubleClick);
     }, [disp]);
 
-    // ✅ Decrypt only when visible (observer on parent)
+
     useEffect(() => {
         const root = chatBoxRef.current;
         if (!root) return;
@@ -397,7 +400,6 @@ const ChatBox = () => {
             { root, threshold: 0.5 }
         );
 
-        // Observe only nodes that are not already decrypted
         const nodes = root.querySelectorAll<HTMLElement>("[data-msgid]");
         nodes.forEach((n) => {
             const msgId = n.dataset.msgid;
@@ -406,7 +408,7 @@ const ChatBox = () => {
         });
 
         return () => observer.disconnect();
-    }, [messages]); // re-run when new messages arrive
+    }, [messages]);
 
     return (
         <section
@@ -489,76 +491,6 @@ const ChatBox = () => {
                     )
             }
 
-
-
-            {/* {
-            messages.map((msg, index) => {
-
-                const cipherText = msg.message;
-
-                const displayText = decryptedMap[msg._id] ?? "Decrypting...";
-
-
-                return (
-
-                    selectedContact.isGroup ? (
-                        messages && messages.map((msg, index) => (
-                            msg.sender?._id === user._id ? (
-                                msg.pending ? (
-                                    <SendingMedia cipherText={cipherText} displayText={displayText} attechmentType={msg.attechmentType} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"you"} mailOptions={mailOptions} time={msg.createdAt} />
-                                ) : (
-                                    msg.isDeleted ? (
-                                        <DeletedMessageMe key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"You"} time={msg.createdAt} />
-                                    ) : (
-                                        msg.attechmentLink === "" ?
-                                            <MailMe cipherText={cipherText} displayText={displayText} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"you"} mailOptions={mailOptions} time={msg.createdAt} /> :
-                                            <MailAttechmentMe cipherText={cipherText} displayText={displayText} attechmentLink={msg.attechmentLink} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
-                                    )
-                                )
-                            ) : (
-                                msg.pending || msg.isDeleted ? (
-                                    <DeletedMessage key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
-                                ) : (
-
-                                    msg.attechmentLink === "" ?
-                                        <Mail cipherText={cipherText} displayText={displayText} mailOptions={mailOptions} readBy={msg.readBy} key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} /> :
-                                        <MailAttechment cipherText={cipherText} displayText={displayText} attechmentLink={msg.attechmentLink} fileType={msg.attechmentType} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
-                                )
-                            )
-                        )
-                        ))
-                        : (
-                            messages && messages.map((msg, index) => (
-                                msg.userId === user._id ? (
-                                    msg.pending ? (
-                                        <SendingMedia cipherText={cipherText} displayText={displayText} attechmentType={msg.attechmentType} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"you"} mailOptions={mailOptions} time={msg.createdAt} />
-                                    ) : (
-                                        msg.isDeleted ? (
-                                            <DeletedMessageMe key={index} avatar={user.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
-                                        ) :
-                                            (
-                                                msg.attechmentLink === "" ?
-                                                    <MailMe cipherText={cipherText} displayText={displayText} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} /> :
-                                                    // Working
-                                                    <MailAttechmentMe cipherText={cipherText} displayText={displayText} attechmentLink={msg.attechmentLink} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
-                                            ))
-                                ) : (
-                                    (
-                                        msg.pending || msg.isDeleted ? (
-                                            <DeletedMessage key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={msg?.sender?.searchTag || ""} time={msg.createdAt} />
-                                        ) :
-                                            (
-                                                msg.attechmentLink === "" ?
-                                                    <Mail cipherText={cipherText} displayText={displayText} mailOptions={mailOptions} readBy={msg.readBy} key={index} avatar={user.avatar} _id={msg._id} senderTag={user.searchTag} time={msg.createdAt} /> :
-                                                    <MailAttechment cipherText={cipherText} displayText={displayText} attechmentLink={msg.attechmentLink} fileType={msg.attechmentType} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
-                                            ))
-                                )
-
-                            ))
-                        )
-                )
-            })
-            } */}
         </section>
     );
 };

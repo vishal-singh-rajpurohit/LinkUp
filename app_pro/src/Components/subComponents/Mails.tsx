@@ -6,12 +6,11 @@ import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import axios from "axios";
 import { getTimeDifference } from "../../helpers/timeConverter";
 import { FcDown } from "react-icons/fc";
-import { AppContext, WSContext } from "../../context/Contexts";
+import { AppContext } from "../../context/Contexts";
 import { FaFile, FaImage, FaVideo, FaDownload, FaTimes, FaFileImage, FaFileVideo, FaFileAudio, FaFileCode, FaFileAlt, } from "react-icons/fa";
 import { IoMdCloudUpload } from "react-icons/io"
 import { RiCheckDoubleLine } from "react-icons/ri";
 import sound from '../../assets/sound.mp3'
-import { ChatEventsEnum } from "../../context/constant"
 
 const api = import.meta.env.VITE_API;
 
@@ -34,7 +33,6 @@ export const Mail = ({
   cipherText: string;
   displayText: string;
 }) => {
-  const disp = useAppDispatch();
   const currMessageRef = useRef<HTMLDivElement | null>(null);
   const [timer, setTimer] = useState("");
   const [wrapEnable, setWrapEnable] = useState(false);
@@ -47,7 +45,6 @@ export const Mail = ({
     if (time) setTimer(getTimeDifference(time));
   }, [time]);
 
-  // ✅ menu click without leaking mouseleave listeners
   useEffect(() => {
     const el = currMessageRef.current;
     if (!el) return;

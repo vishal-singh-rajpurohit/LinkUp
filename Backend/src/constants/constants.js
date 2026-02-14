@@ -18,8 +18,11 @@ const chatEventEnumNew = {
 }
 
 const CallEventEnum = {
-  REQUEST_VIDEO_CALL: "request_video_call",
 
+  // Done
+  REQUEST_VIDEO_CALL: "request_video_call",
+  
+  // Pending
   REQUESTED_VIDEO_CALL: 'requested_video_call',
 
   INCOMING_VIDEO_CALL: 'incoming_video_call',

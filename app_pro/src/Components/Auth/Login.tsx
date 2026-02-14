@@ -56,7 +56,7 @@ const LoginForm = () => {
       router('/')
 
     } catch (error) {
-      console.log(`error in login: ${error}`);
+        if(error instanceof Error) throw new Error(`Error in login: ${ error.message}`)
     }
   };
 

@@ -200,7 +200,6 @@ function enterAppFunc(state: initialTypes, action: PayloadAction<{ userData: ini
             isOnline: item.member.user.online,
             messages: item.messages
         }
-        console.log(`get contacts: `, item.messages);
 
         state.contacts = [...state.contacts, newContact]
     })
@@ -517,7 +516,6 @@ function cickOutMember(state: initialTypes, action: PayloadAction<{ newChat: gro
     const toUpdate = state.groups.filter((con) => con._id === action.payload.newChat._id)
 
     if (toUpdate[0]) {
-        console.log(`Update found`);
         toUpdate[0].members = members;
         state.groups = [
             ...(state.groups),
@@ -796,7 +794,6 @@ export const AuthSlice = createSlice({
         messageMediaSent: messageMediaSentFunc,
     }
 });
-
 
 export const { firstEnter, enterApp, logOut, saveContact, saveGroup, blockTrigger, addArchieved, removeArchieved, kickoutAuth, setTheme, updateEmail, updateName, updateSearchTag, updateAvatar, setSecourityQuestion, setSecourityAnswer, updateGroupAvatar, deleteMessage, triggerConOnline, kickOutAuth, kickedMeAuth, messageRecived, markAsRead, messageMediaSent } = AuthSlice.actions
 
