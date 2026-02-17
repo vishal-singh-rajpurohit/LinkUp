@@ -66,6 +66,8 @@ export const Mail = ({
     <div
       id={_id}
       data-msgid={_id}
+      data-sendertag={senderTag}
+      data-read={readBy.length}
       data-tag={senderTag}
       data-cipher={cipherText}
       className="flex gap-2 text-white"
@@ -169,7 +171,7 @@ export const MailMe = (
 
   return (
     <>
-      <div id={_id} data-msgid={_id} data-tag={senderTag} data-cipher={cipherText} className={`flex gap-2 text-white flex-row-reverse selection:bg-[#fff0]`}>
+      <div id={_id} data-sendertag={senderTag} data-read={readBy.length} data-msgid={_id} data-tag={senderTag} data-cipher={cipherText} className={`flex gap-2 text-white flex-row-reverse selection:bg-[#fff0]`}>
         <div className="">
           <div className='w-[1.3rem] h-[1.3rem] flex items-center shadow-[0_0_10px_#00F0FF55] justify-center overflow-hidden rounded-[16px] font-[#0F172A] bg-slate-600 md:h-[1.5rem] md:w-[1.5rem]'>
             <img src={avatar || g} alt="" className="max-h-[1.5rem] h-full" />
@@ -273,7 +275,8 @@ export const MailAttechmentMe = (
   }, []);
 
   return (
-    <div data-msgid={_id} data-tag={senderTag} data-cipher={cipherText} className="flex flex-col items-end gap-2 text-white selection:bg-[#fff0]">
+    <div data-msgid={_id} data-sendertag={senderTag}
+      data-read={readBy.length} data-tag={senderTag} data-cipher={cipherText} className="flex flex-col items-end gap-2 text-white selection:bg-[#fff0]">
       {
         attechmentLink !== "" && (
           <div className="flex gap-2 text-white flex-row-reverse selection:bg-[#fff0]">
@@ -400,7 +403,7 @@ export const MailAttechment = (
 
 
   return (
-    <div data-msgid={_id} data-tag={senderTag} data-cipher={cipherText} className="flex flex-col gap-2 text-white selection:bg-[#fff0]">
+    <div data-sendertag={senderTag} data-msgid={_id} data-tag={senderTag} data-cipher={cipherText} className="flex flex-col gap-2 text-white selection:bg-[#fff0]">
       {
         attechmentLink !== "" && (
           <div className="flex gap-2 text-white selection:bg-[#fff0]">

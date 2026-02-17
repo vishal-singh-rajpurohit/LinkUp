@@ -19,7 +19,8 @@ app.use(express.static("public"));
 const server = http.Server(app);
 
 const io = new Server(server, {
-  pingTimeout: 60000,
+  pingInterval: 10000,
+  pingTimeout: 5000,
   cors: {
     origin: process.env.CORS_ORIGIN,
     credentials: true

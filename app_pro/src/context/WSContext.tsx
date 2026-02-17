@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from "react";
 import io from "socket.io-client"
 import { useAppDispatch, useAppSelector } from "../app/hooks";
-import {kickedMeTemp, markTempAsRead, newMessageInRoom, notificationPup, removeTempMessage,  toggleTyping, triggerOnline, uploadedMeidaTemp } from "../app/functions/temp";
+import { kickedMeTemp, markTempAsRead, newMessageInRoom, notificationPup, removeTempMessage, toggleTyping, triggerOnline, uploadedMeidaTemp } from "../app/functions/temp";
 import { deleteMessage, kickedMeAuth, kickOutAuth, markAsRead, messageMediaSent, messageRecived, saveContact, saveGroup, triggerConOnline, type groupMssageType, type groupsResp, type newChatTypes } from "../app/functions/auth";
 import { WSContext, type WSCTypes } from "./Contexts";
 import { ChatEventsEnum } from "./constant"
@@ -10,10 +10,10 @@ const SOCKET_API = import.meta.env.VITE_API_;
 
 const WSProvider = ({ children }: { children: React.ReactNode }) => {
     const disp = useAppDispatch();
-    
+
     const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn)
     const user = useAppSelector((state) => state.auth.user)
-    
+
     const socket = useMemo(() => {
         if (isLoggedIn) {
             const newSocket = io(SOCKET_API, {
@@ -74,7 +74,7 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         socket?.on(ChatEventsEnum.NEW_MESSAGE, ({ newMessage, contactId }: { newMessage: groupMssageType; contactId: string; }) => {
             disp(messageRecived({ contactId: contactId, newMsg: newMessage }));
             disp(newMessageInRoom({ contactId: contactId, newMsg: newMessage }));
-            disp(notificationPup({ trigger: true })) 
+            disp(notificationPup({ trigger: true }))
         })
 
         socket?.on(ChatEventsEnum.SENDING_MEDIA, ({ newMessage, contactId }: { newMessage: groupMssageType; contactId: string; }) => {
@@ -94,6 +94,7 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         })
 
         socket?.on(ChatEventsEnum.TYPING_ON, ({ avatar }: { avatar: string }) => {
+            console.log('typing.....')
             disp(toggleTyping({ avatar: avatar, trigger: true }))
         })
 
@@ -109,6 +110,24 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
             disp(markAsRead({ messageId: messageId, contactId: contactId, viewerId }))
             disp(markTempAsRead({ messageId: messageId, contactId: contactId, viewerId }))
         })
+
+        return () => {
+            socket?.off("connect");
+            socket?.off(ChatEventsEnum.ONLINE_EVENT);
+            socket?.off(ChatEventsEnum.OFFLINE_EVENT);
+            socket?.off(ChatEventsEnum.APPROACHED_TALK);
+            socket?.off(ChatEventsEnum.NEW_GROUP_CHAT);
+            socket?.off(ChatEventsEnum.KICKED_OUT_MEMBER);
+            socket?.off(ChatEventsEnum.KICKED_OUT_YOU);
+            socket?.off(ChatEventsEnum.NEW_MESSAGE);
+            socket?.off(ChatEventsEnum.SENDING_MEDIA);
+            socket?.off(ChatEventsEnum.SENT_MEDIA);
+            socket?.off(ChatEventsEnum.DELETED_MESSAGE);
+            socket?.off(ChatEventsEnum.TYPING_ON);
+            socket?.off(ChatEventsEnum.TYPING_OFF);
+            socket?.off(ChatEventsEnum.MARKED);
+            socket?.disconnect();
+        };
 
     }, [socket, isLoggedIn])
 

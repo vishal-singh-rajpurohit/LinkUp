@@ -643,8 +643,11 @@ function delMessage(state: initialTypes, action: PayloadAction<{ messageId: stri
     if (action.payload.isGroup) {
         const filtered = state.groups.filter((val) => val._id === action.payload.contactId)
         if (filtered.length) {
+
             const message = filtered[0].messages?.filter((state) => state._id === action.payload.messageId);
+
             const oldMessage = filtered[0].messages?.filter((state) => state._id !== action.payload.messageId);
+
             message[0].isDeleted = true;
             filtered[0].messages = [
                 ...(oldMessage),
@@ -706,19 +709,18 @@ function markRead(state: initialTypes, action: PayloadAction<{
     viewerId: string;
     contactId: string;
 }>) {
-    const isContact = state.contacts.filter((item) => item._id === action.payload.contactId)
+    const isContact = state.contacts.filter((item) => item._id === action.payload.contactId);
+
     if (isContact.length) {
         const message = isContact[0].messages?.filter((msg) => msg._id === action.payload.messageId)
+
         if (message?.[0]._id) {
-            message[0].readBy = [
-                ...(message[0].readBy),
-                action.payload.viewerId
-            ]
+            message[0].readBy = [...(message[0].readBy), action.payload.viewerId]
             const index = isContact[0].messages?.indexOf(message[0]);
             if (isContact[0].messages && typeof index === 'number') {
                 isContact[0].messages[index] = message[0]
                 state.contacts = [
-                    ...(state.contacts || []),
+                    ...(state.contacts.filter((item) => item._id !== action.payload.contactId) || []),
                     ...isContact
                 ]
             }
@@ -728,15 +730,14 @@ function markRead(state: initialTypes, action: PayloadAction<{
         if (isSafer.length) {
             const message = isSafer[0].messages?.filter((msg) => msg._id === action.payload.messageId)
             if (message?.[0]._id) {
-                message[0].readBy = [
-                    ...(message[0].readBy),
-                    action.payload.viewerId
-                ]
+                message[0].readBy = [ ...(message[0].readBy), action.payload.viewerId]
+
                 const index = isContact[0].messages?.indexOf(message[0]);
+
                 if (isContact[0].messages && typeof index === 'number') {
                     isContact[0].messages[index] = message[0]
                     state.safer = [
-                        ...(state.safer && []),
+                        ...(state.safer.filter((item) => item._id !== action.payload.contactId) && []),
                         ...isContact
                     ]
                 }
@@ -746,15 +747,14 @@ function markRead(state: initialTypes, action: PayloadAction<{
             if (isContact.length) {
                 const message = isContact[0].messages?.filter((msg) => msg._id === action.payload.messageId)
                 if (message?.[0]._id) {
-                    message[0].readBy = [
-                        ...(message[0].readBy),
-                        action.payload.viewerId
-                    ]
+                    message[0].readBy = [ ...(message[0].readBy), action.payload.viewerId ]
+
                     const index = isContact[0].messages?.indexOf(message[0]);
+
                     if (isContact[0].messages && typeof index === 'number') {
                         isContact[0].messages[index] = message[0]
                         state.groups = [
-                            ...(state.groups && []),
+                            ...(state.groups.filter((item) => item._id !== action.payload.contactId) && []),
                             ...isContact
                         ]
                     }

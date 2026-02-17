@@ -8,11 +8,12 @@ import axios from 'axios'
 import { appendGroupAdmin, appendGroupContact, clearGroupContact, contactListingFunction, openGroupChat, searching, type groupContactTypes, type searchUserTypes } from '../../app/functions/temp'
 import { type groupsResp, type newChatTypes } from '../../app/functions/auth'
 import { getTimeDifference } from '../../helpers/timeConverter'
-import { AppContext } from '../../context/Contexts'
+import { AppContext, WSContext } from '../../context/Contexts'
 import { FaArchive, FaUserFriends } from 'react-icons/fa'
 import { MdGroups } from 'react-icons/md'
 import { SampleCropper3 } from '../Cropper/Cropper'
 import { CheckCircle } from 'lucide-react'
+// import { ChatEventsEnum } from '../../context/constant'
 
 const api = import.meta.env.VITE_API
 
@@ -25,17 +26,20 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
     isOnline: boolean
 }) => {
     const context = useContext(AppContext)
+    const socketContext = useContext(WSContext)
 
-    if (!context) {
+    if (!context || !socketContext) {
         throw new Error('context not found')
     }
 
     const { selectToTalk } = context;
+    // const { socket } = socketContext;
 
     const disp = useAppDispatch()
     const router = useNavigate()
     const isSearching = useAppSelector((state) => state.triggers.searching)
     const contacts = useAppSelector((state) => state.auth.contacts)
+    // const user = useAppSelector((state)=>state.auth.user)
     const [timer, setTimer] = useState<string>("")
 
     useEffect(() => {
@@ -53,6 +57,8 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
         } else {
             selectToTalk(id)
         }
+
+        // socket?.emit(ChatEventsEnum.MARK_READ, {contactId: id,userId: user._id})
     }
 
     async function select() {

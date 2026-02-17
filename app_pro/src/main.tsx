@@ -7,20 +7,20 @@ import { store } from './app/store.ts'
 import { AppContextProvider } from './context/AppContext.tsx'
 import WSProvider from './context/WSContext.tsx'
 import { FailVideoCall, IncomingVideoCall, RequestedVideoCall } from './Components/subComponents/Calling.tsx'
-import RtcProvider from './context/RtcContext.tsx'
+import { Notification } from './Components/subComponents/Mails.tsx'
+
 
 createRoot(document.getElementById('root')!).render(
   <Provider store={store}>
     <BrowserRouter >
       <WSProvider >
-        <RtcProvider>
           <AppContextProvider>
+             <Notification />
             <App />
             <RequestedVideoCall />
             <IncomingVideoCall />
             <FailVideoCall />
           </AppContextProvider>
-        </RtcProvider>
       </WSProvider>
     </BrowserRouter>
   </Provider>

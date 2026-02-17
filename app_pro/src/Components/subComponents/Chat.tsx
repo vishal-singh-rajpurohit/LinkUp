@@ -15,6 +15,7 @@ import { ChatEventsEnum } from '../../context/constant'
 import { AppContext, WSContext } from '../../context/Contexts'
 import EmojiPicker from 'emoji-picker-react';
 import messageDecryptor from '../../helpers/decryptMessage'
+import { useCall } from '../../hooks/useCall'
 
 const api = import.meta.env.VITE_API;
 
@@ -23,6 +24,7 @@ export const ChatArea = () => {
 
     return (
         <section className="hidden w-full h-[100vh] md:flex items-center justify-center">
+
             <section className="hidden flex-col gap-[1rem] items-center pt-2 w-[90%] h-[98%] rounded-lg md:flex">
                 {
                     room._id ? (
@@ -59,6 +61,8 @@ export const ChatTop = () => {
         router(`/chat/details/?room_id=${room?._id}`)
     }
 
+    const { makeVideoCall } = useCall()
+
     return (
         <div className='h-[4rem] w-full cursor-pointer bg-slate-800 rounded-t-lg' >
             <div className="grid h-full w-full grid-cols-[0.2fr_1fr_5fr_1fr_0.3fr] items-center px-3 md:grid-cols-[0.2fr_1fr_7fr_1fr_0.3fr] ">
@@ -80,7 +84,7 @@ export const ChatTop = () => {
                 </div>
                 <div className="flex gap-3 justify-center items-center">
                     <NavLink to={'/user/call/video'}>X</NavLink>
-                    <MdVideoCall size={20} />
+                    <MdVideoCall size={20} onClick={makeVideoCall} />
                     <MdCall size={20} />
                 </div>
                 {/* <div className="">
@@ -202,8 +206,11 @@ const MailOptions = () => {
 
     useEffect(() => {
         if (message.length) {
-            console.log("typing..")
-            socketContext.socket?.emit(ChatEventsEnum.TYPING_ON, { contactId: contact._id, searchTag: user.searchTag, avatar: user.avatar, userId: user._id });
+            if (socketContext.socket) {
+                socketContext.socket.emit(ChatEventsEnum.TYPING_ON, { contactId: contact._id, searchTag: user.searchTag, avatar: user.avatar, userId: user._id });
+            } else {
+                console.log("Web Socket not found in typing indicatora")
+            }
         }
     }, [message, setMessage])
 
@@ -338,6 +345,12 @@ const ChatBox = () => {
     const [decryptedMap, setDecryptedMap] = useState<Record<string, string>>({});
     const decryptedSetRef = useRef<Set<string>>(new Set()); // prevents re-decrypt
 
+    const wscontext = useContext(WSContext)
+
+    if(!wscontext){
+        throw new Error("WsContext not found: ")
+    }
+
     async function decryptAndStore(msgId: string, cipherText: string) {
         try {
             const plain = await messageDecryptor(cipherText);
@@ -394,6 +407,13 @@ const ChatBox = () => {
                         decryptAndStore(msgId, cipherText);
                     }
 
+                    const isUnread = el.dataset.read;
+                    const sender_search_tag = el.dataset.tag;
+
+                    
+                    if(typeof isUnread !== 'undefined' && sender_search_tag !== 'You'){
+                        wscontext.socket?.emit(ChatEventsEnum.MARK_READ, {id: user._id ,msgid: msgId})
+                    }
                     observer.unobserve(el);
                 }
             },
@@ -401,7 +421,15 @@ const ChatBox = () => {
         );
 
         const nodes = root.querySelectorAll<HTMLElement>("[data-msgid]");
+
         nodes.forEach((n) => {
+
+
+            // console.log("I am reciver: ", !Boolean(isUnread) && sender_search_tag !== 'You')
+            // if(!(Boolean(isUnread)) && sender_search_tag !== 'You'){
+            //     console.log("I am reciver: ", sender_search_tag)
+            // }
+
             const msgId = n.dataset.msgid;
             if (!msgId || decryptedSetRef.current.has(msgId)) return;
             observer.observe(n);
@@ -482,7 +510,7 @@ const ChatBox = () => {
                                         ) :
                                             (
                                                 msg.attechmentLink === "" ?
-                                                    <Mail cipherText={cipherText} displayText={displayText} mailOptions={mailOptions} readBy={msg.readBy} key={index} avatar={user.avatar} _id={msg._id} senderTag={user.searchTag} time={msg.createdAt} /> :
+                                                    <Mail cipherText={cipherText} displayText={displayText} mailOptions={mailOptions} readBy={msg.readBy} key={index} avatar={user.avatar} _id={msg._id} senderTag={selectedContact.searchTag} time={msg.createdAt} /> :
                                                     <MailAttechment cipherText={cipherText} displayText={displayText} attechmentLink={msg.attechmentLink} fileType={msg.attechmentType} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
                                             ))
                                 ))

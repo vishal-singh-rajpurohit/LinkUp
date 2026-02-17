@@ -140,7 +140,7 @@ const sendMessage = asyncHandler(async (req, resp) => {
 
       emiterSocket(req, myUser.socketId, chatEventEnumNew.NEW_MESSAGE, {
         newMessage: newMessage,
-        contactId: contact._id,
+        contactId: contact._id, 
       });
       if (reciver.length) {
         // Working on this
