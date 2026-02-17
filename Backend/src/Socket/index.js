@@ -367,6 +367,7 @@ const starterSocketIo = async (io) => {
       }
 
       socket.on(chatEventEnumNew.TYPING_ON, async (payload) => {
+        console.log("typin......")
         const contact = await Contact.findById(payload.contactId);
 
         if (!contact) {

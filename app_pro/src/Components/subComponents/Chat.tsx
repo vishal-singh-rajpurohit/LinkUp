@@ -121,8 +121,8 @@ const MailOptions = () => {
     const fileType = useAppSelector((state) => state.temp.fileType)
     const [message, setMessage] = useState<string>("");
     const [geoLoc] = useState<geoLocType>({
-        latitude: '00', //meke empty in production
-        longitude: '00' //meke empty in production
+        latitude: '00', 
+        longitude: '00' 
     })
 
     const socketContext = useContext(WSContext)
@@ -204,8 +204,11 @@ const MailOptions = () => {
         }
     }
 
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     useEffect(() => {
         if (message.length) {
+            console.log(isTyping)
             if (socketContext.socket) {
                 socketContext.socket.emit(ChatEventsEnum.TYPING_ON, { contactId: contact._id, searchTag: user.searchTag, avatar: user.avatar, userId: user._id });
             } else {
@@ -215,16 +218,15 @@ const MailOptions = () => {
     }, [message, setMessage])
 
     useEffect(() => {
-        let timeout: ReturnType<typeof setTimeout>;
 
         if (isTyping) {
-            timeout = setTimeout(() => {
+            timeoutRef.current = setTimeout(() => {
                 disp(toggleTyping({ avatar: '', trigger: false }))
             }, 3000);
         }
 
         return () => {
-            clearTimeout(timeout);
+            if(timeoutRef.current) clearTimeout(timeoutRef.current);
         };
     }, [isTyping]);
 
@@ -411,7 +413,7 @@ const ChatBox = () => {
                     const sender_search_tag = el.dataset.tag;
 
                     
-                    if(typeof isUnread !== 'undefined' && sender_search_tag !== 'You'){
+                    if(typeof isUnread !== 'undefined' && sender_search_tag !== 'You' ){
                         wscontext.socket?.emit(ChatEventsEnum.MARK_READ, {id: user._id ,msgid: msgId})
                     }
                     observer.unobserve(el);

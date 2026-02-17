@@ -13,7 +13,6 @@ import { FaArchive, FaUserFriends } from 'react-icons/fa'
 import { MdGroups } from 'react-icons/md'
 import { SampleCropper3 } from '../Cropper/Cropper'
 import { CheckCircle } from 'lucide-react'
-// import { ChatEventsEnum } from '../../context/constant'
 
 const api = import.meta.env.VITE_API
 
@@ -33,13 +32,10 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
     }
 
     const { selectToTalk } = context;
-    // const { socket } = socketContext;
-
     const disp = useAppDispatch()
     const router = useNavigate()
     const isSearching = useAppSelector((state) => state.triggers.searching)
     const contacts = useAppSelector((state) => state.auth.contacts)
-    // const user = useAppSelector((state)=>state.auth.user)
     const [timer, setTimer] = useState<string>("")
 
     useEffect(() => {
@@ -50,15 +46,13 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
     }, [contacts, isSearching])
 
     function talk(id: string = _id) {
-        
+
         if (window.innerWidth < 768) {
             selectToTalk(id)
             router(`/chat?id=${id}`)
         } else {
             selectToTalk(id)
         }
-
-        // socket?.emit(ChatEventsEnum.MARK_READ, {contactId: id,userId: user._id})
     }
 
     async function select() {
@@ -423,7 +417,7 @@ export const ContactList = () => {
     const archUsers = useAppSelector((state) => state.auth.safer)
     const groups = useAppSelector((state) => state.auth.groups);
     const isSearching = useAppSelector((state) => state.triggers.searching);
-    const chatType: number = useAppSelector((state) => state.temp.chatListTypes) 
+    const chatType: number = useAppSelector((state) => state.temp.chatListTypes)
 
     const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -450,16 +444,40 @@ export const ContactList = () => {
         disp(contactListingFunction({ trigger: trigger }))
     }
 
+    const serachTOut = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [searchTrigger, setSearchTrigger] = useState<boolean>(false)
+
+    // useEffect(() => {
+    //     if (searchQuery.length <= 3) {
+    //         disp(setSearching({ trigger: false }))
+    //     } else {
+    //         disp(setSearching({ trigger: true }))
+    //         search(searchQuery)
+    //     }
+    // }, [searchQuery, setSearchQuery])
+
     useEffect(() => {
         if (searchQuery.length <= 3) {
             disp(setSearching({ trigger: false }))
+            setSearchTrigger(false)
         } else {
-            
+            if (serachTOut.current) clearTimeout(serachTOut.current);
+
+            serachTOut.current = setTimeout(() => {
+                setSearchTrigger(true)
+            }, 500)
+
             disp(setSearching({ trigger: true }))
-            search(searchQuery)
         }
+
     }, [searchQuery, setSearchQuery])
 
+    useEffect(()=>{
+        if(searchTrigger){
+            search(searchQuery);
+            setSearchTrigger(false)
+        }
+    }, [searchTrigger, setSearchTrigger])
     return (
         <>
             <CreateGroupChat />
