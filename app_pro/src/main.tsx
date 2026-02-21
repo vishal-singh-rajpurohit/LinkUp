@@ -15,7 +15,7 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter >
       <WSProvider >
           <AppContextProvider>
-             <Notification />
+            <Notification />
             <App />
             <RequestedVideoCall />
             <IncomingVideoCall />

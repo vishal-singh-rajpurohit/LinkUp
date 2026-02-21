@@ -10,7 +10,8 @@ import Auth, { RevAuth } from './middleware/Auth'
 import Signup from './Components/Auth/Signup'
 import LoginForm from './Components/Auth/Login'
 import VideoCallPage from './Components/Calling/VideoCallPage'
-// import JitsiComponent from './Components/JitsiMeeting/JitsiMeeting '
+
+
 function App() {
 
   return (

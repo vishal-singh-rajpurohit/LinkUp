@@ -2,8 +2,6 @@ import { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
 import { selectContact, selectGroup, setHasAttechments } from '../app/functions/temp'
 import { AppContext, type appContextTypes } from "./Contexts";
-const API = import.meta.env.VITE_API;
-
 export const AppContextProvider = ({ children }: {
     children: React.ReactNode
 }) => {

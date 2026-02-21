@@ -21,7 +21,7 @@ const makeCall = async (userId, roomId, count) => {
 
     return call;
   } catch (error) {
-    throw new ApiError(400, 'Error in creating Call in db: Not saved');
+    throw new ApiError(400, 'Error in creating Call in db: Not saved '+ error.message);
   }
 };
 

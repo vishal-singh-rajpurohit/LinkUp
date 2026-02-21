@@ -11,7 +11,15 @@ export const store = configureStore({
         triggers: TriggersSlice,
         temp: TempSlice,
         call: CallSlice
-    }
+    },
+    middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware({
+            serializableCheck: {
+                ignoredPaths: ["auth.contacts", "temp.selectedContact"],
+                // or more specific:
+                // ignoredPaths: ["auth.contacts.0.time"],
+            },
+        }),
 })
 
 

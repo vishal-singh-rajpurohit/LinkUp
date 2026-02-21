@@ -5,15 +5,24 @@ import { useContext } from "react"
 import { WSContext } from "../../context/Contexts"
 import { IoClose } from "react-icons/io5"
 import { setCallingStatus } from "../../app/functions/call"
+import { callEventEnum } from "../../context/constant"
 
 export const RequestedVideoCall = () => {
     const room = useAppSelector((state) => state.temp.selectedContact)
     const call_status = useAppSelector((state) => state.call.callStatus)
+    const user = useAppSelector((state) => state.auth.user)
 
     const socketContext = useContext(WSContext)
 
     if (!socketContext) {
         throw Error("Socket not found")
+    }
+
+    const { clearCallStates } = socketContext
+
+    async function cut_call() {
+        clearCallStates()
+        socketContext?.socket?.emit(callEventEnum.CANCELLED_BEFORE_ANSWER, { contactId: room._id, callerId: user._id })
     }
 
     return (
@@ -30,7 +39,7 @@ export const RequestedVideoCall = () => {
                         <h3 className="uppercase sfont-bold text-md">Thor</h3>
                     </div>
                     <div className="flex gap-8">
-                        <div className="w-[3rem] h-[3rem] bg-red-500 flex items-center justify-center rounded-[50%] cursor-pointer">
+                        <div className="w-[3rem] h-[3rem] bg-red-500 flex items-center justify-center rounded-[50%] cursor-pointer" onClick={cut_call}>
                             <PhoneOff size={20} />
                         </div>
                     </div>
@@ -44,6 +53,11 @@ export const IncomingVideoCall = () => {
     const room = useAppSelector((state) => state.temp.selectedContact)
     const call_status = useAppSelector((state) => state.call.callStatus)
 
+    const socketContext = useContext(WSContext)
+    if (!socketContext) {
+        throw new Error("Soket not found: ")
+    }
+    const { makeACall, createAnswer, denayCall } = socketContext
 
     return (
         call_status === "INCOMING" ? (
@@ -60,9 +74,11 @@ export const IncomingVideoCall = () => {
                     </div>
                     <div className="flex gap-8">
                         <div className="w-[3rem] h-[3rem] bg-green-500 flex items-center justify-center rounded-[50%] cursor-pointer">
-                            <PhoneCall size={20} />
+                            <PhoneCall onClick={async () => {
+                                await makeACall()
+                            }} size={20} />
                         </div>
-                        <div className="w-[3rem] h-[3rem] bg-red-500 flex items-center justify-center rounded-[50%] cursor-pointer">
+                        <div className="w-[3rem] h-[3rem] bg-red-500 flex items-center justify-center rounded-[50%] cursor-pointer" onClick={denayCall}>
                             <PhoneOff size={20} />
                         </div>
                     </div>

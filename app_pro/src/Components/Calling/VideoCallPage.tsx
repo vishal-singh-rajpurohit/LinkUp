@@ -1,105 +1,70 @@
-import React, { useContext, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
-import { Mic, MicOff, PhoneOff, Video } from "lucide-react";
+import React, { useContext } from "react";
+import { Mic, PhoneOff, Video } from "lucide-react";
 import { WSContext } from "../../context/Contexts";
+import dp from '../../assets/no_dp.png'
 import { useAppSelector } from "../../app/hooks";
 
-const Participant = (
-    { 
-        name, 
-        muted,
-        videoOff,
-        video
-    }:
-    {name: string, muted?: boolean, videoOff?: boolean, video: MediaStream}
-) => {
-    const user = useAppSelector((state)=>state.auth.user)
+const LocalStream = () => {
     const socketContext = useContext(WSContext)
-    const videoRef = useRef<HTMLVideoElement | null>(null)
 
     if (!socketContext) {
-        throw Error("Context not found")
+        throw new Error("Socket context not found")
     }
 
-    useEffect(()=>{
-        if(videoRef.current){   
-            videoRef.current.srcObject = video
-        }
-    }, [])
+    const { video } = socketContext
 
     return (
-        <motion.div
-            layout
-            className="relative bg-black rounded-2xl overflow-hidden shadow-md flex items-center justify-center"
-        >
-            {/* Video */}
-            <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted = {muted}
-                className={`w-full h-full object-cover ${videoOff ? "hidden" : "block"}`}
-            />
-            {/* Placeholder if video is off */}
-            {videoOff && (
-                <div className="flex items-center justify-center w-full h-full text-white bg-gray-800 text-3xl font-semibold">
-                    { name.charAt(0).toUpperCase()}
-                </div>
-             )} 
-            {/* Participant info */}
-            <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded text-xs text-white">
-                {user.searchTag === name ? "YOU" : name}
-                {muted && <MicOff size={14} className="inline ml-1" />}
+        <section className="">
+            <div className="">
+                <video ref={video.localVideoRef} autoPlay muted className="" />
             </div>
-        </motion.div>
+        </section>
     );
-};
+}
 
-
-const LocalStream =()=>{
+const RemoteStream = ({ }: {
+}) => {
     const socketContext = useContext(WSContext)
-
-    
 
     if (!socketContext) {
         throw Error("Context not found")
     }
 
-
+    const { video } = socketContext
 
     return (
-        <motion.div
-            layout
-            className="relative bg-black rounded-2xl overflow-hidden shadow-md flex items-center justify-center"
-        >
-            {/* Video */}
-            {/* <video
-                ref={localVideoRef}
-                autoPlay
-                playsInline
-                muted
-                className={`w-full h-full object-cover `}
-            /> */}
-        </motion.div>
+        <section className="">
+            <div className="">
+                <video ref={video.remoteVideoRef} autoPlay muted className="" />
+            </div>
+        </section>
     );
 }
 
 const VideoCallPage: React.FC = () => {
+    const callDet = useAppSelector((state) => state.call.callingDet)
 
-    // const {members } = useCallMedia()
+    const socketContext = useContext(WSContext)
+
+    if (!socketContext) {
+        throw new Error("Socket context not found")
+    }
+
+    const { video } = socketContext
 
     return (
-        <div className="flex flex-col h-screen bg-gray-900">
-            {/* Video Grid */}
-            {/* <div className="flex-1 grid gap-2 p-2 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                <LocalStream />
-                {members.map((p, idx) => (
-                    <Participant key={idx} name={p.callerName}  video={p.stream} />
-                ))}
-            </div> */}
-
-            {/* Control Bar */}
-            <div className="flex justify-center items-center gap-4 p-4 bg-black/80">
+        <div className="w-[100vw] h-[100vh]  grid grid-rows-[1fr_9fr] bg-gray-900">
+            <section className="flex gap-4 items-center h-12 bg-black ">
+                <div className="w-10 h-10 rounded-4xl overflow-hidden">
+                    <img src={dp} className="w-full h-full " alt="" />
+                </div>
+                <div className="text-2xl">{callDet.searchTag || "Virat Kohli"}</div>
+            </section>
+            <div className="grid grid-rows-2 md:flex md:flex-row md:h-full md:gap-1 items-center justify-start">
+                {video.remoteStream && <RemoteStream />}
+                {video.localStreamRef.current && <LocalStream />}
+            </div>
+            <div className="flex fixed bottom-0 w-full justify-center items-center gap-4 p-4 bg-black/80">
                 <button
                     aria-label="Toggle microphone"
                     className="rounded-full p-3 bg-white/10 hover:bg-white/20 text-white shadow focus:outline-none focus:ring-2 focus:ring-white/40"

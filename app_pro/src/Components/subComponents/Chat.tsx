@@ -15,7 +15,6 @@ import { ChatEventsEnum } from '../../context/constant'
 import { AppContext, WSContext } from '../../context/Contexts'
 import EmojiPicker from 'emoji-picker-react';
 import messageDecryptor from '../../helpers/decryptMessage'
-import { useCall } from '../../hooks/useCall'
 
 const api = import.meta.env.VITE_API;
 
@@ -57,11 +56,13 @@ export const ChatTop = () => {
         throw new Error("Socket context not found")
     }
 
+    const {makeACall} = socketContext
+
     async function getDetails() {
         router(`/chat/details/?room_id=${room?._id}`)
     }
 
-    const { makeVideoCall } = useCall()
+    
 
     return (
         <div className='h-[4rem] w-full cursor-pointer bg-slate-800 rounded-t-lg' >
@@ -84,7 +85,7 @@ export const ChatTop = () => {
                 </div>
                 <div className="flex gap-3 justify-center items-center">
                     <NavLink to={'/user/call/video'}>X</NavLink>
-                    <MdVideoCall size={20} onClick={makeVideoCall} />
+                    <MdVideoCall className={`${room.isOnline? 'block': 'hidden'}`} size={20} onClick={makeACall}  />
                     <MdCall size={20} />
                 </div>
                 {/* <div className="">
@@ -218,7 +219,6 @@ const MailOptions = () => {
     }, [message, setMessage])
 
     useEffect(() => {
-
         if (isTyping) {
             timeoutRef.current = setTimeout(() => {
                 disp(toggleTyping({ avatar: '', trigger: false }))

@@ -447,15 +447,6 @@ export const ContactList = () => {
     const serachTOut = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [searchTrigger, setSearchTrigger] = useState<boolean>(false)
 
-    // useEffect(() => {
-    //     if (searchQuery.length <= 3) {
-    //         disp(setSearching({ trigger: false }))
-    //     } else {
-    //         disp(setSearching({ trigger: true }))
-    //         search(searchQuery)
-    //     }
-    // }, [searchQuery, setSearchQuery])
-
     useEffect(() => {
         if (searchQuery.length <= 3) {
             disp(setSearching({ trigger: false }))
@@ -478,6 +469,8 @@ export const ContactList = () => {
             setSearchTrigger(false)
         }
     }, [searchTrigger, setSearchTrigger])
+
+
     return (
         <>
             <CreateGroupChat />

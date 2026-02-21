@@ -15,6 +15,14 @@ class PeerPackages {
         }
     }
 
+    async createOffer() {
+        if (this.peer) {
+            const offer = await this.peer.createOffer();
+            await this.peer.setLocalDescription(new RTCSessionDescription(offer))
+            return offer;
+        }
+    }
+
     async getAnswer(offer: RTCSessionDescription) {
         if (this.peer) {
             await this.peer.setRemoteDescription(offer);
@@ -24,23 +32,12 @@ class PeerPackages {
         }
     }
 
-    async setLocalDescription(ans: RTCSessionDescription) {
+    async setRemoteDescription(ans: RTCSessionDescription) {
         if (this.peer) {
             await this.peer.setRemoteDescription(new RTCSessionDescription(ans));
         }
     }
 
-    async createOffer() {
-        if (this.peer) {
-            const offer = await this.peer.createOffer();
-            await this.peer.setLocalDescription(new RTCSessionDescription(offer))
-            return offer;
-        }
-    }
-
-    async clearPeer(){
-        this.peer?.close()
-    }
 }
 
 export default new PeerPackages()

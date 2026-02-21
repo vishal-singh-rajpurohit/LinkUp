@@ -4,7 +4,7 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 interface initialStateTypes {
     audioEnabled: boolean;
     videoEnable: boolean;
-    callStatus: "OFF" | "ACTIVE" | "INCOMING" | "OUTGOING" | "ENDED";
+    callStatus: "OFF" | "INCOMING" | "OUTGOING" | "ACTIVE" |  "ENDED";
     memberCount: number;
     callingDet: {
         roomId: string;
