@@ -42,12 +42,20 @@ const CallEventEnum = {
 
 
 const callEventEnum = Object.freeze({
+  MAKE_VIDEO_CALL_PRE: "call:request:pre",
+  INCOMING_VIDEO_CALL_PRE: "call:incoming:pre",
+  
   MAKE_VIDEO_CALL: "call:request",
-  INCOMING_VIDEO_CALL: "incoming-video-call",
+  INCOMING_VIDEO_CALL: "call:incoming",
+
   ANSWER_CALL: "call:answer",
   CALL_ANSWERED: "call:answered",
 
+  CALL_ANSWERED_MAIN: "call:answered:main",
 
+
+  ICE_CANDIDATE: 'call:ice-candidate',
+  ICE_CANDIDATE_INCOMING: 'call:ice-candidate:incoming',
   NEGOTIATION_NEEDED: 'call:nego:needed',
   NEGOTIATION_INCOMING: 'call:nego:incoming',
   NEGOTIATION_DONE: 'call:nego:done',

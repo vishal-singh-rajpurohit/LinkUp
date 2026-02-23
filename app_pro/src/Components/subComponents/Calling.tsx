@@ -57,7 +57,7 @@ export const IncomingVideoCall = () => {
     if (!socketContext) {
         throw new Error("Soket not found: ")
     }
-    const { makeACall, createAnswer, denayCall } = socketContext
+    const { answerVideoCall, denayCall } = socketContext
 
     return (
         call_status === "INCOMING" ? (
@@ -75,7 +75,7 @@ export const IncomingVideoCall = () => {
                     <div className="flex gap-8">
                         <div className="w-[3rem] h-[3rem] bg-green-500 flex items-center justify-center rounded-[50%] cursor-pointer">
                             <PhoneCall onClick={async () => {
-                                await makeACall()
+                                await answerVideoCall()
                             }} size={20} />
                         </div>
                         <div className="w-[3rem] h-[3rem] bg-red-500 flex items-center justify-center rounded-[50%] cursor-pointer" onClick={denayCall}>

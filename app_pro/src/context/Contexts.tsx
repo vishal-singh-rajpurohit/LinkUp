@@ -1,4 +1,4 @@
-import React, { createContext, type RefObject } from "react";
+import { createContext, type RefObject } from "react";
 import type { Socket } from "socket.io-client";
 
 
@@ -15,6 +15,7 @@ export const AppContext = createContext<appContextTypes | null>(null);
 export interface WSCTypes {
     socket: Socket | null;
     makeACall: () => void,
+    answerVideoCall: () => void,
     denayCall: () => void,
     createAnswer: () => void,
     clearCallStates: () => void,

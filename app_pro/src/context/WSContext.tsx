@@ -5,7 +5,7 @@ import { kickedMeTemp, markTempAsRead, newMessageInRoom, notificationPup, remove
 import { deleteMessage, kickedMeAuth, kickOutAuth, markAsRead, messageMediaSent, messageRecived, saveContact, saveGroup, triggerConOnline, type groupMssageType, type groupsResp, type newChatTypes } from "../app/functions/auth";
 import { WSContext, type WSCTypes } from "./Contexts";
 import { callEventEnum, ChatEventsEnum } from "./constant"
-import { clearCall, setCallDetails, setCallingStatus } from "../app/functions/call";
+import { setCallDetails, setCallingStatus } from "../app/functions/call";
 import peer from "./PeerPackages"
 import { useNavigate } from "react-router-dom";
 
@@ -16,6 +16,7 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
 
     const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn)
     const user = useAppSelector((state) => state.auth.user)
+    const call = useAppSelector((state) => state.call.callingDet)
 
     const socket = useMemo(() => {
         if (isLoggedIn) {
@@ -34,7 +35,7 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
 
 
     const selectedContact = useAppSelector((state) => state.temp.selectedContact);
-    const call = useAppSelector(state => state.call.callingDet);
+
 
     const nav = useNavigate()
     // Local Video
@@ -46,22 +47,22 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
     const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
 
     const [callerId, setCallerId] = useState<string>('')
+    const callerIdRef = useRef(callerId);
+
+    const addTrack = async (stream: MediaStream) => {
+        if (!peer.peer) return;
+
+        const existingSenders = peer.peer.getSenders().map(s => s.track?.id);
+        for (const track of stream.getTracks()) {
+            if (!existingSenders.includes(track.id)) {
+                peer.peer.addTrack(track, stream);
+            }
+        }
+    }
 
     const makeACall = useCallback(async () => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
-
-            // ✅ add tracks BEFORE offer
-            // for (const track of stream.getTracks()) {
-            //     peer.peer?.addTrack(track, stream);
-            // }
-
-            const offer = await peer.createOffer()
-
-            socket?.emit(callEventEnum.MAKE_VIDEO_CALL, { contactId: selectedContact._id, callerId: user._id, username: selectedContact.searchTag, avatar: selectedContact.avatar, offer });
-
-            localStreamRef.current = stream
-            nav('/user/call/video')
+            socket?.emit(callEventEnum.MAKE_VIDEO_CALL_PRE, { contactId: selectedContact._id, callerId: user._id, username: selectedContact.searchTag, avatar: selectedContact.avatar });
 
         } catch (error) {
             if (error instanceof Error) {
@@ -72,19 +73,17 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
 
     useEffect(() => {
         if (localVideoRef.current && localStreamRef.current) {
-            console.log("Setting local stream")
             localVideoRef.current.srcObject = localStreamRef.current
+            console.log('SETTING LOCAL STREAM')
         }
     }, [localStreamRef.current])
 
-
-    const handleIncomingVideoCall = useCallback(async ({
+    const handleIncomingVideoCallPre = useCallback(async ({
         roomId,
         callId,
         avatar,
         searchTag,
         remoteUserId,
-        offer,
         callerId,
         email,
     }: {
@@ -92,7 +91,6 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         callId: string;
         avatar: string;
         remoteUserId: string;
-        offer?: RTCSessionDescription;
         searchTag: string;
         callerId: string;
         email: string;
@@ -101,51 +99,63 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         if (callerId === user._id) {
             disp(setCallingStatus({ status: 'OUTGOING' }));
             disp(setCallDetails({ roomId, callId, avatar, searchTag, callerId, email }))
-        }
-        else {
-            if (!offer) return
+        } else {
             disp(setCallDetails({ roomId, callId, avatar, searchTag, callerId, email }))
             disp(setCallingStatus({ status: 'INCOMING' }))
-
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
-            localStreamRef.current = stream
-
-            const ans = await peer.getAnswer(offer)
-            socket?.emit(callEventEnum.ANSWER_CALL, { callerId: remoteUserId, ans })
-            nav('/user/call/video')
         }
+    }, [peer, socket, nav, callerId, setCallerId, selectedContact, user])
+
+    const answerVideoCall = useCallback(async () => {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+        localStreamRef.current = stream
+        await addTrack(stream)
+        const offer = await peer.createOffer()
+
+        socket?.emit(callEventEnum.MAKE_VIDEO_CALL, { contactId: call.roomId, userId: user._id, to: callerIdRef.current, offer });
+    }, [peer, socket, nav, callerId, setCallerId, call, callerIdRef.current])
+
+    const handleIncomingVideoCall = useCallback(async ({ offer }: { offer: RTCSessionDescription }) => {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        localStreamRef.current = stream;
+
+        const ans = await peer.getAnswer(offer)
+        await addTrack(stream);
+
+        socket?.emit(callEventEnum.ANSWER_CALL, { to: callerIdRef.current, ans })
+        nav('/user/call/video')
     }, [peer, socket, nav, callerId, setCallerId])
 
     const handleAnsweredCall = useCallback(async ({ ans }: { ans: RTCSessionDescription }) => {
         await peer.setRemoteDescription(ans)
-        console.log("-----answered----")
-        if (localStreamRef.current) {
-            for (const track of localStreamRef.current.getTracks()) {
-                console.log("integrated streams")
-                peer.peer?.addTrack(track, localStreamRef.current)
-            }
-        }
-
+        nav('/user/call/video')
     }, [peer, localStreamRef.current])
-
-    const callerIdRef = useRef(callerId);
 
     useEffect(() => {
         callerIdRef.current = callerId;
     }, [callerId]);
 
-    const handleNegotiationIncoming = useCallback(async ({ offer }:{offer: RTCSessionDescription}) => {
+    const handleNegotiationIncoming = useCallback(async ({ offer }: { offer: RTCSessionDescription }) => {
+        console.log('INCOMING NEGOTIATION')
+
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+        localStreamRef.current = stream
+        
         const ans = await peer.getAnswer(offer);
+        await addTrack(stream)
 
-        const to = callerIdRef.current;   // ✅ always latest
-        console.log("incoming ----------: ", to);
-
+        const to = callerIdRef.current;
         socket?.emit(callEventEnum.NEGOTIATION_DONE, { to, ans });
     }, [socket, peer]);
 
     const handleNegotiationFinal = useCallback(async ({ ans }: { ans: RTCSessionDescription }) => {
+        console.log('INCOMING FINAL')
         await peer.setRemoteDescription(ans);
-        console.log("final ---------- NEGO")
+        // await answerVideoCall()
+    }, [socket, peer])
+
+    const handleCandidateIncoming = useCallback(async ({ candidate }: { candidate: RTCIceCandidate }) => {
+        console.log('CANDIDATES INCOMING')
+        await peer.addIceCandidate(candidate);
     }, [socket, peer])
 
     const clearCallStates = useCallback(async () => { }, [])
@@ -217,7 +227,6 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         })
 
         socket?.on(ChatEventsEnum.TYPING_ON, ({ avatar }: { avatar: string }) => {
-            console.log('typing.....')
             disp(toggleTyping({ avatar: avatar, trigger: true }))
         })
 
@@ -238,39 +247,18 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         // --------------
         // --------------
         // --------CALLING
+        // --------------
+        // --------------
+        // --------------
 
+        // Pre
+        socket?.on(callEventEnum.INCOMING_VIDEO_CALL_PRE, handleIncomingVideoCallPre);
         socket?.on(callEventEnum.INCOMING_VIDEO_CALL, handleIncomingVideoCall);
         socket?.on(callEventEnum.CALL_ANSWERED, handleAnsweredCall)
+
+        socket?.on(callEventEnum.ICE_CANDIDATE_INCOMING, handleCandidateIncoming)
         socket?.on(callEventEnum.NEGOTIATION_INCOMING, handleNegotiationIncoming)
         socket?.on(callEventEnum.NEGOTIATION_FINAL, handleNegotiationFinal)
-
-        socket?.on(callEventEnum.STOP_CALLING, () => {
-            disp(clearCall())
-        });
-
-
-        // socket?.on(callEventEnum.INCOMING_VIDEO_CALL, ({
-        //     roomId,
-        //     callId,
-        //     avatar,
-        //     searchTag,
-        //     callerId,
-        //     email,
-        // }: {
-        //     roomId: string;
-        //     callId: string;
-        //     avatar: string;
-        //     searchTag: string;
-        //     callerId: string;
-        //     email: string;
-        // }) => {
-        //     disp(setCallDetails({ roomId, callId, avatar, searchTag, callerId, email }))
-        // })
-
-        // --------------
-        // --------------
-        // --------------
-        // --------------
 
         return () => {
             socket?.off("connect");
@@ -288,39 +276,59 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
             socket?.off(ChatEventsEnum.TYPING_OFF);
             socket?.off(ChatEventsEnum.MARKED);
 
+            socket?.off(callEventEnum.INCOMING_VIDEO_CALL_PRE, handleIncomingVideoCallPre);
             socket?.off(callEventEnum.INCOMING_VIDEO_CALL, handleIncomingVideoCall);
             socket?.off(callEventEnum.CALL_ANSWERED, handleAnsweredCall)
+            socket?.off(callEventEnum.ICE_CANDIDATE_INCOMING, handleCandidateIncoming)
             socket?.off(callEventEnum.NEGOTIATION_INCOMING, handleNegotiationIncoming)
             socket?.off(callEventEnum.NEGOTIATION_FINAL, handleNegotiationFinal)
 
             socket?.disconnect();
         };
-
     }, [socket, isLoggedIn])
 
     const handleTracks = useCallback(async (ev: RTCTrackEvent) => {
-        // this part is not working
         const stream = ev.streams[0]
-        console.log("STREAM IS COMING!!!!!")
+        console.log("STREAM IS COMING!!!!!") 
         setRemoteStream(stream)
     }, [setRemoteStream])
-
+ 
     useEffect(() => {
         if (remoteVideoRef.current) {
-            console.log("Setting remote stram...")
             remoteVideoRef.current.srcObject = remoteStream
         }
-    }, [remoteStream])
+    }, [remoteStream]);
 
     useEffect(() => {
         peer.peer?.addEventListener("track", handleTracks)
-        // return () => peer.peer?.removeEventListener("track", handleTracks)
-    }, [])
+        return () => peer.peer?.removeEventListener("track", handleTracks)
+    }, [handleTracks]);
+
+    const handleIceCandidates = useCallback(async (ev: RTCPeerConnectionIceEvent) => {
+        if (ev.candidate && callerId) {
+            console.log('ICE CANDIDATES COMING')
+            socket?.emit(callEventEnum.ICE_CANDIDATE, { to: callerId, candidate: ev.candidate })  // callerId is going undefined
+        }
+    }, [socket, callerId]);
+
+    useEffect(() => {
+        peer.peer?.addEventListener('icecandidate', handleIceCandidates)
+        return () => peer.peer?.removeEventListener('icecandidate', handleIceCandidates)
+    }, [handleIceCandidates])
+
+    const makingOfferRef = useRef(false);
 
     const handleNegotiationNeeded = useCallback(async () => {
-        console.log("negotiation needed")
+        if (!peer.peer) return;
+        if (makingOfferRef.current) return;
+        if (peer.peer.signalingState !== "stable") return;
+
+        makingOfferRef.current = true;
+
         const offer = await peer.createOffer()
+
         socket?.emit(callEventEnum.NEGOTIATION_NEEDED, { to: callerId, offer })
+        makingOfferRef.current = false;
     }, [socket, peer, callerId, setCallerId]);
 
     useEffect(() => {
@@ -331,6 +339,7 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
     const data: WSCTypes = {
         socket,
         makeACall,
+        answerVideoCall,
         denayCall,
         createAnswer,
         clearCallStates,

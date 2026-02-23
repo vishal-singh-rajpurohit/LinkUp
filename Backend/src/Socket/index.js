@@ -1,12 +1,13 @@
 const ApiError = require('../utils/ApiError.utils');
 const jwt = require('jsonwebtoken');
-const { chatEventEnumNew, CallEventEnum, callEventEnum } = require('../constants/constants');
+const { chatEventEnumNew, callEventEnum } = require('../constants/constants');
 const User = require('../models/user.model');
 const Contact = require('../models/contacts.model');
 const { default: mongoose } = require('mongoose');
 const Message = require('../models/message.modal');
 const Call = require('../models/calls.model');
-const { makeCall, endVideoCall, addMemberToCall } = require('./caller.helpers');
+const { makeCall, endVideoCall } = require('./caller.helpers');
+const nodemailer = require('nodemailer');
 
 
 /**
@@ -14,302 +15,93 @@ const { makeCall, endVideoCall, addMemberToCall } = require('./caller.helpers');
  * @param {Socket<import("socket.io")}
  */
 
-let router;
-let producer;
-let consumer;
-let producerTransport;
-let consumerTransport;
-const producersMap = new Map();
 
 const callRooms = {};
+let mailTransporter = null;
+let mailTransporterInit = false;
+
+const getMailTransporter = async () => {
+  if (mailTransporter) {
+    return mailTransporter;
+  }
+
+  if (mailTransporterInit) {
+    return null;
+  }
+
+  mailTransporterInit = true;
+
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SERVICE } = process.env;
+  if ((!SMTP_SERVICE && !SMTP_HOST) || !SMTP_USER || !SMTP_PASS) {
+    return null;
+  }
+
+  mailTransporter = nodemailer.createTransport(
+    SMTP_SERVICE
+      ? {
+        service: SMTP_SERVICE,
+        auth: {
+          user: SMTP_USER,
+          pass: SMTP_PASS,
+        },
+      }
+      : {
+        host: SMTP_HOST,
+        port: Number(SMTP_PORT) || 587,
+        secure: Number(SMTP_PORT) === 465,
+        auth: {
+          user: SMTP_USER,
+          pass: SMTP_PASS,
+        },
+      },
+  );
+
+  return mailTransporter;
+};
+
+const sendCallInviteEmails = async ({ members, caller, contact }) => {
+  try {
+    if (!members?.length || !caller) {
+      return;
+    }
+
+    const recipients = members.filter(
+      (member) => member?.email && String(member._id) !== String(caller._id),
+    );
+
+    if (!recipients.length) {
+      return;
+    }
+
+    const transporter = await getMailTransporter();
+    if (!transporter) {
+      return;
+    }
+
+    const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+    const callerName = caller.userName || 'Someone';
+    const roomName = contact?.groupName || 'a chat';
+
+    await Promise.allSettled(
+      recipients.map((member) =>
+        transporter.sendMail({
+          from,
+          to: member.email,
+          subject: `${callerName} is calling you on LinkUp`,
+          text: `${callerName} started a call in ${roomName}. Open LinkUp to join.`,
+        }),
+      ),
+    );
+  } catch (error) {
+    console.error('Error sending call invite emails:', error?.message || error);
+  }
+};
 
 /**
  *
  * @param {*} io
  * @returns io connection
  */
-
-// const starterSocketIo = async (io) => {
-//   return io.on('connection', async (socket) => {
-//     try {
-//       console.log('Socket connected to server', socket.id);
-//       const accessToken = socket.handshake.auth?.token;
-
-//       if (!accessToken) {
-//         console.log('Access token not found in cookies');
-//         throw new ApiError(400, 'Unauthorized Access');
-//       }
-
-//       const decodedToken = jwt.verify(
-//         accessToken,
-//         process.env.ACCESS_TOKEN_SECRET,
-//       );
-
-//       const user = await User.findById(decodedToken?._id).select('-password -refreshToken');
-
-//       if (!user) {
-//         throw new ApiError(400, 'Unauthorized User');
-//       }
-
-//       user.socketId = socket.id;
-//       await user.save();
-//       socket.user = user;
-//       socket.userId = user._id.toString();
-//       socket.join(user._id.toString());
-//       socket.emit(chatEventEnumNew.CONNECTED_EVENT);
-
-//       socket.on(chatEventEnumNew.JOIN_ROOM, async (payload) => {
-//         const roomId = payload.roomId.toString();
-//         socket.join(roomId);
-//         // console.log(`User joined room: ${roomId}`);
-
-//         socket.to(roomId).emit('message', {
-//           user: socket.id,
-//           text: `${socket.id} has joined the room`,
-//         });
-//         socket.emit('joinedRoom', roomId); // Confirm joining the room
-
-//         const room = io.sockets.adapter.rooms.get(roomId);
-
-//         if (room) {
-//           console.log(`Users in room ${roomId}:`, room.size);
-//         }
-//       });
-
-//       const contactsOnline = await getUserOnlineFriends(user._id);
-
-//       for (let con of contactsOnline) {
-//         io.to(`${con.userId}`).emit(`${chatEventEnumNew.ONLINE_EVENT}`, {
-//           contactId: con._id,
-//           message: 'your friend is online',
-//         });
-//       }
-
-//       socket.on(chatEventEnumNew.TYPING_ON, async (payload) => {
-//         const contact = await Contact.findById(payload.contactId);
-
-//         if (!contact) {
-//           console.log('contacts not found');
-//         }
-
-//         if (!contact.isGroup) {
-//           const reciver = await Contact.aggregate([
-//             {
-//               $match: {
-//                 _id: contact._id,
-//                 isGroup: false,
-//               },
-//             },
-//             {
-//               $lookup: {
-//                 from: 'contactmembers',
-//                 localField: '_id',
-//                 foreignField: 'contactId',
-//                 as: 'members',
-//               },
-//             },
-//             {
-//               $addFields: {
-//                 member: {
-//                   $filter: {
-//                     input: '$members',
-//                     as: 'member',
-//                     cond: {
-//                       $ne: ['$$member.userId', payload.userId],
-//                     },
-//                   },
-//                 },
-//               },
-//             },
-//             {
-//               $lookup: {
-//                 from: 'users',
-//                 localField: 'member.userId',
-//                 foreignField: '_id',
-//                 as: 'member.user',
-//               },
-//             },
-//             {
-//               $unwind: '$member.user',
-//             },
-
-//             {
-//               $group: {
-//                 _id: '$_id',
-//                 member: {
-//                   $first: '$member.user',
-//                 },
-//               },
-//             },
-//             {
-//               $group: {
-//                 _id: '$_id',
-//                 userId: {
-//                   $first: '$member._id',
-//                 },
-//                 isOnline: {
-//                   $first: '$member.online',
-//                 },
-//                 socketId: {
-//                   $first: '$member.socketId',
-//                 },
-//                 avatar: {
-//                   $first: '$member.avatar',
-//                 },
-//               },
-//             },
-//             {
-//               $match: {
-//                 isOnline: true,
-//               },
-//             },
-//           ]);
-
-//           console.log('recivers of typing: ', reciver)
-//           if (reciver.length) {
-//             // Working on this
-//             io.to(`${reciver[0].socketId}`).emit(
-//               `${chatEventEnumNew.TYPING_ON}`,
-//               { avatar: payload.avatar },
-//             );
-//           }
-//         } else {
-//           // IF Group Chat
-//           const recivers = await Contact.aggregate([
-//             {
-//               $match: {
-//                 _id: contact._id,
-//               },
-//             },
-//             {
-//               $lookup: {
-//                 from: 'contactmembers',
-//                 localField: '_id',
-//                 foreignField: 'contactId',
-//                 as: 'members',
-//               },
-//             },
-//             {
-//               $addFields: {
-//                 member: {
-//                   $filter: {
-//                     input: '$members',
-//                     as: 'member',
-//                     cond: {
-//                       $ne: [
-//                         '$$member.userId',
-//                         new mongoose.Types.ObjectId(payload.userId),
-//                       ],
-//                     },
-//                   },
-//                 },
-//               },
-//             },
-//             {
-//               $lookup: {
-//                 from: 'users',
-//                 localField: 'member.userId',
-//                 foreignField: '_id',
-//                 as: 'member.user',
-//               },
-//             },
-//             {
-//               $unwind: '$member.user',
-//             },
-//             {
-//               $match: {
-//                 'member.user.online': true,
-//               },
-//             },
-//             {
-//               $group: {
-//                 _id: '$_id',
-//                 member: {
-//                   $addToSet: '$member.user',
-//                 },
-//               },
-//             },
-//             {
-//               $project: {
-//                 'member._id': 1,
-//                 'member.socketId': 1,
-//                 'member.avatar': 1,
-//                 'member.searchTag': 1,
-//               },
-//             },
-//           ]);
-
-//           if (recivers.length) {
-//             for (let reciver of recivers[0].member) {
-//               io.to(`${reciver.socketId}`).emit(
-//                 `${chatEventEnumNew.TYPING_ON}`,
-//                 { avatar: payload.avatar },
-//               );
-//             }
-//           }
-//         }
-//       });
-
-//       socket.on(chatEventEnumNew.MARK_READ, async (payload) => {
-//         const user = await User.findById(payload.id);
-//         if (!user) {
-//           throw new ApiError(501, 'Unautharized Request');
-//         }
-//         const message = await Message.findByIdAndUpdate(
-//           payload.msgId,
-//           {
-//             $addToSet: { readBy: user._id },
-//           },
-//           { new: true },
-//         );
-//         if (!message) {
-//           throw new ApiError(400, 'Message not found:');
-//         }
-
-//         const sender = await User.findById(message.userId);
-
-//         if (!sender) {
-//           throw new ApiError(400, 'Sender not found');
-//         }
-
-//         socket.to(sender.socketId).emit(chatEventEnumNew.MARKED, {
-//           messageId: message._id,
-//           contactId: message.contactId,
-//           viewerId: user._id,
-//         });
-//       });
-
-//       socket.on(chatEventEnumNew.DISCONNECT_EVENT, async () => {
-//         console.log('user has disconnected userId: ' + socket.user?._id);
-//         if (socket.user?._id) {
-//           const contactsOnline = await getUserOnlineFriends(user._id);
-//           // const callId = socket.callId
-
-//           for (let con of contactsOnline) {
-//             io.to(`${con.userId}`).emit(`${chatEventEnumNew.OFFLINE_EVENT}`, {
-//               contactId: con._id,
-//               message: 'your friend is Gone Offline',
-//             });
-//           }
-
-//           // if(callId && callRooms[callId]){
-//           //   const {transports, consumers, producers} = callRooms[callId];
-//           // }
-
-//           socket.leave(socket.user._id);
-//           await setUserOffline(user._id);
-//         }
-//       });
-
-//     } catch (error) {
-//       socket.emit(
-//         chatEventEnumNew.SOCKET_ERROR_EVENT,
-//         error?.message ||
-//         'Something went wrong while connecting to the socket.',
-//       );
-//     }
-//   });
-// };
 
 
 const searchTagToSocketIdMapping = new Map()
@@ -371,7 +163,6 @@ const starterSocketIo = async (io) => {
       }
 
       socket.on(chatEventEnumNew.TYPING_ON, async (payload) => {
-        console.log("typin......")
         const contact = await Contact.findById(payload.contactId);
 
         if (!contact) {
@@ -567,8 +358,18 @@ const starterSocketIo = async (io) => {
         });
       });
 
-      socket.on(callEventEnum.MAKE_VIDEO_CALL, async ({ contactId, callerId, username, avatar, offer }) => {
 
+
+      // ----------------------------------------------
+      // ----------------------------------------------
+      // ----------------------------------------------
+      // -----------------CALL-------------------------
+      // ----------------------------------------------
+      // ----------------------------------------------
+      // ----------------------------------------------
+
+      socket.on(callEventEnum.MAKE_VIDEO_CALL_PRE, async ({ contactId, callerId, username, avatar }) => {
+        console.log('MAKE VIDEO CALL PRE ')
         const contact = await Contact.findById(contactId);
         const user = await User.findById(callerId);
 
@@ -578,13 +379,9 @@ const starterSocketIo = async (io) => {
           });
         }
 
-        //Getting members from the contacts
         const reciver = await getContactsForCall(contact._id);
 
-        // TODO -> Send email to all users in the in the chat
-        const recivers = await reciver[0].member.filter(
-          (val) => val.online === true,
-        );
+        const recivers = await reciver[0].member.filter((val) => val.online === true);
 
         let remoteUserId = '';
 
@@ -609,7 +406,7 @@ const starterSocketIo = async (io) => {
             if (reciver.online) {
               if (callerId === String(reciver._id)) {
                 io.to(`${reciver.socketId}`).emit(
-                  `${callEventEnum.INCOMING_VIDEO_CALL}`,
+                  `${callEventEnum.INCOMING_VIDEO_CALL_PRE}`,
                   {
                     roomId: contact._id,
                     callerId: callerId,
@@ -621,12 +418,11 @@ const starterSocketIo = async (io) => {
                 );
               } else {
                 io.to(`${reciver.socketId}`).emit(
-                  `${callEventEnum.INCOMING_VIDEO_CALL}`,
+                  `${callEventEnum.INCOMING_VIDEO_CALL_PRE}`,
                   {
                     roomId: contact._id,
                     callerId: callerId,
                     remoteUserId: callerId,
-                    offer: offer,
                     searchTag: contact.groupName || username,
                     avatar: contact.groupAvatar || avatar,
                     callId: newCall._id
@@ -641,27 +437,65 @@ const starterSocketIo = async (io) => {
           });
         }
 
+      });
+
+      socket.on(callEventEnum.MAKE_VIDEO_CALL, async ({ contactId, userId, offer }) => {
+        const contact = await Contact.findById(contactId);
+        const user = await User.findById(userId);
+
+        if (!contact || !user) {
+          socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
+            message: 'contacts not found',
+          });
+        }
+
+        const reciver = await getContactsForCall(contact._id);
+
+        const recivers = await reciver[0].member.filter((val) => val.online === true);
+
+        for (const member of recivers) {
+          if (userId !== String(member._id)) {
+            remoteUserId = member._id
+          }
+        }
+
+        if (recivers.length > 1) {
+          for (const reciver of recivers) {
+            searchTagToSocketIdMapping.set(String(reciver._id), reciver.socketId)
+            socketIdToSearchTagMapping.set(reciver.socketId, String(reciver._id))
+
+            if (reciver.online) {
+              if (userId !== String(reciver._id)) {
+                io.to(`${reciver.socketId}`).emit(`${callEventEnum.INCOMING_VIDEO_CALL}`, { offer });
+              }
+            }
+          }
+        }
 
       });
 
-      socket.on(callEventEnum.ANSWER_CALL, async ({ callerId, ans }) => {
-        console.log("vidoe call answered")
-        const reciver = searchTagToSocketIdMapping.get(callerId)
+      socket.on(callEventEnum.ANSWER_CALL, async ({ to, ans }) => {
+        console.log('ANSWER VIDEO CALL')
+        const reciver = searchTagToSocketIdMapping.get(to)
         socket.to(reciver).emit(callEventEnum.CALL_ANSWERED, { ans })
       });
 
-      socket.on(callEventEnum.NEGOTIATION_NEEDED, ({ to, offer }) => {
+      socket.on(callEventEnum.ICE_CANDIDATE, ({ to, candidate }) => {
+        console.log('ICE CANDIDATE')
         const reciver = searchTagToSocketIdMapping.get(to)
-        console.log("needed: ", to, )
-        console.log("needed: ", reciver, )
-        console.log(searchTagToSocketIdMapping)
+        console.log(callEventEnum.ICE_CANDIDATE, "reciver ", reciver)
+        socket.to(reciver).emit(callEventEnum.ICE_CANDIDATE_INCOMING, { candidate })
+      })
+
+      socket.on(callEventEnum.NEGOTIATION_NEEDED, ({ to, offer }) => {
+        console.log('NEGOTIATION NEEDE')
+        const reciver = searchTagToSocketIdMapping.get(to)
         socket.to(reciver).emit(callEventEnum.NEGOTIATION_INCOMING, { offer })
       });
 
       socket.on(callEventEnum.NEGOTIATION_DONE, ({ to, ans }) => {
+        console.log('NEGOTIATION DONE')
         const reciver = searchTagToSocketIdMapping.get(to)
-        console.log("done: " + to)
-        console.log("done: " + reciver)
         socket.to(reciver).emit(callEventEnum.NEGOTIATION_FINAL, { ans })
       });
 
@@ -776,57 +610,14 @@ const starterSocketIo = async (io) => {
       },
       );
 
-      // socket.on(CallEventEnum.ANSWER_VIDEO_CALL, async ({ roomId, callId, callerId, searchTag, userId, offer }) => {
-      //   const { router } = callRooms[callId];
 
-      //   const contact = await Contact.findById(roomId);
-      //   const user = await User.findById(userId);
-
-      //   if (!contact || !user) {
-      //     socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
-      //       message: 'user or contacts not found',
-      //     });
-      //   }
-
-      //   const addedContact = await addMemberToCall(callId, callerId);
-
-      //   if (!addedContact) {
-      //     throw new ApiError(400, 'Contact not added');
-      //   }
-
-      //   // if (!callRooms[callId]) {
-      //   //   const router = await startMediaSoup();
-
-      //   //   callRooms[callId] = {
-      //   //     router: router,
-      //   //     transports: new Map(),
-      //   //     producers: new Map(),
-      //   //     consumers: new Map(),
-      //   //   };
-      //   // }
-
-      //   socket.join(callId);
-      //   socket.callId = callId;
-
-      //   const members = await getContactsInCall(callId);
-
-      //   if (members[0].members.length) {
-      //     io.to(callId).emit(CallEventEnum.ACCEPTED_VIDEO_CALL, {
-      //       callId: callId,
-      //       roomId: roomId,
-      //       callerId: callerId,
-      //       searchTag: user.searchTag,
-      //       userId: user._id,
-      //       avatar: user.avatar,
-      //     });
-      //   } else {
-      //     throw new ApiError(
-      //       400,
-      //       'Answer video call Error: Contacts not found',
-      //     );
-      //   }
-      // },
-      // );
+      // ----------------------------------------------
+      // ----------------------------------------------
+      // ----------------------------------------------
+      // -----------------END CALL---------------------
+      // ----------------------------------------------
+      // ----------------------------------------------
+      // ----------------------------------------------
 
       socket.on(chatEventEnumNew.DISCONNECT_EVENT, async () => {
         if (socket.user?._id) {
