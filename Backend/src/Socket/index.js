@@ -373,130 +373,97 @@ const starterSocketIo = async (io) => {
         const contact = await Contact.findById(contactId);
         const user = await User.findById(callerId);
 
-        if (!contact || !user) {
+        if (!contact || !user || contact.isGroup) {
           socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
             message: 'contacts not found',
           });
+          return;
         }
 
         const reciver = await getContactsForCall(contact._id);
+        const members = reciver?.[0]?.member || [];
+        const callerMember = members.find((m) => String(m._id) === String(callerId));
+        const calleeMember = members.find((m) => String(m._id) !== String(callerId));
 
-        const recivers = await reciver[0].member.filter((val) => val.online === true);
-
-        let remoteUserId = '';
-
-        for (const member of recivers) {
-          if (callerId !== String(member._id)) {
-            remoteUserId = member._id
-          }
+        if (!callerMember || !calleeMember || !calleeMember.online) {
+          socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
+            message: 'callee is offline',
+          });
+          return;
         }
 
-        // // Making new call 
+        // strict one-to-one call: expected 2 participants
         const newCall = await makeCall(
           user._id,
           contact._id,
-          recivers.length,
+          2,
         );
 
-        if (recivers.length > 1) {
-          for (const reciver of recivers) {
-            searchTagToSocketIdMapping.set(String(reciver._id), reciver.socketId)
-            socketIdToSearchTagMapping.set(reciver.socketId, String(reciver._id))
+        searchTagToSocketIdMapping.set(String(callerMember._id), callerMember.socketId)
+        socketIdToSearchTagMapping.set(callerMember.socketId, String(callerMember._id))
+        searchTagToSocketIdMapping.set(String(calleeMember._id), calleeMember.socketId)
+        socketIdToSearchTagMapping.set(calleeMember.socketId, String(calleeMember._id))
 
-            if (reciver.online) {
-              if (callerId === String(reciver._id)) {
-                io.to(`${reciver.socketId}`).emit(
-                  `${callEventEnum.INCOMING_VIDEO_CALL_PRE}`,
-                  {
-                    roomId: contact._id,
-                    callerId: callerId,
-                    remoteUserId: remoteUserId,
-                    searchTag: contact.groupName || username,
-                    avatar: contact.groupAvatar || avatar,
-                    callId: newCall._id
-                  },
-                );
-              } else {
-                io.to(`${reciver.socketId}`).emit(
-                  `${callEventEnum.INCOMING_VIDEO_CALL_PRE}`,
-                  {
-                    roomId: contact._id,
-                    callerId: callerId,
-                    remoteUserId: callerId,
-                    searchTag: contact.groupName || username,
-                    avatar: contact.groupAvatar || avatar,
-                    callId: newCall._id
-                  },
-                );
-              }
-            }
-          }
-        } else {
-          socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
-            message: 'contacts not found',
-          });
-        }
+        // caller gets outgoing pre-state with callee as target
+        io.to(`${callerMember.socketId}`).emit(
+          `${callEventEnum.INCOMING_VIDEO_CALL_PRE}`,
+          {
+            roomId: contact._id,
+            callerId: String(callerId),
+            remoteUserId: String(calleeMember._id),
+            searchTag: contact.groupName || username,
+            avatar: contact.groupAvatar || avatar,
+            callId: newCall._id
+          },
+        );
+
+        // callee gets incoming pre-state with caller as target
+        io.to(`${calleeMember.socketId}`).emit(
+          `${callEventEnum.INCOMING_VIDEO_CALL_PRE}`,
+          {
+            roomId: contact._id,
+            callerId: String(callerId),
+            remoteUserId: String(callerId),
+            searchTag: contact.groupName || username,
+            avatar: contact.groupAvatar || avatar,
+            callId: newCall._id
+          },
+        );
 
       });
 
-      socket.on(callEventEnum.MAKE_VIDEO_CALL, async ({ contactId, userId, offer }) => {
-        const contact = await Contact.findById(contactId);
-        const user = await User.findById(userId);
-
-        if (!contact || !user) {
-          socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
-            message: 'contacts not found',
-          });
-        }
-
-        const reciver = await getContactsForCall(contact._id);
-
-        const recivers = await reciver[0].member.filter((val) => val.online === true);
-
-        for (const member of recivers) {
-          if (userId !== String(member._id)) {
-            remoteUserId = member._id
-          }
-        }
-
-        if (recivers.length > 1) {
-          for (const reciver of recivers) {
-            searchTagToSocketIdMapping.set(String(reciver._id), reciver.socketId)
-            socketIdToSearchTagMapping.set(reciver.socketId, String(reciver._id))
-
-            if (reciver.online) {
-              if (userId !== String(reciver._id)) {
-                io.to(`${reciver.socketId}`).emit(`${callEventEnum.INCOMING_VIDEO_CALL}`, { offer });
-              }
-            }
-          }
-        }
-
+      socket.on(callEventEnum.MAKE_VIDEO_CALL, async ({ to, offer }) => {
+        if (!to || !offer) return;
+        io.to(`${to}`).emit(`${callEventEnum.INCOMING_VIDEO_CALL}`, { offer });
       });
 
       socket.on(callEventEnum.ANSWER_CALL, async ({ to, ans }) => {
         console.log('ANSWER VIDEO CALL')
-        const reciver = searchTagToSocketIdMapping.get(to)
-        socket.to(reciver).emit(callEventEnum.CALL_ANSWERED, { ans })
+        if (!to || !ans) return;
+        io.to(`${to}`).emit(callEventEnum.CALL_ANSWERED, { ans })
       });
+
+      socket.on(callEventEnum.END_CALL, async({to})=>{
+        if (!to) return;
+        io.to(`${to}`).emit(callEventEnum.ENDED_CALL, { })
+      })
 
       socket.on(callEventEnum.ICE_CANDIDATE, ({ to, candidate }) => {
         console.log('ICE CANDIDATE')
-        const reciver = searchTagToSocketIdMapping.get(to)
-        console.log(callEventEnum.ICE_CANDIDATE, "reciver ", reciver)
-        socket.to(reciver).emit(callEventEnum.ICE_CANDIDATE_INCOMING, { candidate })
+        if (!to || !candidate) return;
+        io.to(`${to}`).emit(callEventEnum.ICE_CANDIDATE_INCOMING, { candidate })
       })
 
       socket.on(callEventEnum.NEGOTIATION_NEEDED, ({ to, offer }) => {
         console.log('NEGOTIATION NEEDE')
-        const reciver = searchTagToSocketIdMapping.get(to)
-        socket.to(reciver).emit(callEventEnum.NEGOTIATION_INCOMING, { offer })
+        if (!to || !offer) return;
+        io.to(`${to}`).emit(callEventEnum.NEGOTIATION_INCOMING, { offer })
       });
 
       socket.on(callEventEnum.NEGOTIATION_DONE, ({ to, ans }) => {
         console.log('NEGOTIATION DONE')
-        const reciver = searchTagToSocketIdMapping.get(to)
-        socket.to(reciver).emit(callEventEnum.NEGOTIATION_FINAL, { ans })
+        if (!to || !ans) return;
+        io.to(`${to}`).emit(callEventEnum.NEGOTIATION_FINAL, { ans })
       });
 
       socket.on(callEventEnum.CANCELLED_BEFORE_ANSWER, async ({ contactId, callerId }) => {
@@ -504,31 +471,24 @@ const starterSocketIo = async (io) => {
         const contact = await Contact.findById(contactId);
         const user = await User.findById(callerId);
 
-        if (!contact || !user) {
+        if (!contact || !user || contact.isGroup) {
           console.log('Contacts not found');
           socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
             message: 'contacts not found',
           });
+          return;
         }
 
         const reciver = await getContactsForCall(contact._id);
+        const members = reciver?.[0]?.member || [];
+        const callerMember = members.find((m) => String(m._id) === String(callerId));
+        const calleeMember = members.find((m) => String(m._id) !== String(callerId));
 
-        const recivers = await reciver[0].member.filter(
-          (val) => val.online === true,
-        );
-
-        if (recivers.length > 1) {
-          for (const reciver of recivers) {
-            if (reciver.online) {
-              if (callerId === String(reciver._id)) {
-                io.to(`${reciver.socketId}`).emit(
-                  `${callEventEnum.STOP_CALLING}`, {});
-              } else {
-                io.to(`${reciver.socketId}`).emit(
-                  `${callEventEnum.STOP_CALLING}`, {});
-              }
-            }
-          }
+        if (callerMember?.socketId) {
+          io.to(`${callerMember.socketId}`).emit(`${callEventEnum.STOP_CALLING}`, {});
+        }
+        if (calleeMember?.socketId) {
+          io.to(`${calleeMember.socketId}`).emit(`${callEventEnum.STOP_CALLING}`, {});
         }
       },
       );
@@ -547,22 +507,19 @@ const starterSocketIo = async (io) => {
         }
 
 
-        // if one on one caller
+        // strict one-to-one caller flow
         if (!contact.isGroup) {
           const reciver = await getContactsForCall(contact._id);
+          const members = reciver?.[0]?.member || [];
+          const callerMember = members.find((m) => String(m._id) === String(memberId));
+          const calleeMember = members.find((m) => String(m._id) !== String(memberId));
 
-          const recivers = await reciver[0].member.filter(
-            (val) => val.online === true,
-          );
-
-          if (recivers.length > 1) {
-            for (const reciver of recivers) {
-              io.to(`${reciver.socketId}`).emit(
-                `${callEventEnum.STOP_CALLING}`, {});
-            }
+          if (callerMember?.socketId) {
+            io.to(`${callerMember.socketId}`).emit(`${callEventEnum.STOP_CALLING}`, {});
           }
-
-
+          if (calleeMember?.socketId) {
+            io.to(`${calleeMember.socketId}`).emit(`${callEventEnum.STOP_CALLING}`, {});
+          }
         }
 
 

@@ -1,5 +1,6 @@
 class PeerPackages {
     peer: RTCPeerConnection | null = null;
+    private pendingIceCandidates: RTCIceCandidateInit[] = [];
     constructor() {
         if (!this.peer) {
             this.peer = new RTCPeerConnection({
@@ -37,46 +38,69 @@ class PeerPackages {
         }
     }
 
-    async getAnswer(offer: RTCSessionDescription) {
+    async getAnswer(offer: RTCSessionDescriptionInit) {
         if (this.peer) {
             console.log("::::: CREATING ANS: ", offer)
 
-            await this.peer.setRemoteDescription(offer);
+            await this.peer.setRemoteDescription(new RTCSessionDescription(offer));
+            await this.flushPendingCandidates();
             const ans = await this.peer.createAnswer();
             await this.peer.setLocalDescription(new RTCSessionDescription(ans));
             return ans
         }
     }
 
-    async setRemoteDescription(ans: RTCSessionDescription) {
+    async setRemoteDescription(ans: RTCSessionDescriptionInit) {
         if (this.peer) {
             console.log("::::: SETTING REMOTE DESCRIPTION: ", ans)
             await this.peer.setRemoteDescription(new RTCSessionDescription(ans));
+            await this.flushPendingCandidates();
         }
     }
 
-    async addIceCandidate(candidate: RTCIceCandidate) {
+    async addIceCandidate(candidate: RTCIceCandidateInit) {
         if (this.peer) {
+            if (!this.peer.remoteDescription) {
+                this.pendingIceCandidates.push(candidate);
+                return;
+            }
             console.log("::: ADDING ICE CANDIDATES")
             await this.peer.addIceCandidate(new RTCIceCandidate(candidate))
         }
     }
 
-    // ensureTransceivers() {
-    //     if (!this.peer) return
-    //     if (this.peer.getTransceivers().length === 0) {
-    //         this.peer.addTransceiver("audio", { direction: "sendrecv" });
-    //         this.peer.addTransceiver("video", { direction: "sendrecv" });
-    //     }
-    // }
+    private async flushPendingCandidates() {
+        if (!this.peer || !this.peer.remoteDescription) return;
+        while (this.pendingIceCandidates.length) {
+            const candidate = this.pendingIceCandidates.shift();
+            if (!candidate) continue;
+            await this.peer.addIceCandidate(new RTCIceCandidate(candidate));
+        }
+    }
 
     async resetPeer() {
-        if (this.peer) {
-            this.peer.ontrack = null;
-            this.peer.onicecandidate = null;
+        if (!this.peer) return;
+
+        this.peer.getSenders().forEach(sender => {
+            try {
+                sender.track?.stop();
+                this.peer?.removeTrack(sender);
+            } catch { }
+        });
+
+        this.peer.getReceivers().forEach(receiver => {
+            try {
+                receiver.track?.stop();
+            } catch { }
+        });
+
+        try {
             this.peer.close();
-        }
-        this.peer = await this.createPeer()
+        } catch { }
+
+
+        this.peer = null;
+        this.createPeer();
     }
 }
 

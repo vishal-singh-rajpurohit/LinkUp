@@ -27,6 +27,9 @@ export const callEventEnum = Object.freeze({
     CALL_ANSWERED: "call:answered",
     CALL_ANSWERED_MAIN: "call:answered:main",
 
+    END_CALL: "call:end",
+    ENDED_CALL: "call:ended",
+
     ICE_CANDIDATE: 'call:ice-candidate',
     ICE_CANDIDATE_INCOMING: 'call:ice-candidate:incoming',
     NEGOTIATION_NEEDED: 'call:nego:needed',

@@ -18,7 +18,7 @@ export interface WSCTypes {
     answerVideoCall: () => void,
     denayCall: () => void,
     createAnswer: () => void,
-    clearCallStates: () => void,
+    clearCall: () => void,
     video: {
         localVideoRef: RefObject<HTMLVideoElement | null>,
         remoteVideoRef: RefObject<HTMLVideoElement | null>,

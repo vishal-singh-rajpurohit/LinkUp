@@ -45,6 +45,34 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
     // Remote Video
     const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
     const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+    const remoteStreamRef = useRef<MediaStream>(new MediaStream());
+
+    const attachRemoteToVideo = useCallback((stream: MediaStream | null) => {
+        if (!stream || !remoteVideoRef.current) return;
+        if (remoteVideoRef.current.srcObject !== stream) {
+            remoteVideoRef.current.srcObject = stream;
+        }
+        remoteVideoRef.current.onloadedmetadata = () => {
+            remoteVideoRef.current?.play().catch((err) => {
+                console.log("remote play blocked:", err?.message || err);
+            });
+        };
+        remoteVideoRef.current.play().catch((err) => {
+            console.log("remote play initial failed:", err?.message || err);
+        });
+    }, []);
+
+    const attachRemoteFromReceivers = useCallback(() => {
+        if (!peer.peer) return;
+        const liveTracks = peer.peer
+            .getReceivers()
+            .map((r) => r.track)
+            .filter((t): t is MediaStreamTrack => !!t && t.readyState === "live");
+        if (!liveTracks.length) return;
+        const stream = new MediaStream(liveTracks);
+        setRemoteStream(stream);
+        attachRemoteToVideo(stream);
+    }, [attachRemoteToVideo]);
 
     const [callerId, setCallerId] = useState<string>('')
     const callerIdRef = useRef(callerId);
@@ -63,7 +91,6 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
     const makeACall = useCallback(async () => {
         try {
             socket?.emit(callEventEnum.MAKE_VIDEO_CALL_PRE, { contactId: selectedContact._id, callerId: user._id, username: selectedContact.searchTag, avatar: selectedContact.avatar });
-
         } catch (error) {
             if (error instanceof Error) {
                 throw new Error('Error in make a call function: ' + error.message)
@@ -71,22 +98,25 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, [socket, peer, selectedContact, user, nav])
 
-    useEffect(() => {
-        if (localVideoRef.current && localStreamRef.current) {
-            localVideoRef.current.srcObject = localStreamRef.current
-            console.log('SETTING LOCAL STREAM')
-        }
-    }, [localStreamRef.current])
+    const ensureLocalStream = useCallback(async () => {
+        if (localStreamRef.current) return localStreamRef.current;
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        localStreamRef.current = stream;
+        if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+        return stream;
+    }, []);
 
-    const handleIncomingVideoCallPre = useCallback(async ({
-        roomId,
-        callId,
-        avatar,
-        searchTag,
-        remoteUserId,
-        callerId,
-        email,
-    }: {
+    useEffect(() => {
+        if (
+            localVideoRef.current &&
+            localStreamRef.current &&
+            localVideoRef.current.srcObject !== localStreamRef.current
+        ) {
+            localVideoRef.current.srcObject = localStreamRef.current;
+        }
+    });
+
+    const handleIncomingVideoCallPre = useCallback(async (payload: {
         roomId: string;
         callId: string;
         avatar: string;
@@ -95,72 +125,77 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         callerId: string;
         email: string;
     }) => {
-        setCallerId(remoteUserId)
-        if (callerId === user._id) {
-            disp(setCallingStatus({ status: 'OUTGOING' }));
-            disp(setCallDetails({ roomId, callId, avatar, searchTag, callerId, email }))
-        } else {
-            disp(setCallDetails({ roomId, callId, avatar, searchTag, callerId, email }))
-            disp(setCallingStatus({ status: 'INCOMING' }))
+        const { roomId, callId, avatar, searchTag, remoteUserId, callerId: callerIdFromServer, email } = payload;
+        const targetId = String(remoteUserId || "");
+        const normalizedCallerId = String(callerIdFromServer || "");
+
+        // This is the person you need to send signaling to:
+        setCallerId(targetId);
+        callerIdRef.current = targetId; // IMPORTANT: set ref immediately to avoid races
+
+        const amICaller = normalizedCallerId === String(user._id); // or whatever your backend defines as "callerId"
+        console.log("CALL PRE:", { myId: String(user._id), targetId, callerId: normalizedCallerId, amICaller });
+        if (!targetId || targetId === String(user._id)) {
+            console.warn("Invalid call targetId (self or empty). Check if both tabs are logged into the same account.");
+            return;
         }
-    }, [peer, socket, nav, callerId, setCallerId, selectedContact, user])
+
+        disp(setCallDetails({ roomId, callId, avatar, searchTag, callerId: normalizedCallerId, email }));
+        disp(setCallingStatus({ status: amICaller ? "OUTGOING" : "INCOMING" }));
+    }, [disp, user._id]);
 
     const answerVideoCall = useCallback(async () => {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
-        localStreamRef.current = stream
+        const stream = await ensureLocalStream();
         await addTrack(stream)
         const offer = await peer.createOffer()
-
-        socket?.emit(callEventEnum.MAKE_VIDEO_CALL, { contactId: call.roomId, userId: user._id, to: callerIdRef.current, offer });
-    }, [peer, socket, nav, callerId, setCallerId, call, callerIdRef.current])
+        const to = String(callerIdRef.current || "");
+        if (!to || to === "[object Object]") return;
+        socket?.emit(callEventEnum.MAKE_VIDEO_CALL, { contactId: call.roomId, userId: user._id, to, offer });
+    }, [ensureLocalStream, socket, call.roomId, user._id])
 
     const handleIncomingVideoCall = useCallback(async ({ offer }: { offer: RTCSessionDescription }) => {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-        localStreamRef.current = stream;
-
-        const ans = await peer.getAnswer(offer)
+        const stream = await ensureLocalStream();
         await addTrack(stream);
+        const ans = await peer.getAnswer(offer)
 
-        socket?.emit(callEventEnum.ANSWER_CALL, { to: callerIdRef.current, ans })
+        const to = String(callerIdRef.current || "");
+        if (!to || to === "[object Object]") return;
+        socket?.emit(callEventEnum.ANSWER_CALL, { to, ans })
+        disp(setCallingStatus({ status: "ACTIVE" }));
         nav('/user/call/video')
-    }, [peer, socket, nav, callerId, setCallerId])
+    }, [ensureLocalStream, socket, nav, disp])
 
     const handleAnsweredCall = useCallback(async ({ ans }: { ans: RTCSessionDescription }) => {
         await peer.setRemoteDescription(ans)
+        disp(setCallingStatus({ status: "ACTIVE" }));
         nav('/user/call/video')
-    }, [peer, localStreamRef.current])
+    }, [nav, disp])
 
     useEffect(() => {
         callerIdRef.current = callerId;
     }, [callerId]);
-
-    const handleNegotiationIncoming = useCallback(async ({ offer }: { offer: RTCSessionDescription }) => {
-        console.log('INCOMING NEGOTIATION')
-
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
-        localStreamRef.current = stream
-        
-        const ans = await peer.getAnswer(offer);
-        await addTrack(stream)
-
-        const to = callerIdRef.current;
-        socket?.emit(callEventEnum.NEGOTIATION_DONE, { to, ans });
-    }, [socket, peer]);
-
-    const handleNegotiationFinal = useCallback(async ({ ans }: { ans: RTCSessionDescription }) => {
-        console.log('INCOMING FINAL')
-        await peer.setRemoteDescription(ans);
-        // await answerVideoCall()
-    }, [socket, peer])
 
     const handleCandidateIncoming = useCallback(async ({ candidate }: { candidate: RTCIceCandidate }) => {
         console.log('CANDIDATES INCOMING')
         await peer.addIceCandidate(candidate);
     }, [socket, peer])
 
-    const clearCallStates = useCallback(async () => { }, [])
     const createAnswer = useCallback(async () => { }, [])
     const denayCall = useCallback(async () => { }, [])
+
+    const clearCall = useCallback(async () => {
+        if (!peer.peer) return;
+        await peer.resetPeer()
+        socket?.emit(callEventEnum.END_CALL, { to: callerIdRef.current })
+        nav('/')
+    }, [callerIdRef, callerIdRef.current])
+
+
+    const handleEndCall = useCallback(async () => {
+        if (!peer.peer) return;
+        await peer.resetPeer()
+        nav('/')
+    }, [])
 
     useEffect(() => {
         if (!isLoggedIn) return;
@@ -255,10 +290,10 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         socket?.on(callEventEnum.INCOMING_VIDEO_CALL_PRE, handleIncomingVideoCallPre);
         socket?.on(callEventEnum.INCOMING_VIDEO_CALL, handleIncomingVideoCall);
         socket?.on(callEventEnum.CALL_ANSWERED, handleAnsweredCall)
+        socket?.on(callEventEnum.ENDED_CALL, handleEndCall)
 
         socket?.on(callEventEnum.ICE_CANDIDATE_INCOMING, handleCandidateIncoming)
-        socket?.on(callEventEnum.NEGOTIATION_INCOMING, handleNegotiationIncoming)
-        socket?.on(callEventEnum.NEGOTIATION_FINAL, handleNegotiationFinal)
+        // Disabled renegotiation events for now to avoid offer-collision with manual offer/answer flow.
 
         return () => {
             socket?.off("connect");
@@ -280,61 +315,79 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
             socket?.off(callEventEnum.INCOMING_VIDEO_CALL, handleIncomingVideoCall);
             socket?.off(callEventEnum.CALL_ANSWERED, handleAnsweredCall)
             socket?.off(callEventEnum.ICE_CANDIDATE_INCOMING, handleCandidateIncoming)
-            socket?.off(callEventEnum.NEGOTIATION_INCOMING, handleNegotiationIncoming)
-            socket?.off(callEventEnum.NEGOTIATION_FINAL, handleNegotiationFinal)
+            socket?.off(callEventEnum.ENDED_CALL, handleEndCall)
+            // Disabled renegotiation events cleanup.
 
             socket?.disconnect();
         };
     }, [socket, isLoggedIn])
 
     const handleTracks = useCallback(async (ev: RTCTrackEvent) => {
-        const stream = ev.streams[0]
-        console.log("STREAM IS COMING!!!!!") 
-        setRemoteStream(stream)
-    }, [setRemoteStream])
- 
+        console.log("STREAM IS COMING!!!!!")
+        const stream = ev.streams?.[0];
+        const finalStream = stream ?? (() => {
+            remoteStreamRef.current.addTrack(ev.track);
+            return new MediaStream(remoteStreamRef.current.getTracks());
+        })();
+
+        setRemoteStream(finalStream);
+        attachRemoteToVideo(finalStream);
+        attachRemoteFromReceivers();
+    }, [attachRemoteFromReceivers, attachRemoteToVideo])
+
     useEffect(() => {
-        if (remoteVideoRef.current) {
-            remoteVideoRef.current.srcObject = remoteStream
-        }
-    }, [remoteStream]);
+        attachRemoteToVideo(remoteStream);
+    }, [remoteStream, attachRemoteToVideo]);
 
     useEffect(() => {
         peer.peer?.addEventListener("track", handleTracks)
         return () => peer.peer?.removeEventListener("track", handleTracks)
     }, [handleTracks]);
 
-    const handleIceCandidates = useCallback(async (ev: RTCPeerConnectionIceEvent) => {
-        if (ev.candidate && callerId) {
-            console.log('ICE CANDIDATES COMING')
-            socket?.emit(callEventEnum.ICE_CANDIDATE, { to: callerId, candidate: ev.candidate })  // callerId is going undefined
+    const handleIceCandidates = useCallback((ev: RTCPeerConnectionIceEvent) => {
+        const to = String(callerIdRef.current || "");
+        if (ev.candidate && to && to !== "[object Object]") {
+            socket?.emit(callEventEnum.ICE_CANDIDATE, { to, candidate: ev.candidate });
         }
-    }, [socket, callerId]);
+    }, [socket]);
 
     useEffect(() => {
         peer.peer?.addEventListener('icecandidate', handleIceCandidates)
         return () => peer.peer?.removeEventListener('icecandidate', handleIceCandidates)
     }, [handleIceCandidates])
 
-    const makingOfferRef = useRef(false);
-
-    const handleNegotiationNeeded = useCallback(async () => {
-        if (!peer.peer) return;
-        if (makingOfferRef.current) return;
-        if (peer.peer.signalingState !== "stable") return;
-
-        makingOfferRef.current = true;
-
-        const offer = await peer.createOffer()
-
-        socket?.emit(callEventEnum.NEGOTIATION_NEEDED, { to: callerId, offer })
-        makingOfferRef.current = false;
-    }, [socket, peer, callerId, setCallerId]);
-
     useEffect(() => {
-        peer.peer?.addEventListener('negotiationneeded', handleNegotiationNeeded)
-        return () => peer.peer?.removeEventListener('negotiationneeded', handleNegotiationNeeded)
-    }, [handleNegotiationNeeded])
+        const pc = peer.peer;
+        if (!pc) return;
+        const onConn = () => {
+            console.log("PC connectionState:", pc.connectionState);
+            if (pc.connectionState === "connected") {
+                attachRemoteFromReceivers();
+            }
+        };
+        const onIceConn = () => {
+            console.log("PC iceConnectionState:", pc.iceConnectionState);
+            if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
+                attachRemoteFromReceivers();
+            }
+        };
+        const onSig = () => console.log("PC signalingState:", pc.signalingState);
+
+        const handleNego = () => console.log('handle nego')
+
+        pc.addEventListener("connectionstatechange", onConn);
+        pc.addEventListener("iceconnectionstatechange", onIceConn);
+        pc.addEventListener("signalingstatechange", onSig);
+
+        pc.addEventListener("negotiationneeded", handleNego)
+
+        return () => {
+            pc.removeEventListener("connectionstatechange", onConn);
+            pc.removeEventListener("iceconnectionstatechange", onIceConn);
+            pc.removeEventListener("signalingstatechange", onSig);
+            pc.removeEventListener("negotiationneeded", handleNego)
+        };
+    }, [attachRemoteFromReceivers]);
 
     const data: WSCTypes = {
         socket,
@@ -342,7 +395,7 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         answerVideoCall,
         denayCall,
         createAnswer,
-        clearCallStates,
+        clearCall,
         video: {
             localVideoRef,
             remoteVideoRef,
