@@ -7,7 +7,6 @@ let port = process.env.PORT;
 conn()
   .then(() => {
     server.on("error", (error) => {
-      console.log("error to app listen ", error);
       throw error;
     });
 

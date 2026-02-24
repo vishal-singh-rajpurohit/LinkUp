@@ -18,10 +18,10 @@ export const RequestedVideoCall = () => {
         throw Error("Socket not found")
     }
 
-    const { clearCallStates } = socketContext
+    const { clearCall } = socketContext
 
     async function cut_call() {
-        clearCallStates()
+        await clearCall()
         socketContext?.socket?.emit(callEventEnum.CANCELLED_BEFORE_ANSWER, { contactId: room._id, callerId: user._id })
     }
 

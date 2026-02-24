@@ -61,7 +61,6 @@ export const ChatTop = () => {
     async function getDetails() {
         router(`/chat/details/?room_id=${room?._id}`)
     }
-
     
 
     return (
@@ -74,7 +73,7 @@ export const ChatTop = () => {
                 </NavLink>
                 <div className="w-full overflow-hidden h-full flex items-center justify-center">
                     <div onClick={getDetails} className='w-[2.5rem] h-[2.5rem] flex items-center justify-center overflow-hidden rounded-[10rem] bg-amber-300 md:h-[2.5rem] md:w-[2.5rem]'>
-                        <img src={room?.avatar || g} alt="😒" className="max-h-[2.5rem] h-full" />
+                        <img src={room?.avatar || g} alt="" className="max-h-[2.5rem] h-full" />
                     </div>
                 </div>
                 <div className="w-full h-full pl-1 flex gap-0  justify-center flex-col">

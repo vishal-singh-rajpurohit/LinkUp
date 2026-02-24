@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../../app/hooks';
 import { enterApp, type initialRespType } from '../../app/functions/auth';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 const api = import.meta.env.VITE_API
 
 interface LoginData {
@@ -11,6 +11,8 @@ interface LoginData {
   latitude: string;
   longitude: string;
 }
+
+const passValidator = new RegExp("^[a-zA-Z0-9!@#$%^&*_=+-]{8,12}$");
 
 const LoginForm = () => {
   const disp = useAppDispatch();
@@ -30,14 +32,22 @@ const LoginForm = () => {
       [e.target.name]: e.target.value,
     });
     setError(null);
+
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+
+
     if (!formData.searchTag || !formData.password) {
       setError("Both fields are required");
       return;
+    }
+
+    if (!passValidator.test(formData.password) ) {
+      setError("password must contain one uppercase, lowercase, number, speial character and 8 to 12 character")
+      return
     }
 
     try {
@@ -56,7 +66,13 @@ const LoginForm = () => {
       router('/')
 
     } catch (error) {
-        if(error instanceof Error) throw new Error(`Error in login: ${ error.message}`)
+      // console.log(error instanceof )
+      if (error instanceof AxiosError) {
+        if (error.status === 401) {
+          setError("invalid username or password")
+        }
+        throw new Error(`Error in login: ${error.status}`)
+      }
     }
   };
 
@@ -114,6 +130,7 @@ const LoginForm = () => {
             type="password"
             id="password"
             name="password"
+            pattern="/^[a-zA-Z0-9!@#\$%\^\&*_=+-]{8,12}$/g"
             value={formData.password}
             onChange={handleChange}
             required

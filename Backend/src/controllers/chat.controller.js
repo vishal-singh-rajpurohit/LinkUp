@@ -263,7 +263,6 @@ const sendMessage = asyncHandler(async (req, resp) => {
 });
 
 const uploadAttechment = asyncHandler(async (req, resp) => {
-  console.log("upload called");
   const user = req.user;
   if (!user) {
     throw new ApiError(401, "Unautharized User");
@@ -277,8 +276,7 @@ const uploadAttechment = asyncHandler(async (req, resp) => {
     throw new ApiError(400, "Files not found");
   }
   const { messageId, contactId, fileType } = req.body;
-  console.log("upload called: ", req.body);
-  console.log("upload path: ", path);
+
   if (!contactId || !messageId) {
     throw new ApiError(400, "data not found");
   }
@@ -701,8 +699,6 @@ const deleteMessage = asyncHandler(async (req, resp) => {
       },
     ]);
 
-    console.log(`recivers `, JSON.stringify(contacts, null, 2));
-
     if (contacts.length) {
       emiterSocket(req, myUser.socketId, chatEventEnumNew.DELETED_MESSAGE, {
         messageId: message._id,
@@ -710,7 +706,6 @@ const deleteMessage = asyncHandler(async (req, resp) => {
         isGroup: true,
       });
       for (let reciver of contacts[0].member) {
-        console.log(`reciver -> `, JSON.stringify(reciver, null, 2));
         emiterSocket(req, reciver.socketId, chatEventEnumNew.DELETED_MESSAGE, {
           messageId: message._id,
           contactId: contact._id,
@@ -805,8 +800,6 @@ const replyTo = asyncHandler(async (req, resp) => {
   if (!newMessage._id) {
     throw new ApiError(501, "Message not created");
   }
-
-  console.log("called out ");
 
   resp
     .status(200)

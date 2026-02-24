@@ -220,7 +220,6 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
       .status(200)
       .json(new ApiResponse(200, {}, "Contact created successfully"));
   } catch (error) {
-    console.log("Error in creating contact :", error);
     throw new ApiError(400, "Error while creating contacts ");
   }
 });
@@ -418,7 +417,6 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
 
     for (let member of newGroupDetails[0].members) {
       if (member.user.online) {
-        // console.log(`sending to: `, member.user.userName, "socketId: ", member.socketId);
         emiterSocket(
           req,
           member.user.socketId,
@@ -427,8 +425,6 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
             newGroupDetails: newGroupDetails[0],
           }
         );
-      } else {
-        console.log(member.user.userName, "isOffline: ");
       }
     }
 
@@ -442,7 +438,6 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
       )
     );
   } catch (error) {
-    console.log("Error in creating group: ", error);
     throw new ApiError(401, "Error while creating group chat ", {
       errorMessage: "Error while creating group chat ",
     });
@@ -582,9 +577,7 @@ const searchContacts = asyncHandler(async (req, resp) => {
           "Here are search contacts"
         )
       );
-  } catch (error) {
-    console.log("Error in searh contact: ", error);
-  }
+  } catch (error) {}
 });
 
 /**
@@ -891,9 +884,7 @@ const addToGroup = asyncHandler(async (req, resp) => {
         emiterSocket(req, reciver.socketId, chatEventEnumNew.NEW_GROUP_CHAT, {
           newGroupDetails: groupDetails[0],
         });
-      } else {
-        console.log(reciver.userName, "isOffline: ");
-      }
+      } else {}
     }
   }
 
@@ -1054,7 +1045,6 @@ const kickOutFromGroup = asyncHandler(async (req, resp) => {
   }
 
   if (kickedUser.online) {
-    console.log(`emitted to kicked one`);
     emiterSocket(req, kickedUser.socketId, chatEventEnumNew.KICKED_OUT_YOU, {
       groupId: groupDetails[0]._id,
     });

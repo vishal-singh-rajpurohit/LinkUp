@@ -5,9 +5,8 @@ const ApiError = require("../utils/ApiError.utils");
 const asyncHandler = require("../utils/asyncHandler.utils");
 const jwt = require("jsonwebtoken");
 
-const auth = asyncHandler(async (req, resp, next) => {
+const auth = asyncHandler(async (req, _, next) => {
   try {
-    // console.log(`cookies is ${JSON.stringify(req.cookies)}`);
     const token = req.cookies?.accessToken;
 
     if (!token) {
@@ -35,7 +34,6 @@ const auth = asyncHandler(async (req, resp, next) => {
     req.user = user;
     next();
   } catch (error) {
-    console.log("error in auth :", error)
     throw new ApiError(401, "Error in auth middleware", {
       errorMessage: "Error in auth middleware",
     });

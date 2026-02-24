@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAppDispatch } from '../../app/hooks';
 import { firstEnter, type initialRespType } from '../../app/functions/auth'
-import { useNavigate } from 'react-router-dom';
 
-const api = import.meta.env.VITE_API
+const api = import.meta.env.VITE_API;
+const passValidator = new RegExp("^[a-zA-Z0-9!@#$%^&*_=+-]{8,12}$");
+const searchTagRegEx = new RegExp("^[A-Za-z0-9_]{3,20}$")
 
 interface FormData {
     userName: string;
@@ -19,7 +20,6 @@ interface FormData {
 
 const Signup = () => {
     const disp = useAppDispatch();
-    const router = useNavigate();
     const [formData, setFormData] = useState<FormData>({
         userName: '',
         searchTag: '',
@@ -55,6 +55,21 @@ const Signup = () => {
             })
         }
 
+        if (!searchTagRegEx.test(formData.searchTag)) {
+            setErrors({
+                message: "search tag only can contain alphabet and numbers and Underscores (_)",
+                type: "tag"
+            })
+        }
+
+        if (!passValidator.test(formData.password) || !passValidator.test(formData.confirmPassword)) {
+            setErrors({
+                message: "password must contain one uppercase, lowercase, number, speial character and 8 to 12 character",
+                type: "pass"
+            })
+            return
+        }
+
         if (formData.password !== formData.confirmPassword) {
             setErrors({
                 message: "Passwords do not match",
@@ -72,14 +87,14 @@ const Signup = () => {
             }
             const resp = await axios.post<RegisterResponse>(`${api}/user/register`,
                 { ...formData },
-                { 
+                {
                     withCredentials: true,
-                 }
+                }
             );
-            
+
             disp(firstEnter({ userData: resp.data.data.User }))
             window.localStorage.setItem("accessToken", resp.data.data.accessToken)
-            router('/')
+            window.location.reload()
 
         } catch (error) {
             console.log(`error in register: ${error}`);
@@ -162,27 +177,27 @@ const Signup = () => {
                         type="text"
                         id="userName"
                         name="userName"
+
                         value={formData.userName}
                         onChange={handleChange}
                         required
                         className="w-full px-3 py-2 rounded bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-slate-500"
                     />
                 </div>
-
+                {errors?.type === 'tag' && <div className="text-red-400 mb-4">{errors.message}</div>}
                 <div className="mb-4">
                     <label className="block text-slate-300 mb-1" htmlFor="searchTag">Search Tag</label>
                     <input
                         type="text"
                         id="searchTag"
                         name="searchTag"
+                        pattern="^[A-Za-z0-9_]{3,20}$"
                         value={formData.searchTag}
                         onChange={handleChange}
                         required
                         className="w-full px-3 py-2 rounded bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-slate-500"
                     />
                 </div>
-                {errors?.type === 'tag' && <div className="text-red-400 mb-4">{errors.message}</div>}
-
                 <div className="mb-4">
                     <label className="block text-slate-300 mb-1" htmlFor="email">Email</label>
                     <input
@@ -203,19 +218,21 @@ const Signup = () => {
                         type="password"
                         id="password"
                         name="password"
+                        pattern="/^[a-zA-Z0-9!@#\$%\^\&*_=+-]{8,12}$/g"
                         value={formData.password}
                         onChange={handleChange}
                         required
                         className="w-full px-3 py-2 rounded bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-slate-500"
                     />
                 </div>
-
+                {errors?.type === 'pass' && <div className="text-red-400 mb-4">{errors.message}</div>}
                 <div className="mb-6">
                     <label className="block text-slate-300 mb-1" htmlFor="confirmPassword">Confirm Password</label>
                     <input
                         type="password"
                         id="confirmPassword"
                         name="confirmPassword"
+                        pattern="/^[a-zA-Z0-9!@#\$%\^\&*_=+-]{8,12}$/g"
                         value={formData.confirmPassword}
                         onChange={handleChange}
                         required

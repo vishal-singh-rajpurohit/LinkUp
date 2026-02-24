@@ -110,11 +110,9 @@ const socketIdToSearchTagMapping = new Map()
 const starterSocketIo = async (io) => {
   return io.on('connection', async (socket) => {
     try {
-      console.log('Socket connected to server', socket.id);
       const accessToken = socket.handshake.auth?.token;
 
       if (!accessToken) {
-        console.log('Access token not found in cookies');
         throw new ApiError(400, 'Unauthorized Access');
       }
 
@@ -139,7 +137,6 @@ const starterSocketIo = async (io) => {
       socket.on(chatEventEnumNew.JOIN_ROOM, async (payload) => {
         const roomId = payload.roomId.toString();
         socket.join(roomId);
-        // console.log(`User joined room: ${roomId}`);
 
         socket.to(roomId).emit('message', {
           user: socket.id,
@@ -149,9 +146,6 @@ const starterSocketIo = async (io) => {
 
         const room = io.sockets.adapter.rooms.get(roomId);
 
-        if (room) {
-          console.log(`Users in room ${roomId}:`, room.size);
-        }
       });
 
       const contactsOnline = await getUserOnlineFriends(user._id);
@@ -164,10 +158,6 @@ const starterSocketIo = async (io) => {
 
       socket.on(chatEventEnumNew.TYPING_ON, async (payload) => {
         const contact = await Contact.findById(payload.contactId);
-
-        if (!contact) {
-          console.log('contacts not found');
-        }
 
         if (!contact.isGroup) {
           const reciver = await Contact.aggregate([
@@ -358,18 +348,7 @@ const starterSocketIo = async (io) => {
         });
       });
 
-
-
-      // ----------------------------------------------
-      // ----------------------------------------------
-      // ----------------------------------------------
-      // -----------------CALL-------------------------
-      // ----------------------------------------------
-      // ----------------------------------------------
-      // ----------------------------------------------
-
       socket.on(callEventEnum.MAKE_VIDEO_CALL_PRE, async ({ contactId, callerId, username, avatar }) => {
-        console.log('MAKE VIDEO CALL PRE ')
         const contact = await Contact.findById(contactId);
         const user = await User.findById(callerId);
 
@@ -438,30 +417,26 @@ const starterSocketIo = async (io) => {
       });
 
       socket.on(callEventEnum.ANSWER_CALL, async ({ to, ans }) => {
-        console.log('ANSWER VIDEO CALL')
         if (!to || !ans) return;
         io.to(`${to}`).emit(callEventEnum.CALL_ANSWERED, { ans })
       });
 
-      socket.on(callEventEnum.END_CALL, async({to})=>{
+      socket.on(callEventEnum.END_CALL, async ({ to }) => {
         if (!to) return;
-        io.to(`${to}`).emit(callEventEnum.ENDED_CALL, { })
+        io.to(`${to}`).emit(callEventEnum.ENDED_CALL, {})
       })
 
       socket.on(callEventEnum.ICE_CANDIDATE, ({ to, candidate }) => {
-        console.log('ICE CANDIDATE')
         if (!to || !candidate) return;
         io.to(`${to}`).emit(callEventEnum.ICE_CANDIDATE_INCOMING, { candidate })
       })
 
       socket.on(callEventEnum.NEGOTIATION_NEEDED, ({ to, offer }) => {
-        console.log('NEGOTIATION NEEDE')
         if (!to || !offer) return;
         io.to(`${to}`).emit(callEventEnum.NEGOTIATION_INCOMING, { offer })
       });
 
       socket.on(callEventEnum.NEGOTIATION_DONE, ({ to, ans }) => {
-        console.log('NEGOTIATION DONE')
         if (!to || !ans) return;
         io.to(`${to}`).emit(callEventEnum.NEGOTIATION_FINAL, { ans })
       });
@@ -472,7 +447,6 @@ const starterSocketIo = async (io) => {
         const user = await User.findById(callerId);
 
         if (!contact || !user || contact.isGroup) {
-          console.log('Contacts not found');
           socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
             message: 'contacts not found',
           });
@@ -530,7 +504,6 @@ const starterSocketIo = async (io) => {
       });
 
       socket.on(chatEventEnumNew.CANCELLED_VIDEO_CALL, async ({ callId, roomId }) => {
-        console.log('Video Call Cancelld');
         const contact = await Contact.findById(roomId);
 
         if (!contact) {
@@ -542,7 +515,6 @@ const starterSocketIo = async (io) => {
         const ended = await endVideoCall(callId);
 
         if (!ended.successs) {
-          console.log('Error in ending call');
         }
 
         const reciver = await getContactsForCall(contact._id);
@@ -566,15 +538,6 @@ const starterSocketIo = async (io) => {
         }
       },
       );
-
-
-      // ----------------------------------------------
-      // ----------------------------------------------
-      // ----------------------------------------------
-      // -----------------END CALL---------------------
-      // ----------------------------------------------
-      // ----------------------------------------------
-      // ----------------------------------------------
 
       socket.on(chatEventEnumNew.DISCONNECT_EVENT, async () => {
         if (socket.user?._id) {
@@ -621,18 +584,15 @@ const emiterCall = (req, userId, event, Payload) => {
 };
 
 const setUserOffline = async (userId) => {
-  console.log('setting use offline');
 
   try {
     const user = await User.findById(userId);
 
     if (!user) {
-      console.log('user does not found');
       throw new ApiError(400, 'User not found');
     }
     user.online = false;
     await user.save();
-    console.log('now user is offline');
   } catch (error) {
     throw new ApiError(501, 'Error in setting Offline');
   }

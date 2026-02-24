@@ -27,7 +27,6 @@ function App() {
         <Route path='/user/find-chats' element={<Auth ><FindChat /></Auth>} />
         <Route path='/user/settings' element={<Auth ><Settings /></Auth>} />
         <Route path='/user/call/video' element={<Auth ><VideoCallPage /></Auth>} />
-        {/* <Route path='/user/call/video-test' element={<Auth ><JitsiComponent /></Auth>} /> */}
       </Routes>
     
   )

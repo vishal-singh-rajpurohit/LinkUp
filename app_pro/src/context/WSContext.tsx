@@ -278,22 +278,11 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
             disp(markTempAsRead({ messageId: messageId, contactId: contactId, viewerId }))
         })
 
-        // --------------
-        // --------------
-        // --------------
-        // --------CALLING
-        // --------------
-        // --------------
-        // --------------
-
-        // Pre
         socket?.on(callEventEnum.INCOMING_VIDEO_CALL_PRE, handleIncomingVideoCallPre);
         socket?.on(callEventEnum.INCOMING_VIDEO_CALL, handleIncomingVideoCall);
         socket?.on(callEventEnum.CALL_ANSWERED, handleAnsweredCall)
         socket?.on(callEventEnum.ENDED_CALL, handleEndCall)
-
         socket?.on(callEventEnum.ICE_CANDIDATE_INCOMING, handleCandidateIncoming)
-        // Disabled renegotiation events for now to avoid offer-collision with manual offer/answer flow.
 
         return () => {
             socket?.off("connect");
@@ -316,7 +305,6 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
             socket?.off(callEventEnum.CALL_ANSWERED, handleAnsweredCall)
             socket?.off(callEventEnum.ICE_CANDIDATE_INCOMING, handleCandidateIncoming)
             socket?.off(callEventEnum.ENDED_CALL, handleEndCall)
-            // Disabled renegotiation events cleanup.
 
             socket?.disconnect();
         };

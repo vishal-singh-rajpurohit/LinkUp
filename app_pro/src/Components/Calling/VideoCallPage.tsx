@@ -13,7 +13,7 @@ const VideoCallPage: React.FC = () => {
         throw new Error("Socket context not found")
     }
 
-    const { video, clearCall} = socketContext;
+    const { video, clearCall } = socketContext;
 
     return (
         <div className="w-[100vw] h-[100vh]  grid grid-rows-[1fr_9fr] bg-gray-900">
@@ -59,7 +59,7 @@ const VideoCallPage: React.FC = () => {
                     aria-label="End call"
                     className="rounded-full p-3 bg-red-600 hover:bg-red-700 text-white shadow focus:outline-none focus:ring-2 focus:ring-red-400"
                 >
-                    <PhoneOff onClick={async()=>await clearCall()} size={20} />
+                    <PhoneOff onClick={async () => await clearCall()} size={20} />
                 </button>
             </div>
         </div>

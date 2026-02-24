@@ -15,10 +15,7 @@ const startMediaSoup = async () => {
     rtcMaxPort: config.mediasoup.worker.rtcMaxPort,
   });
 
-  console.log(`worker pid: ${worker.pid}`)
-
   worker.on("died", () => {
-    console.log("media soup connnection died: ", worker.pid);
     setTimeout(() => {
       process.exit(1);
     }, 2000);
@@ -28,8 +25,6 @@ const startMediaSoup = async () => {
   const localRouter = await worker.createRouter({
     mediaCodecs: mediaSoupCodecs,
   });
-
-  console.log("media soup startede " )
   
   return localRouter
 
@@ -64,9 +59,7 @@ const createWebRtcTransport = async(callback) =>{
          }
        });
   
-       transport.on('close', () => {
-         console.log('Transport closed');
-       });
+       transport.on('close', () => {});
 
        callback({
         params: {
@@ -77,11 +70,8 @@ const createWebRtcTransport = async(callback) =>{
         }
        })
 
-       console.log("treanport created")
-
       return transport
     } catch (error) {
-      console.log("Error in creating the transport: ", error )
       callback({
         params: {
           error: error

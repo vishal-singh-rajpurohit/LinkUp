@@ -15,7 +15,6 @@ const {
   removeFromCloudinary,
   uploadToCloudinary,
 } = require("../utils/cloudinary.utils");
-const { emiterSocket } = require("../Socket");
 
 /**
  * @description these function will pre check the searchTag and Email Avilability
@@ -23,7 +22,6 @@ const { emiterSocket } = require("../Socket");
 
 const liveCheckTagSignup = asyncHandler(async (req, resp) => {
   const { searchTag } = req.body;
-  console.log(`function called ${searchTag}`);
   if (!searchTag) {
     throw new ApiError(400, "Must proive search tag");
   }
@@ -31,7 +29,6 @@ const liveCheckTagSignup = asyncHandler(async (req, resp) => {
   const isUserExists = await User.findOne({ searchTag });
 
   if (isUserExists?._id) {
-    console.log(`success`);
     throw new ApiError(204, "search tag already taken", {
       success: false,
       message: "search tag already taken",
@@ -202,9 +199,7 @@ const signUp = asyncHandler(async (req, resp) => {
           "Registration Successful"
         )
       );
-  } catch (error) {
-    console.log("Error in signup ", error);
-  }
+  } catch (error) {}
 });
 
 const logIn = asyncHandler(async (req, resp) => {
@@ -226,7 +221,7 @@ const logIn = asyncHandler(async (req, resp) => {
   });
 
   if (!user) {
-    throw new ApiError(400, "User Not Found");
+    throw new ApiError(401, "User Not Found", {type: "user_not_found"});
   }
 
   const isPasswordCorrect = await user.isPasswordCorect(password);
@@ -613,9 +608,6 @@ const logIn = asyncHandler(async (req, resp) => {
 
   finalUser[0].groups = groups;
 
-  // console.log('final user is: ', JSON.stringify(finalUser[0].contacts, null, 2));
-  
-
   resp
     .status(201)
     .cookie("accessToken", newAccessToken, Options)
@@ -630,8 +622,6 @@ const logIn = asyncHandler(async (req, resp) => {
 });
 
 const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
-  // console.log('checking logged in');
-  
   const user = req.user;
 
   if (!user) {
@@ -1042,8 +1032,6 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
   ]);
 
   finalUser[0].groups = groups;
-
-  // console.log(`final user ${JSON.stringify(finalUser[0].contacts, null, 2)}`);
 
   resp
     .status(201)
@@ -1809,8 +1797,6 @@ const resetPassword = asyncHandler(async (req, resp) => {
   if (!isValid) {
     throw new ApiError(400, "Error while updating passwords");
   }
-
-  console.log("resat done");
 
   resp
     .status(200)

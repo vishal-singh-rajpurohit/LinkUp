@@ -24,7 +24,6 @@ const generateTokens = async (userId) =>{
         return {newRefreshToken , newAccessToken};
 
     } catch (error) {
-        console.log("Error while generating tokens :", error);
         throw new ApiError(501, "Error in genrateToken() :");
     }
 }

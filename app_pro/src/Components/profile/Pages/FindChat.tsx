@@ -1,25 +1,25 @@
-import { FaCirclePause, FaCirclePlay } from 'react-icons/fa6'
-import x from '../../../assets/no_dp.png'
+import { FaCirclePlay } from 'react-icons/fa6'
+// import x from '../../../assets/no_dp.png'
 import { useState } from 'react'
 
-// Load if not found
-const NoContent = () => {
-    return (
-        <h1 className='text-white font-bold font-stretch-125%'>No media found of this type</h1>
-    )
-}
+// // Load if not found
+// const NoContent = () => {
+//     return (
+//         <h1 className='text-white font-bold font-stretch-125%'>No media found of this type</h1>
+//     )
+// }
 
 
 // Applicable for images, docs, gifs, and videos
-const Media = () => {
-    return (
-        <div className="grid grid-cols-5 gap-0.5 items-center justify-center overflow-y-scroll">
-            <div className="h-[6rem] max-w-full border-1">
-                <img src={x} alt="" className='h-full w-auto' />
-            </div>
-        </div>
-    )
-}
+// const Media = () => {
+//     return (
+//         <div className="grid grid-cols-5 gap-0.5 items-center justify-center overflow-y-scroll">
+//             <div className="h-[6rem] max-w-full border-1">
+//                 <img src={x} alt="" className='h-full w-auto' />
+//             </div>
+//         </div>
+//     )
+// }
 
 const AudioSingle = () => {
     return (

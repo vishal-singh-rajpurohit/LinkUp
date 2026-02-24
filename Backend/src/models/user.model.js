@@ -31,7 +31,7 @@ const newSchema = new Schema(
     },
     avatar: {
       type: String,
-      default: "0",
+      default: "",
     },
     online: {
       type: Boolean,
@@ -99,7 +99,6 @@ newSchema.pre("findOneAndUpdate", async function (next) {
 
 newSchema.methods.isPasswordCorect = async function (password) {
   const result = await bcrypt.compare(password, this.password);
-  console.log("passowrd is " + password + "result is : " + result);
 
   return result;
 };

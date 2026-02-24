@@ -1,3 +1,5 @@
+import axios from "axios";
+
 export async function fetchEmoji() {
     const api_key = process.env.EMOJI_API_KEY
     try {

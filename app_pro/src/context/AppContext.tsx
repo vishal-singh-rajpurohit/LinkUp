@@ -16,7 +16,6 @@ export const AppContextProvider = ({ children }: {
 
 
     function selectToTalk(id: string) {
-        
         if (chatTypes === 1) {
             console.log("select To talk called")
             const chat = contacts.filter((val) => val._id === id)
