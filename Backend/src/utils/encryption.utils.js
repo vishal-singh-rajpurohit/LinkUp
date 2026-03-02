@@ -1,4 +1,4 @@
-import crypto from "crypto";
+const crypto = require("crypto");
 
 const ALGO = "aes-256-gcm";
 const IV_LEN = 12; // recommended for GCM
@@ -41,11 +41,5 @@ function encryptMessage(plainText) {
 }
 
 
-// function encryptMessage(message){
-//     if(typeof message !== "string") throw new Error("message is not type of String");
-//     const key = process.env.CHAT_SECRET_KEY;
-//     return crypto.AES.encrypt(message,key)
-// }
 
-
-export { encryptMessage };
+module.exports = { encryptMessage };
