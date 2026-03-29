@@ -21,6 +21,11 @@ const newModel = new Schema(
         type: {
             type: String,
             required: true
+        },
+        status: {
+            type: "NEW" || "SPAM" || "HAM",
+            default: "NEW",
+            required: true
         }
     },
     {

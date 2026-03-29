@@ -17,9 +17,9 @@ interface FormData {
     longitude: string;
 }
 
-
 const Signup = () => {
     const disp = useAppDispatch();
+    
     const [formData, setFormData] = useState<FormData>({
         userName: '',
         searchTag: '',

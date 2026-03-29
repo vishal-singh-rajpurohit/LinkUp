@@ -71,6 +71,11 @@ const newSchema = new Schema(
       type: String,
       required: true,
     },
+    isSuspended: {
+      type: Boolean,
+      required: true,
+      default: false
+    }
   },
   {
     timeseries: true,
@@ -95,11 +100,10 @@ newSchema.pre("findOneAndUpdate", async function (next) {
   }
   update.password = await bcrypt.hash(update.password, 10);
   next();
-});
+}); 
 
 newSchema.methods.isPasswordCorect = async function (password) {
   const result = await bcrypt.compare(password, this.password);
-
   return result;
 };
 

@@ -73,7 +73,7 @@ const newSchema = new Schema(
         type: mongoose.Types.ObjectId,
         ref: "messages",
       },
-      targetUsetTag: {
+      targetUserTag: {
         type: String,
       },
     },

@@ -22,7 +22,7 @@ const LoginForm = () => {
     password: '',
     latitude: '',
     longitude: ''
-  });
+  });   
 
   const [error, setError] = useState<string | null>(null);
 
