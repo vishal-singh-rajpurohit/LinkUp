@@ -1,5 +1,5 @@
 import g from '../../assets/no_dp.png'
-import { MdCall, MdOutlineAudiotrack, MdOutlineFileOpen, MdOutlineImage, MdOutlineVideoLibrary, MdVideoCall } from 'react-icons/md'
+import { MdOutlineAudiotrack, MdOutlineFileOpen, MdOutlineImage, MdOutlineVideoLibrary, MdVideoCall } from 'react-icons/md'
 import { TiAttachmentOutline } from 'react-icons/ti'
 import { RiSendPlaneFill } from 'react-icons/ri'
 import { BsEmojiWink } from 'react-icons/bs'
@@ -56,12 +56,12 @@ export const ChatTop = () => {
         throw new Error("Socket context not found")
     }
 
-    const {makeACall} = socketContext
+    const { makeACall } = socketContext
 
     async function getDetails() {
         router(`/chat/details/?room_id=${room?._id}`)
     }
-    
+
 
     return (
         <div className='h-[4rem] w-full cursor-pointer bg-slate-800 rounded-t-lg' >
@@ -83,9 +83,13 @@ export const ChatTop = () => {
                     </p>
                 </div>
                 <div className="flex gap-3 justify-center items-center">
-                    <NavLink to={'/user/call/video'}>X</NavLink>
-                    <MdVideoCall className={`${room.isOnline? 'block': 'hidden'}`} size={20} onClick={makeACall}  />
-                    <MdCall size={20} />
+                    {
+                        !room.isGroup &&
+                        <>
+                            <MdVideoCall className={`${room.isOnline ? 'block' : 'hidden'}`} size={20} onClick={makeACall} />
+                        </>
+                    }
+
                 </div>
                 {/* <div className="">
                     <span className=""><CiMenuKebab size={20} /></span>
@@ -121,8 +125,8 @@ const MailOptions = () => {
     const fileType = useAppSelector((state) => state.temp.fileType)
     const [message, setMessage] = useState<string>("");
     const [geoLoc] = useState<geoLocType>({
-        latitude: '00', 
-        longitude: '00' 
+        latitude: '00',
+        longitude: '00'
     })
 
     const socketContext = useContext(WSContext)
@@ -225,7 +229,7 @@ const MailOptions = () => {
         }
 
         return () => {
-            if(timeoutRef.current) clearTimeout(timeoutRef.current);
+            if (timeoutRef.current) clearTimeout(timeoutRef.current);
         };
     }, [isTyping]);
 
@@ -333,7 +337,6 @@ const AttechMents = () => {
     )
 }
 
-
 const ChatBox = () => {
     const mailOptions = useRef<HTMLDivElement | null>(null);
     const chatBoxRef = useRef<HTMLDivElement | null>(null);
@@ -343,12 +346,26 @@ const ChatBox = () => {
     const user = useAppSelector((s) => s.auth.user);
     const disp = useAppDispatch();
 
+    const [menu, setMenu] = useState({
+        visible: false,
+        x: 0,
+        y: 0,
+    });
+
+    const openMenu = (x: number, y: number) => {
+        setMenu({ visible: true, x, y });
+    };
+
+    const closeMenu = () => {
+        setMenu({ visible: false, x: 0, y: 0 });
+    };
+
     const [decryptedMap, setDecryptedMap] = useState<Record<string, string>>({});
     const decryptedSetRef = useRef<Set<string>>(new Set()); // prevents re-decrypt
 
     const wscontext = useContext(WSContext)
 
-    if(!wscontext){
+    if (!wscontext) {
         throw new Error("WsContext not found: ")
     }
 
@@ -389,7 +406,6 @@ const ChatBox = () => {
         return () => root.removeEventListener("dblclick", handleDoubleClick);
     }, [disp]);
 
-
     useEffect(() => {
         const root = chatBoxRef.current;
         if (!root) return;
@@ -411,9 +427,9 @@ const ChatBox = () => {
                     const isUnread = el.dataset.read;
                     const sender_search_tag = el.dataset.tag;
 
-                    
-                    if(typeof isUnread !== 'undefined' && sender_search_tag !== 'You' ){
-                        wscontext.socket?.emit(ChatEventsEnum.MARK_READ, {id: user._id ,msgid: msgId})
+
+                    if (typeof isUnread !== 'undefined' && sender_search_tag !== 'You') {
+                        wscontext.socket?.emit(ChatEventsEnum.MARK_READ, { id: user._id, msgid: msgId })
                     }
                     observer.unobserve(el);
                 }
@@ -424,8 +440,6 @@ const ChatBox = () => {
         const nodes = root.querySelectorAll<HTMLElement>("[data-msgid]");
 
         nodes.forEach((n) => {
-
-
             // console.log("I am reciver: ", !Boolean(isUnread) && sender_search_tag !== 'You')
             // if(!(Boolean(isUnread)) && sender_search_tag !== 'You'){
             //     console.log("I am reciver: ", sender_search_tag)
@@ -446,7 +460,10 @@ const ChatBox = () => {
             className="h-full overflow-y-auto flex flex-col gap-5 p-1 pb-4"
             style={{ scrollbarWidth: "none" }}
         >
-            <MailMenu mailRef={mailOptions} boxRef={mailOptions} />
+            <MailMenu visible={menu.visible}
+                x={menu.x}
+                y={menu.y}
+                onClose={closeMenu} />
             <BottomButton />
 
             {
@@ -464,7 +481,7 @@ const ChatBox = () => {
                                         <DeletedMessageMe key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"You"} time={msg.createdAt} />
                                     ) : (
                                         msg.attechmentLink === "" ?
-                                            <MailMe cipherText={cipherText} displayText={displayText} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"you"} mailOptions={mailOptions} time={msg.createdAt} /> :
+                                            <MailMe mailOptionsHandler={(x, y) => openMenu(x, y)} cipherText={cipherText} displayText={displayText} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"you"}  time={msg.createdAt} /> :
                                             <MailAttechmentMe cipherText={cipherText} displayText={displayText} attechmentLink={msg.attechmentLink} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
                                     )
                                 )
@@ -500,7 +517,7 @@ const ChatBox = () => {
                                         ) :
                                             (
                                                 msg.attechmentLink === "" ?
-                                                    <MailMe cipherText={cipherText} displayText={displayText} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} /> :
+                                                    <MailMe mailOptionsHandler={(x, y) => openMenu(x, y)} cipherText={cipherText} displayText={displayText} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"}  time={msg.createdAt} /> :
                                                     // Working
                                                     <MailAttechmentMe cipherText={cipherText} displayText={displayText} attechmentLink={msg.attechmentLink} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
                                             ))

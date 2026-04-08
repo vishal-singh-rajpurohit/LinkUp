@@ -11,6 +11,7 @@ const User = require("../models/user.model");
 const ContactMember = require("../models/contactMember.model");
 const { default: mongoose } = require("mongoose");
 const Contact = require("../models/contacts.model");
+const Logins = require("../models/login.model");
 const {
   removeFromCloudinary,
   uploadToCloudinary,
@@ -27,6 +28,8 @@ const liveCheckTagSignup = asyncHandler(async (req, resp) => {
   }
 
   const isUserExists = await User.findOne({ searchTag });
+
+  console.log(isUserExists)
 
   if (isUserExists?._id) {
     throw new ApiError(204, "search tag already taken", {
@@ -105,7 +108,7 @@ const signUp = asyncHandler(async (req, resp) => {
       !userName ||
       !searchTag ||
       !email ||
-      !password 
+      !password
     ) {
       throw new ApiError(401, "all data must required :");
     }
@@ -185,6 +188,12 @@ const signUp = asyncHandler(async (req, resp) => {
       },
     ]);
 
+    const newLogin = new Logins({
+      userId: newUser._id,
+    })
+
+    await newLogin.save()
+
     resp
       .status(200)
       .cookie("accessToken", newAccessToken, Options)
@@ -199,13 +208,13 @@ const signUp = asyncHandler(async (req, resp) => {
           "Registration Successful"
         )
       );
-  } catch (error) {}
+  } catch (error) { }
 });
 
 const logIn = asyncHandler(async (req, resp) => {
   const { searchTag, password, longitude, latitude } = req.body;
 
-  if (!searchTag || !password ) {
+  if (!searchTag || !password) {
     throw new ApiError(400, "All data must required");
   }
 
@@ -221,7 +230,7 @@ const logIn = asyncHandler(async (req, resp) => {
   });
 
   if (!user) {
-    throw new ApiError(401, "User Not Found", {type: "user_not_found"});
+    throw new ApiError(401, "User Not Found", { type: "user_not_found" });
   }
 
   const isPasswordCorrect = await user.isPasswordCorect(password);
@@ -607,6 +616,12 @@ const logIn = asyncHandler(async (req, resp) => {
   ]);
 
   finalUser[0].groups = groups;
+
+  const newLogin = new Logins({
+      userId: updatedUser._id,
+    })
+
+  await newLogin.save();
 
   resp
     .status(201)
@@ -1032,6 +1047,12 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
   ]);
 
   finalUser[0].groups = groups;
+
+  const newLogin = new Logins({
+      userId: updatedUser._id,
+    })
+
+  await newLogin.save();
 
   resp
     .status(201)
@@ -1922,4 +1943,3 @@ module.exports = {
   getAllAccountDetails,
   changeAvatar,
 };
- 

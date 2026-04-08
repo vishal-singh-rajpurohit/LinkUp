@@ -88,6 +88,8 @@ function clearCalling(state: initialStateTypes) {
         searchTag: "",
         email: ""
     }
+
+    console.log('the call is ended')
 }
 
 export const CallSlice = createSlice({

@@ -4,12 +4,12 @@ const {Schema, default: mongoose} = require("mongoose")
 const newModel = new Schema(
     {
         userId: {
-            type: mongoose.Types.ObjectId,
+            type: mongoose.Schema.Types.ObjectId,
             required: true,
             ref: "User"
         },
         contactId: {
-            type: mongoose.Types.ObjectId,
+            type: mongoose.Schema.Types.ObjectId,
             default: null,
             ref: "contactmembers" || "contacts"
         },
@@ -23,8 +23,8 @@ const newModel = new Schema(
             required: true
         },
         status: {
-            type: "NEW" || "SPAM" || "HAM",
-            default: "NEW",
+            type: String,
+            default: "custom",
             required: true
         }
     },

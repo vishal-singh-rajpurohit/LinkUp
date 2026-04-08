@@ -1,7 +1,7 @@
 import g from "../../assets/no_dp.png"
 import { PhoneCall, PhoneOff } from "lucide-react"
 import { useAppDispatch, useAppSelector } from "../../app/hooks"
-import { useContext } from "react"
+import { useContext, useEffect } from "react"
 import { WSContext } from "../../context/Contexts"
 import { IoClose } from "react-icons/io5"
 import { setCallingStatus } from "../../app/functions/call"
@@ -18,11 +18,19 @@ export const RequestedVideoCall = () => {
         throw Error("Socket not found")
     }
 
-    const { clearCall } = socketContext
+    const { clearCall } = socketContext;
+
+    useEffect(()=>{
+        if(call_status === "OUTGOING"){
+            const timeout = setTimeout(clearCall, 15000);
+            return ()=>clearTimeout(timeout)
+        }
+    }, [call_status])
 
     async function cut_call() {
-        await clearCall()
+        await clearCall();
         socketContext?.socket?.emit(callEventEnum.CANCELLED_BEFORE_ANSWER, { contactId: room._id, callerId: user._id })
+        window.location.reload()
     }
 
     return (
@@ -57,7 +65,11 @@ export const IncomingVideoCall = () => {
     if (!socketContext) {
         throw new Error("Soket not found: ")
     }
-    const { answerVideoCall, denayCall } = socketContext
+    const { answerVideoCall, denayCall } = socketContext;
+
+    function denayCallFunc(){
+        denayCall()
+    }
 
     return (
         call_status === "INCOMING" ? (
@@ -78,7 +90,7 @@ export const IncomingVideoCall = () => {
                                 await answerVideoCall()
                             }} size={20} />
                         </div>
-                        <div className="w-[3rem] h-[3rem] bg-red-500 flex items-center justify-center rounded-[50%] cursor-pointer" onClick={denayCall}>
+                        <div className="w-[3rem] h-[3rem] bg-red-500 flex items-center justify-center rounded-[50%] cursor-pointer" onClick={denayCallFunc}>
                             <PhoneOff size={20} />
                         </div>
                     </div>

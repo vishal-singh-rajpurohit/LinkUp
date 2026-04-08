@@ -461,6 +461,7 @@ const starterSocketIo = async (io) => {
         if (callerMember?.socketId) {
           io.to(`${callerMember.socketId}`).emit(`${callEventEnum.STOP_CALLING}`, {});
         }
+
         if (calleeMember?.socketId) {
           io.to(`${calleeMember.socketId}`).emit(`${callEventEnum.STOP_CALLING}`, {});
         }

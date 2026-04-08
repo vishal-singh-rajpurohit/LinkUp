@@ -5,7 +5,7 @@ import { kickedMeTemp, markTempAsRead, newMessageInRoom, notificationPup, remove
 import { deleteMessage, kickedMeAuth, kickOutAuth, markAsRead, messageMediaSent, messageRecived, saveContact, saveGroup, triggerConOnline, type groupMssageType, type groupsResp, type newChatTypes } from "../app/functions/auth";
 import { WSContext, type WSCTypes } from "./Contexts";
 import { callEventEnum, ChatEventsEnum } from "./constant"
-import { setCallDetails, setCallingStatus } from "../app/functions/call";
+import { setCallDetails, setCallingStatus, clearCall as clearCallfunc } from "../app/functions/call";
 import peer from "./PeerPackages"
 import { useNavigate } from "react-router-dom";
 
@@ -134,9 +134,7 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         callerIdRef.current = targetId; // IMPORTANT: set ref immediately to avoid races
 
         const amICaller = normalizedCallerId === String(user._id); // or whatever your backend defines as "callerId"
-        console.log("CALL PRE:", { myId: String(user._id), targetId, callerId: normalizedCallerId, amICaller });
         if (!targetId || targetId === String(user._id)) {
-            console.warn("Invalid call targetId (self or empty). Check if both tabs are logged into the same account.");
             return;
         }
 
@@ -176,25 +174,30 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
     }, [callerId]);
 
     const handleCandidateIncoming = useCallback(async ({ candidate }: { candidate: RTCIceCandidate }) => {
-        console.log('CANDIDATES INCOMING')
         await peer.addIceCandidate(candidate);
     }, [socket, peer])
 
     const createAnswer = useCallback(async () => { }, [])
-    const denayCall = useCallback(async () => { }, [])
+
+    const denayCall = useCallback(async () => {
+        if (!peer.peer) return;
+        await peer.resetPeer()
+        socket?.emit(callEventEnum.END_CALL, { to: callerIdRef.current })
+        window.location.reload()    
+    }, [])
 
     const clearCall = useCallback(async () => {
         if (!peer.peer) return;
         await peer.resetPeer()
         socket?.emit(callEventEnum.END_CALL, { to: callerIdRef.current })
-        nav('/')
+        window.location.reload()
     }, [callerIdRef, callerIdRef.current])
 
 
     const handleEndCall = useCallback(async () => {
         if (!peer.peer) return;
         await peer.resetPeer()
-        nav('/')
+        disp(clearCallfunc())
     }, [])
 
     useEffect(() => {
@@ -284,6 +287,9 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         socket?.on(callEventEnum.ENDED_CALL, handleEndCall)
         socket?.on(callEventEnum.ICE_CANDIDATE_INCOMING, handleCandidateIncoming)
 
+        socket?.on(callEventEnum.STOP_CALLING, handleEndCall)
+        socket?.on(callEventEnum.ENDED_CALL, handleEndCall)
+
         return () => {
             socket?.off("connect");
             socket?.off(ChatEventsEnum.ONLINE_EVENT);
@@ -305,6 +311,8 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
             socket?.off(callEventEnum.CALL_ANSWERED, handleAnsweredCall)
             socket?.off(callEventEnum.ICE_CANDIDATE_INCOMING, handleCandidateIncoming)
             socket?.off(callEventEnum.ENDED_CALL, handleEndCall)
+
+            socket?.off(callEventEnum.STOP_CALLING, handleEndCall)
 
             socket?.disconnect();
         };

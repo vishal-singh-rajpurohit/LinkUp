@@ -11,6 +11,7 @@ import { FaFile, FaImage, FaVideo, FaDownload, FaTimes, FaFileImage, FaFileVideo
 import { IoMdCloudUpload } from "react-icons/io"
 import { RiCheckDoubleLine } from "react-icons/ri";
 import sound from '../../assets/sound.mp3'
+import dp from '../../assets/dp.jpg'
 
 const api = import.meta.env.VITE_API;
 
@@ -74,7 +75,7 @@ export const Mail = ({
     >
       <div>
         <div className="w-[1.3rem] h-[1.3rem] flex items-center shadow-[0_0_10px_#00F0FF55] justify-center overflow-hidden rounded-[16px] bg-slate-600 md:h-[1.5rem] md:w-[1.5rem]">
-          <img src={avatar} alt="" className="max-h-[1.5rem] h-full" />
+          <img src={avatar || dp} alt="" className="max-h-[1.5rem] h-full" />
         </div>
       </div>
 
@@ -104,10 +105,9 @@ export const Mail = ({
   );
 };
 
-
 export const MailMe = (
   {
-    mailOptions,
+    mailOptionsHandler,
     mailRef,
     readBy,
     avatar,
@@ -118,7 +118,7 @@ export const MailMe = (
     cipherText,
     displayText
   }: {
-    mailOptions: React.RefObject<HTMLDivElement | null>;
+    mailOptionsHandler: (x: number, y: number, msgId: string) => void;
     mailRef: React.RefObject<HTMLDivElement | null>;
     readBy: string[];
     message: string;
@@ -134,6 +134,7 @@ export const MailMe = (
   const [timer, setTimer] = useState<string>("")
 
   const [wrapEnable, setWrapEnable] = useState<boolean>(false)
+
   useEffect(() => {
     if (typeof message === 'string' && message.length > 80) {
       setWrapEnable(true)
@@ -149,25 +150,25 @@ export const MailMe = (
 
   useEffect(() => {
     disp(setTempString({ text: _id }))
-    const currMessageEl = currMessageRef.current;
-    if (currMessageEl) {
-      const handleClick = (e: MouseEvent) => {
-        if (mailOptions.current) {
-          mailOptions.current.style.display = 'flex'
-          mailOptions.current.style.top = `${e.clientY}px`
-          mailOptions.current.style.left = `${e.clientX}px`
-          mailOptions.current.addEventListener('mouseleave', () => {
-            if (mailOptions.current) mailOptions.current.style.display = 'none';
-          })
-        }
-      };
 
-      currMessageEl.addEventListener('click', handleClick);
-      return () => {
-        currMessageEl.removeEventListener('click', handleClick);
-      };
-    }
-  }, []);
+    const el = currMessageRef.current;
+    if (!el) return;
+
+    const handleClick = (e: MouseEvent) => {
+      // if (mailOptions.current) {
+      //   mailOptions.current.style.display = 'flex';
+      //   mailOptions.current.style.top = `${e.clientY}px`;
+      //   mailOptions.current.style.left = `${e.clientX}px`;
+      // }
+      disp(setTempString({ text: _id })); // ✅ correct message id
+      mailOptionsHandler(e.clientX, e.clientY, _id);
+    };
+
+    el.addEventListener('click', handleClick);
+    return () => {
+      el.removeEventListener('click', handleClick);
+    };
+  }, [_id, disp, mailOptionsHandler]);
 
   return (
     <>
@@ -202,7 +203,9 @@ export const MailMe = (
             <div>{timer}</div>
           </div>
         </div>
-        <div ref={currMessageRef} className="flex"><CiMenuKebab cursor={'pointer'} className="current-message" /></div>
+        <div ref={currMessageRef} className="flex">
+          <CiMenuKebab cursor={'pointer'} className="current-message" />
+        </div>
       </div>
     </>
   )
@@ -969,18 +972,17 @@ export const TypingIndicator = ({ avatar, trigger }: { avatar: string; trigger: 
   )
 }
 
-export const MailMenu = ({ mailRef, }: {
-  mailRef: React.RefObject<HTMLDivElement | null>;
-  boxRef: React.RefObject<HTMLDivElement | null>;
+export const MailMenu = ({ visible, x, y, onClose }: {
+  visible: boolean;
+  x: number;
+  y: number;
+  onClose: () => void;
 }) => {
   const disp = useAppDispatch()
   const messageId = useAppSelector((state) => state.temp.tempString)
   const contact = useAppSelector((state) => state.temp.selectedContact)
-  // const user = useAppSelector((state) => state.auth.user)
-  // const chatType = useAppSelector((state) => state.temp.chatListTypes)
 
   async function undoMessage() {
-    console.log(`undo message is called`)
     try {
       await axios.post(`${api}/chat/message/del-msg`, {
         messageId,
@@ -990,8 +992,7 @@ export const MailMenu = ({ mailRef, }: {
       );
 
       disp(setTempString({ text: "" }));
-
-      if (mailRef.current) mailRef.current.style.display = "none"
+      onClose();
 
     } catch (error) {
       disp(setTempString({ text: "" }));
@@ -999,26 +1000,20 @@ export const MailMenu = ({ mailRef, }: {
     }
   }
 
-  useEffect(() => {
-    const model = document.getElementById("message-options");
-
-    model?.addEventListener('mouseleave', () => {
-      model.style.display = 'none'
-    })
-
-  }, [])
-
-
+  if (!visible) return null
 
   return (
-    // <section className="fixed flex items-center justify-center w-full">
-    <section ref={mailRef} id="message-options" className={`absolute hidden flex-col items-center justify-center gap-1 px-2 rounded-sm max-w-max h-[4.5rem] text-[12px] text-blue-100 bg-slate-700 `}>
+    <section
+      onMouseLeave={onClose}
+      className="absolute flex flex-col items-center justify-center gap-1 px-2 rounded-sm max-w-max h-[4.5rem] text-[12px] text-blue-100 bg-slate-700 z-50"
+      style={{ top: y, left: x }}
+    >
       <div className="cursor-pointer">forward to</div>
-      <div onClick={undoMessage} className="cursor-pointer">undo message</div>
-      {/* <div className="cursor-pointer" onClick={replayToChat} >callout</div> */}
-      {/* <div className="cursor-pointer">cancel</div> */}
+      <div onClick={undoMessage} className="cursor-pointer">
+        undo message
+      </div>
     </section>
-  )
+  );
 }
 
 export const BottomButton = ({ count = 2 }: { count?: number }) => {
@@ -1142,4 +1137,4 @@ export const UploadingMediaProgress = () => {
       </div>
     </div>
   )
-} 
+}
