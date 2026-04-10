@@ -3,6 +3,7 @@ import io from "socket.io-client"
 import { useAppDispatch, useAppSelector } from "../app/hooks";
 import { kickedMeTemp, markTempAsRead, newMessageInRoom, notificationPup, removeTempMessage, toggleTyping, triggerOnline, uploadedMeidaTemp } from "../app/functions/temp";
 import { deleteMessage, kickedMeAuth, kickOutAuth, markAsRead, messageMediaSent, messageRecived, saveContact, saveGroup, triggerConOnline, type groupMssageType, type groupsResp, type newChatTypes } from "../app/functions/auth";
+import decryptMsg from "../helpers/decryptMessage";
 import { WSContext, type WSCTypes } from "./Contexts";
 import { callEventEnum, ChatEventsEnum } from "./constant"
 import { setCallDetails, setCallingStatus, clearCall as clearCallfunc } from "../app/functions/call";
@@ -100,7 +101,7 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
 
     const ensureLocalStream = useCallback(async () => {
         if (localStreamRef.current) return localStreamRef.current;
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: peer.isAudioOn, video: peer.isVideoOn });
         localStreamRef.current = stream;
         if (localVideoRef.current) localVideoRef.current.srcObject = stream;
         return stream;
@@ -183,7 +184,7 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         if (!peer.peer) return;
         await peer.resetPeer()
         socket?.emit(callEventEnum.END_CALL, { to: callerIdRef.current })
-        window.location.reload()    
+        window.location.reload()
     }, [])
 
     const clearCall = useCallback(async () => {
@@ -198,6 +199,7 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         if (!peer.peer) return;
         await peer.resetPeer()
         disp(clearCallfunc())
+        window.location.reload()
     }, [])
 
     useEffect(() => {
@@ -242,14 +244,16 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
             disp(kickedMeTemp({ groupId }))
         })
 
-        socket?.on(ChatEventsEnum.NEW_MESSAGE, ({ newMessage, contactId }: { newMessage: groupMssageType; contactId: string; }) => {
-            disp(messageRecived({ contactId: contactId, newMsg: newMessage }));
+        socket?.on(ChatEventsEnum.NEW_MESSAGE, async ({ newMessage, contactId }: { newMessage: groupMssageType; contactId: string; }) => {
+            const decryptedMessage = await decryptMsg(newMessage.message);
+            disp(messageRecived({ contactId: contactId, newMsg: newMessage, decryptedMessage }));
             disp(newMessageInRoom({ contactId: contactId, newMsg: newMessage }));
             disp(notificationPup({ trigger: true }))
-        })
+        });
 
-        socket?.on(ChatEventsEnum.SENDING_MEDIA, ({ newMessage, contactId }: { newMessage: groupMssageType; contactId: string; }) => {
-            disp(messageRecived({ contactId: contactId, newMsg: newMessage }));
+        socket?.on(ChatEventsEnum.SENDING_MEDIA, async ({ newMessage, contactId }: { newMessage: groupMssageType; contactId: string; }) => {
+            const decryptedMessage = await decryptMsg(newMessage.message);
+            disp(messageRecived({ contactId: contactId, newMsg: newMessage, decryptedMessage }));
             disp(newMessageInRoom({ contactId: contactId, newMsg: newMessage }));
         })
 
@@ -319,7 +323,9 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
     }, [socket, isLoggedIn])
 
     const handleTracks = useCallback(async (ev: RTCTrackEvent) => {
-        console.log("STREAM IS COMING!!!!!")
+        if (ev.track.kind === "video") {
+            console.log("incoming tracks: ", ev.streams[0]);
+        }
         const stream = ev.streams?.[0];
         const finalStream = stream ?? (() => {
             remoteStreamRef.current.addTrack(ev.track);
@@ -356,13 +362,11 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         const pc = peer.peer;
         if (!pc) return;
         const onConn = () => {
-            console.log("PC connectionState:", pc.connectionState);
             if (pc.connectionState === "connected") {
                 attachRemoteFromReceivers();
             }
         };
         const onIceConn = () => {
-            console.log("PC iceConnectionState:", pc.iceConnectionState);
             if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
                 attachRemoteFromReceivers();
             }

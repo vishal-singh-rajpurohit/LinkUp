@@ -49,6 +49,7 @@ const liveCheckTagSignup = asyncHandler(async (req, resp) => {
 
 const liveCheckMailSignup = asyncHandler(async (req, resp) => {
   const { email } = req.body;
+  
   if (!email) {
     throw new ApiError(400, "Must proive email", {
       isError: true,

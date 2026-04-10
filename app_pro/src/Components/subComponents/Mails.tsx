@@ -11,6 +11,7 @@ import { FaFile, FaImage, FaVideo, FaDownload, FaTimes, FaFileImage, FaFileVideo
 import { IoMdCloudUpload } from "react-icons/io"
 import { RiCheckDoubleLine } from "react-icons/ri";
 import sound from '../../assets/sound.mp3'
+import callSound from '../../assets/caller.mp3'
 import dp from '../../assets/dp.jpg'
 
 const api = import.meta.env.VITE_API;
@@ -1071,6 +1072,42 @@ export const Notification = () => {
         <p className="">New Message</p>
       </div>
       <audio ref={audioRef} src={sound} className={`hidden`}></audio>
+    </div>
+  )
+}
+
+export const CallNotification = () => {
+  const disp = useAppDispatch()
+  const isActive = useAppSelector((state) => state.call.callStatus);
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+useEffect(() => {
+  let timeout: ReturnType<typeof setTimeout>;
+
+  if (isActive === "INCOMING") {
+    audioRef.current?.play().catch((error) => {
+      console.error("Audio play failed:", error);
+    });
+  }
+  else {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+  }
+
+  timeout = setTimeout(() => {
+    disp(notificationPup({ trigger: false }));
+  }, 20);
+
+  return () => {
+    clearTimeout(timeout);
+  };
+}, [isActive]);
+
+  return (
+    <div className={`fixed top-0 left-0 z-50 w-full h-[3rem] ${isActive  === "INCOMING" ? "flex" : "hidden"} flex-col items-center justify-center md:w-[20rem] md:left-10`}>
+      <audio ref={audioRef} src={callSound} className={`hidden`}></audio>
     </div>
   )
 }

@@ -42,6 +42,7 @@ interface initialStateTypes {
     selectedContact: contactTypes;
     groupContact: groupContactTypes[];
     notificationPopUp: boolean;
+    incomingCall: boolean;
     chatListTypes: number; // 1 -> single, 2-> group, 3 -> archieved
     tempUser: temporalTypes[];
     tempString: string;
@@ -64,6 +65,7 @@ const initialState: initialStateTypes = {
     kickOutGroup: false,
     kickOutWarning: false,
     notificationPopUp: false,
+    incomingCall: false,
     typing: {
         trigger: false,
         user: ""
@@ -389,6 +391,10 @@ function clearUploadStateFunc(state: initialStateTypes) {
     state.fileType = ""
 }
 
+function setCallerTuneFunc(state: initialStateTypes, actions: PayloadAction<{trigger: boolean}>){
+    state.incomingCall = actions.payload.trigger;
+}
+
 const tempSlice = createSlice({
     name: 'temp',
     initialState: initialState,
@@ -428,10 +434,11 @@ const tempSlice = createSlice({
         clearUploadState: clearUploadStateFunc,
         uploadingMeidaTemp: uploadingMediaFunc,
         uploadedMeidaTemp: uploadedMediaFunc,
+        setCallerTune: setCallerTuneFunc
     }
 })
 
 
-export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp, updateSelectedAvatar, setHasAttechments, removeTempMessage, triggerOnline, kickedMeTemp, newMessageInRoom, setReplyState, toggleTyping, notificationPup, markTempAsRead, setFileSelection, setEmojiSelection, setUploadingState, triggetUploadType, clearUploadState, uploadedMeidaTemp, uploadingMeidaTemp } = tempSlice.actions
+export const { searching, selectContact, selectGroup, openGroupChat, appendGroupContact, clearGroupContact, appendGroupAdmin, contactListingFunction, blockSelected, clearTemp, setTempUser, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, kickoutTemp, updateSelectedAvatar, setHasAttechments, removeTempMessage, triggerOnline, kickedMeTemp, newMessageInRoom, setReplyState, toggleTyping, notificationPup, markTempAsRead, setFileSelection, setEmojiSelection, setUploadingState, triggetUploadType, clearUploadState, uploadedMeidaTemp, uploadingMeidaTemp, setCallerTune } = tempSlice.actions
 
 export default tempSlice.reducer;

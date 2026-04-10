@@ -220,7 +220,8 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
       .status(200)
       .json(new ApiResponse(200, {}, "Contact created successfully"));
   } catch (error) {
-    throw new ApiError(400, "Error while creating contacts ");
+    console.log("error is; ",error.message)
+    throw new ApiError(400, "Error while creating contacts: ");
   }
 });
 

@@ -15,7 +15,6 @@ import VideoCallPage from './Components/Calling/VideoCallPage'
 function App() {
 
   return (
-    
       <Routes >
         <Route path='/' element={<Auth ><Home /></Auth>} />
         <Route path='/register' element={<RevAuth><Signup /></RevAuth>} />

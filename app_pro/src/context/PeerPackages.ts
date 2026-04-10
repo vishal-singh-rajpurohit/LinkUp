@@ -1,8 +1,12 @@
 class PeerPackages {
     peer: RTCPeerConnection | null = null;
+    isVideoOn: boolean = true;
+    isAudioOn: boolean = true;
     private pendingIceCandidates: RTCIceCandidateInit[] = [];
     constructor() {
         if (!this.peer) {
+            this.isVideoOn = true;
+            this.isAudioOn = true;
             this.peer = new RTCPeerConnection({
                 iceServers: [
                     {
@@ -29,18 +33,23 @@ class PeerPackages {
         });
     }
 
+    async setVideo(trigger: boolean){
+        this.isVideoOn = trigger;
+    }
+
+    async setAudio(trigger: boolean){
+        this.isAudioOn = trigger;
+    }
     async createOffer() {
         if (this.peer) {
             const offer = await this.peer.createOffer();
             await this.peer.setLocalDescription(new RTCSessionDescription(offer))
-            console.log(":::: CREATING OFFER")
             return offer;
         }
     }
 
     async getAnswer(offer: RTCSessionDescriptionInit) {
         if (this.peer) {
-            console.log("::::: CREATING ANS: ", offer)
 
             await this.peer.setRemoteDescription(new RTCSessionDescription(offer));
             await this.flushPendingCandidates();
@@ -52,7 +61,6 @@ class PeerPackages {
 
     async setRemoteDescription(ans: RTCSessionDescriptionInit) {
         if (this.peer) {
-            console.log("::::: SETTING REMOTE DESCRIPTION: ", ans)
             await this.peer.setRemoteDescription(new RTCSessionDescription(ans));
             await this.flushPendingCandidates();
         }
@@ -64,7 +72,6 @@ class PeerPackages {
                 this.pendingIceCandidates.push(candidate);
                 return;
             }
-            console.log("::: ADDING ICE CANDIDATES")
             await this.peer.addIceCandidate(new RTCIceCandidate(candidate))
         }
     }
@@ -101,6 +108,8 @@ class PeerPackages {
 
         this.peer = null;
         this.createPeer();
+        this.isAudioOn = true;
+        this.isVideoOn = true;
     }
 }
 

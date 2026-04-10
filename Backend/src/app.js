@@ -10,6 +10,7 @@ const app = express();
 app.use(express.json({ limit: "16kb" }));
 
 app.use(cors({ origin: process.env.CORS_ORIGIN, credentials: true }));
+// app.use(cors({ origin: '*', credentials: true }));
 
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
@@ -23,7 +24,7 @@ const io = new Server(server, {
   pingInterval: 10000,
   pingTimeout: 5000,
   cors: {
-    origin: process.env.CORS_ORIGIN,
+    origin: [process.env.CORS_ORIGIN],
     credentials: true
   }
 });

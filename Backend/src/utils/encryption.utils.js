@@ -5,6 +5,7 @@ const IV_LEN = 12; // recommended for GCM
 
 function loadKeyFromEnv() {
   const raw = process.env.CHAT_SECRET_KEY; // <-- set this in backend .env
+  console.log('the key: ', raw)
   if (!raw) throw new Error("Missing API_CHAT_SECRET_KEY in env");
 
   // 64 hex chars => 32 bytes

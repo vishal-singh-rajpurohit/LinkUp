@@ -529,58 +529,57 @@ function kickedMeOut(state: initialTypes, action: PayloadAction<{ groupId: strin
     state.groups = state.groups.filter((gp) => gp._id !== action.payload.groupId)
 }
 
-function newMessage(state: initialTypes, action: PayloadAction<{ newMsg: groupMssageType, contactId: string }>) {
-    const toUpdateContact = state.contacts.filter((val) => val._id === action.payload.contactId);
-    toUpdateContact[0].lastMessage = action.payload.newMsg.message
-    // Checking in groups
-    if (toUpdateContact.length) {
-        toUpdateContact[0].messages = [
-            ...(toUpdateContact[0].messages || []),
+function newMessage(state: initialTypes, action: PayloadAction<{ newMsg: groupMssageType, contactId: string, decryptedMessage?: string }>) {
+    const lastMessage = action.payload.decryptedMessage ?? action.payload.newMsg.message;
+    
+    const contact = state.contacts.find((val) => val._id === action.payload.contactId);
+
+    if (contact) {
+        contact.lastMessage = action.payload.decryptedMessage || "New Message";
+
+        contact.messages = [
+            ...(contact.messages || []),
             action.payload.newMsg
-        ]
+        ];
 
         state.contacts = [
-            ...(toUpdateContact),
+            contact,
             ...(state.contacts.filter((val) => val._id !== action.payload.contactId)),
-        ]
-    }
-    else {
-        const toUpdateContact = state.groups.filter((val) => val._id === action.payload.contactId)
-        toUpdateContact[0].lastMessage = action.payload.newMsg.message
-        // Checking in groups
-        if (toUpdateContact.length) {
-            toUpdateContact[0].messages = [
-                ...(toUpdateContact[0].messages),
-                action.payload.newMsg
-            ]
-
-            state.groups = [
-                ...(toUpdateContact),
-                ...(state.groups.filter((val) => val._id !== action.payload.contactId)),
-            ]
-
-        }
-        else {
-            const toUpdateContact = state.safer.filter((val) => val._id === action.payload.contactId)
-            toUpdateContact[0].lastMessage = action.payload.newMsg.message
-            // Checking in Archieved
-            if (toUpdateContact.length) {
-                toUpdateContact[0].messages = [
-                    ...(toUpdateContact[0].messages || []),
-                    action.payload.newMsg
-                ]
-
-                state.contacts = [
-                    ...(toUpdateContact),
-                    ...(state.safer.filter((val) => val._id !== action.payload.contactId)),
-                ]
-            }
-            else {
-                throw new Error('Invalid contact id')
-            }
-        }
+        ];
+        return;
     }
 
+    const group = state.groups.find((val) => val._id === action.payload.contactId);
+    if (group) {
+        group.lastMessage = lastMessage;
+        group.messages = [
+            ...(group.messages || []),
+            action.payload.newMsg
+        ];
+
+        state.groups = [
+            group,
+            ...(state.groups.filter((val) => val._id !== action.payload.contactId)),
+        ];
+        return;
+    }
+
+    const saferContact = state.safer.find((val) => val._id === action.payload.contactId);
+    if (saferContact) {
+        saferContact.lastMessage = lastMessage;
+        saferContact.messages = [
+            ...(saferContact.messages || []),
+            action.payload.newMsg
+        ];
+
+        state.safer = [
+            saferContact,
+            ...(state.safer.filter((val) => val._id !== action.payload.contactId)),
+        ];
+        return;
+    }
+
+    throw new Error('Invalid contact id');
 }
 
 function messageMediaSentFunc(state: initialTypes, action: PayloadAction<{ newMsg: groupMssageType, contactId: string }>) {
