@@ -1,19 +1,19 @@
-require("dotenv").config();
-const { server } = require("./app");
-const conn = require("./db/conn");
+require('dotenv').config();
+const { server } = require('./app');
+const conn = require('./db/conn');
 
 let port = process.env.PORT;
 
 conn()
   .then(() => {
-    server.on("error", (error) => {
+    server.on('error', (error) => {
       throw error;
     });
 
     server.listen(port, () => {
-      console.log("app is listning ", port);
+      console.log('app is listning ', port);
     });
   })
   .catch((error) => {
-    console.log("error while connectiong to the db ", error);
+    console.log('error while connectiong to the db ', error);
   });

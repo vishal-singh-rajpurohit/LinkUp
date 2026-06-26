@@ -1,0 +1,40 @@
+# ── Dependencies (always re-installed inside the image) ───
+node_modules
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ── Dev / test artifacts ──────────────────────────────────
+coverage/
+.nyc_output/
+*.test.js
+*.spec.js
+__tests__/
+__mocks__/
+
+# ── Environment & secrets — NEVER bake into an image ─────
+.env
+.env.*
+!.env.example         # keep the example for reference
+
+# ── Editor / OS noise ────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ── Git ──────────────────────────────────────────────────
+.git/
+.gitignore
+
+# ── Docs ─────────────────────────────────────────────────
+README.md
+docs/
+CHANGELOG.md
+
+# ── Docker files themselves ───────────────────────────────
+Dockerfile*
+docker-compose*.yml
+.dockerignore

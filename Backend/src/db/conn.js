@@ -1,14 +1,13 @@
-require('dotenv').config()
-const {mongoose} = require('mongoose');
-const ApiError = require('../utils/ApiError.utils')
+require('dotenv').config();
+const { mongoose } = require('mongoose');
+const ApiError = require('../utils/ApiError.utils');
 
-const conn = async () =>{
-    try {
-        await mongoose.connect(process.env.ATLAS_LINK);
-    } catch (error) {
-        throw new ApiError(400, "Error to connect to the data base", error)
-    }
-}
-
+const conn = async () => {
+  try {
+    await mongoose.connect(process.env.ATLAS_LINK);
+  } catch (error) {
+    throw new ApiError(400, 'Error to connect to the data base', error);
+  }
+};
 
 module.exports = conn;

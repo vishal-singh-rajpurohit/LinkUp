@@ -1,20 +1,20 @@
-const { Schema, default: mongoose } = require("mongoose");
+const { Schema, default: mongoose } = require('mongoose');
 
 const newSchema = new Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
     },
     contactId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Contact",
+      ref: 'Contact',
       required: true,
     },
     addedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       default: null,
     },
     isAdmin: {
@@ -35,8 +35,8 @@ const newSchema = new Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
-const ContactMember = mongoose.model("ContactMember", newSchema);
+const ContactMember = mongoose.model('ContactMember', newSchema);
 module.exports = ContactMember;

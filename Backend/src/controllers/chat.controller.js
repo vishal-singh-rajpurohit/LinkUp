@@ -1,41 +1,41 @@
-const Contact = require("../models/contacts.model");
-const ContactMember = require("../models/contactMember.model");
-const Message = require("../models/message.modal");
-const Reaction = require("../models/react.model");
-const { Attachment } = require("../models/attachment.model");
-const User = require("../models/user.model");
-const ApiError = require("../utils/ApiError.utils");
-const ApiResponse = require("../utils/ApiResponse.utils");
-const asyncHandler = require("../utils/asyncHandler.utils");
-const { emiterSocket } = require("../Socket");
-const { chatEventEnumNew } = require("../constants/constants");
-const { uploadRawToCloudinary } = require("../utils/cloudinary.utils");
+const Contact = require('../models/contacts.model');
+const ContactMember = require('../models/contactMember.model');
+const Message = require('../models/message.modal');
+const Reaction = require('../models/react.model');
+const { Attachment } = require('../models/attachment.model');
+const User = require('../models/user.model');
+const ApiError = require('../utils/ApiError.utils');
+const ApiResponse = require('../utils/ApiResponse.utils');
+const asyncHandler = require('../utils/asyncHandler.utils');
+const { emiterSocket } = require('../Socket');
+const { chatEventEnumNew } = require('../constants/constants');
+const { uploadRawToCloudinary } = require('../utils/cloudinary.utils');
 
 const sendMessage = asyncHandler(async (req, resp) => {
   const user = req.user;
   if (!user) {
-    throw new ApiError(400, "Unautharized request", {
-      errorMessage: "User not logged in",
+    throw new ApiError(400, 'Unautharized request', {
+      errorMessage: 'User not logged in',
     });
   }
   const myUser = await User.findById(user._id);
 
   if (!myUser._id) {
-    throw new ApiError(501, "Unautharized Request");
+    throw new ApiError(501, 'Unautharized Request');
   }
 
   const { message, contactId, contain_files, fileType, longitude, latitude } =
     req.body;
 
   if (!message.trim() && !contain_files) {
-    throw new ApiError(400, "Either send file of Message");
+    throw new ApiError(400, 'Either send file of Message');
   }
   if (!contactId) {
-    throw new ApiError(400, "ContactId not found");
+    throw new ApiError(400, 'ContactId not found');
   }
   const contact = await Contact.findById(contactId);
   if (!contact._id) {
-    throw new ApiError(400, "Contact not found");
+    throw new ApiError(400, 'Contact not found');
   }
 
   const newMessage = new Message({
@@ -46,9 +46,9 @@ const sendMessage = asyncHandler(async (req, resp) => {
     hasAttechment: contain_files,
     attechmentType: contain_files && fileType,
     attechmentId: null,
-    attechmentLink: "",
+    attechmentLink: '',
     callId: null,
-    callType: "",
+    callType: '',
     isCall: false,
     geoLoc: {
       latitude: latitude,
@@ -62,7 +62,7 @@ const sendMessage = asyncHandler(async (req, resp) => {
   await contact.save();
 
   if (!newMessage._id) {
-    throw new ApiError(501, "Message not created");
+    throw new ApiError(501, 'Message not created');
   }
 
   if (!newMessage.pending) {
@@ -78,20 +78,20 @@ const sendMessage = asyncHandler(async (req, resp) => {
         },
         {
           $lookup: {
-            from: "contactmembers",
-            localField: "_id",
-            foreignField: "contactId",
-            as: "members",
+            from: 'contactmembers',
+            localField: '_id',
+            foreignField: 'contactId',
+            as: 'members',
           },
         },
         {
           $addFields: {
             member: {
               $filter: {
-                input: "$members",
-                as: "member",
+                input: '$members',
+                as: 'member',
                 cond: {
-                  $ne: ["$$member.userId", user._id],
+                  $ne: ['$$member.userId', user._id],
                 },
               },
             },
@@ -99,35 +99,35 @@ const sendMessage = asyncHandler(async (req, resp) => {
         },
         {
           $lookup: {
-            from: "users",
-            localField: "member.userId",
-            foreignField: "_id",
-            as: "member.user",
+            from: 'users',
+            localField: 'member.userId',
+            foreignField: '_id',
+            as: 'member.user',
           },
         },
         {
-          $unwind: "$member.user",
+          $unwind: '$member.user',
         },
 
         {
           $group: {
-            _id: "$_id",
+            _id: '$_id',
             member: {
-              $first: "$member.user",
+              $first: '$member.user',
             },
           },
         },
         {
           $group: {
-            _id: "$_id",
+            _id: '$_id',
             userId: {
-              $first: "$member._id",
+              $first: '$member._id',
             },
             isOnline: {
-              $first: "$member.online",
+              $first: '$member.online',
             },
             socketId: {
-              $first: "$member.socketId",
+              $first: '$member.socketId',
             },
           },
         },
@@ -140,7 +140,7 @@ const sendMessage = asyncHandler(async (req, resp) => {
 
       emiterSocket(req, myUser.socketId, chatEventEnumNew.NEW_MESSAGE, {
         newMessage: newMessage,
-        contactId: contact._id, 
+        contactId: contact._id,
       });
       if (reciver.length) {
         // Working on this
@@ -159,20 +159,20 @@ const sendMessage = asyncHandler(async (req, resp) => {
         },
         {
           $lookup: {
-            from: "contactmembers",
-            localField: "_id",
-            foreignField: "contactId",
-            as: "members",
+            from: 'contactmembers',
+            localField: '_id',
+            foreignField: 'contactId',
+            as: 'members',
           },
         },
         {
           $addFields: {
             member: {
               $filter: {
-                input: "$members",
-                as: "member",
+                input: '$members',
+                as: 'member',
                 cond: {
-                  $ne: ["$$member.userId", myUser._id],
+                  $ne: ['$$member.userId', myUser._id],
                 },
               },
             },
@@ -180,34 +180,34 @@ const sendMessage = asyncHandler(async (req, resp) => {
         },
         {
           $lookup: {
-            from: "users",
-            localField: "member.userId",
-            foreignField: "_id",
-            as: "member.user",
+            from: 'users',
+            localField: 'member.userId',
+            foreignField: '_id',
+            as: 'member.user',
           },
         },
         {
-          $unwind: "$member.user",
+          $unwind: '$member.user',
         },
         {
           $match: {
-            "member.user.online": true,
+            'member.user.online': true,
           },
         },
         {
           $group: {
-            _id: "$_id",
+            _id: '$_id',
             member: {
-              $addToSet: "$member.user",
+              $addToSet: '$member.user',
             },
           },
         },
         {
           $project: {
-            "member._id": 1,
-            "member.socketId": 1,
-            "member.avatar": 1,
-            "member.searchTag": 1,
+            'member._id': 1,
+            'member.socketId': 1,
+            'member.avatar': 1,
+            'member.searchTag': 1,
           },
         },
       ]);
@@ -244,11 +244,11 @@ const sendMessage = asyncHandler(async (req, resp) => {
     }
   }
 
-  if(newMessage.pending){
+  if (newMessage.pending) {
     emiterSocket(req, user.socketId, chatEventEnumNew.SENDING_MEDIA, {
-        newMessage: newMessage,
-        contactId: contact._id,
-      })
+      newMessage: newMessage,
+      contactId: contact._id,
+    });
   }
 
   resp
@@ -257,36 +257,36 @@ const sendMessage = asyncHandler(async (req, resp) => {
       new ApiResponse(
         200,
         { message_id: newMessage._id },
-        "message sent successfully"
-      )
+        'message sent successfully',
+      ),
     );
 });
 
 const uploadAttechment = asyncHandler(async (req, resp) => {
   const user = req.user;
   if (!user) {
-    throw new ApiError(401, "Unautharized User");
+    throw new ApiError(401, 'Unautharized User');
   }
   const myUser = await User.findById(user._id);
   if (!myUser._id) {
-    throw new ApiError(501, "Unautharized Request");
+    throw new ApiError(501, 'Unautharized Request');
   }
   const path = req.file.path;
   if (!path) {
-    throw new ApiError(400, "Files not found");
+    throw new ApiError(400, 'Files not found');
   }
   const { messageId, contactId, fileType } = req.body;
 
   if (!contactId || !messageId) {
-    throw new ApiError(400, "data not found");
+    throw new ApiError(400, 'data not found');
   }
   const message = await Message.findByIdAndUpdate(messageId);
   if (!message) {
-    throw new ApiError(400, "Message not found");
+    throw new ApiError(400, 'Message not found');
   }
   const { file_type, link, public_id } = await uploadRawToCloudinary(path);
   if (!file_type || !link || !public_id) {
-    throw new ApiError(501, "Error in Uploading Media");
+    throw new ApiError(501, 'Error in Uploading Media');
   }
   const attechment = new Attachment({
     messageId: message._id,
@@ -297,7 +297,7 @@ const uploadAttechment = asyncHandler(async (req, resp) => {
   });
   await attechment.save();
   if (!attechment) {
-    throw new ApiError(400, "attechment not saved");
+    throw new ApiError(400, 'attechment not saved');
   }
   message.hasAttechment = true;
   message.pending = false;
@@ -306,10 +306,10 @@ const uploadAttechment = asyncHandler(async (req, resp) => {
   message.attechmentId = attechment._id;
   await message.save();
 
-  const updatedMessage = await Message.findById(message._id)
+  const updatedMessage = await Message.findById(message._id);
 
-  if(!updatedMessage){
-    throw new ApiError(400, "updated message not found")
+  if (!updatedMessage) {
+    throw new ApiError(400, 'updated message not found');
   }
 
   const contact = await Contact.findById(contactId);
@@ -326,20 +326,20 @@ const uploadAttechment = asyncHandler(async (req, resp) => {
       },
       {
         $lookup: {
-          from: "contactmembers",
-          localField: "_id",
-          foreignField: "contactId",
-          as: "members",
+          from: 'contactmembers',
+          localField: '_id',
+          foreignField: 'contactId',
+          as: 'members',
         },
       },
       {
         $addFields: {
           member: {
             $filter: {
-              input: "$members",
-              as: "member",
+              input: '$members',
+              as: 'member',
               cond: {
-                $ne: ["$$member.userId", user._id],
+                $ne: ['$$member.userId', user._id],
               },
             },
           },
@@ -347,35 +347,35 @@ const uploadAttechment = asyncHandler(async (req, resp) => {
       },
       {
         $lookup: {
-          from: "users",
-          localField: "member.userId",
-          foreignField: "_id",
-          as: "member.user",
+          from: 'users',
+          localField: 'member.userId',
+          foreignField: '_id',
+          as: 'member.user',
         },
       },
       {
-        $unwind: "$member.user",
+        $unwind: '$member.user',
       },
 
       {
         $group: {
-          _id: "$_id",
+          _id: '$_id',
           member: {
-            $first: "$member.user",
+            $first: '$member.user',
           },
         },
       },
       {
         $group: {
-          _id: "$_id",
+          _id: '$_id',
           userId: {
-            $first: "$member._id",
+            $first: '$member._id',
           },
           isOnline: {
-            $first: "$member.online",
+            $first: '$member.online',
           },
           socketId: {
-            $first: "$member.socketId",
+            $first: '$member.socketId',
           },
         },
       },
@@ -407,20 +407,20 @@ const uploadAttechment = asyncHandler(async (req, resp) => {
       },
       {
         $lookup: {
-          from: "contactmembers",
-          localField: "_id",
-          foreignField: "contactId",
-          as: "members",
+          from: 'contactmembers',
+          localField: '_id',
+          foreignField: 'contactId',
+          as: 'members',
         },
       },
       {
         $addFields: {
           member: {
             $filter: {
-              input: "$members",
-              as: "member",
+              input: '$members',
+              as: 'member',
               cond: {
-                $ne: ["$$member.userId", myUser._id],
+                $ne: ['$$member.userId', myUser._id],
               },
             },
           },
@@ -428,34 +428,34 @@ const uploadAttechment = asyncHandler(async (req, resp) => {
       },
       {
         $lookup: {
-          from: "users",
-          localField: "member.userId",
-          foreignField: "_id",
-          as: "member.user",
+          from: 'users',
+          localField: 'member.userId',
+          foreignField: '_id',
+          as: 'member.user',
         },
       },
       {
-        $unwind: "$member.user",
+        $unwind: '$member.user',
       },
       {
         $match: {
-          "member.user.online": true,
+          'member.user.online': true,
         },
       },
       {
         $group: {
-          _id: "$_id",
+          _id: '$_id',
           member: {
-            $addToSet: "$member.user",
+            $addToSet: '$member.user',
           },
         },
       },
       {
         $project: {
-          "member._id": 1,
-          "member.socketId": 1,
-          "member.avatar": 1,
-          "member.searchTag": 1,
+          'member._id': 1,
+          'member.socketId': 1,
+          'member.avatar': 1,
+          'member.searchTag': 1,
         },
       },
     ]);
@@ -491,7 +491,7 @@ const uploadAttechment = asyncHandler(async (req, resp) => {
     }
   }
 
-  emiterSocket(req, req)
+  emiterSocket(req, req);
 
   resp
     .status(200)
@@ -499,8 +499,8 @@ const uploadAttechment = asyncHandler(async (req, resp) => {
       new ApiResponse(
         200,
         { message: message },
-        "File Uploaded and message updated"
-      )
+        'File Uploaded and message updated',
+      ),
     );
 });
 
@@ -508,37 +508,37 @@ const deleteMessage = asyncHandler(async (req, resp) => {
   const user = req.user;
 
   if (!user) {
-    throw new ApiError(400, "Unautharized request", {
-      errorMessage: "User not logged in",
+    throw new ApiError(400, 'Unautharized request', {
+      errorMessage: 'User not logged in',
     });
   }
 
   const myUser = await User.findById(user._id);
 
   if (!myUser._id) {
-    throw new ApiError(501, "Unautharized Request");
+    throw new ApiError(501, 'Unautharized Request');
   }
 
   const { messageId, contactId } = req.body;
 
   if (!messageId || !contactId) {
-    throw new ApiError(400, "contact id or messageId not found");
+    throw new ApiError(400, 'contact id or messageId not found');
   }
 
   const message = await Message.findById(messageId);
 
   if (!message._id) {
-    throw new ApiError(400, "Message not found");
+    throw new ApiError(400, 'Message not found');
   }
 
   const contact = await Contact.findById(contactId);
 
   if (!contact) {
-    throw new ApiError(400, "contact not found");
+    throw new ApiError(400, 'contact not found');
   }
 
   if (!message.userId.equals(myUser._id)) {
-    throw new ApiError(400, "Only Sender can delete the message");
+    throw new ApiError(400, 'Only Sender can delete the message');
   }
 
   message.isDeleted = true;
@@ -557,20 +557,20 @@ const deleteMessage = asyncHandler(async (req, resp) => {
       },
       {
         $lookup: {
-          from: "contactmembers",
-          localField: "_id",
-          foreignField: "contactId",
-          as: "members",
+          from: 'contactmembers',
+          localField: '_id',
+          foreignField: 'contactId',
+          as: 'members',
         },
       },
       {
         $addFields: {
           member: {
             $filter: {
-              input: "$members",
-              as: "member",
+              input: '$members',
+              as: 'member',
               cond: {
-                $ne: ["$$member.userId", user._id],
+                $ne: ['$$member.userId', user._id],
               },
             },
           },
@@ -578,35 +578,35 @@ const deleteMessage = asyncHandler(async (req, resp) => {
       },
       {
         $lookup: {
-          from: "users",
-          localField: "member.userId",
-          foreignField: "_id",
-          as: "member.user",
+          from: 'users',
+          localField: 'member.userId',
+          foreignField: '_id',
+          as: 'member.user',
         },
       },
       {
-        $unwind: "$member.user",
+        $unwind: '$member.user',
       },
 
       {
         $group: {
-          _id: "$_id",
+          _id: '$_id',
           member: {
-            $first: "$member.user",
+            $first: '$member.user',
           },
         },
       },
       {
         $group: {
-          _id: "$_id",
+          _id: '$_id',
           userId: {
-            $first: "$member._id",
+            $first: '$member._id',
           },
           isOnline: {
-            $first: "$member.online",
+            $first: '$member.online',
           },
           socketId: {
-            $first: "$member.socketId",
+            $first: '$member.socketId',
           },
         },
       },
@@ -633,7 +633,7 @@ const deleteMessage = asyncHandler(async (req, resp) => {
           messageId: message._id,
           contactId: contact._id,
           isGroup: false,
-        }
+        },
       );
     }
   } else {
@@ -646,20 +646,20 @@ const deleteMessage = asyncHandler(async (req, resp) => {
       },
       {
         $lookup: {
-          from: "contactmembers",
-          localField: "_id",
-          foreignField: "contactId",
-          as: "members",
+          from: 'contactmembers',
+          localField: '_id',
+          foreignField: 'contactId',
+          as: 'members',
         },
       },
       {
         $addFields: {
           member: {
             $filter: {
-              input: "$members",
-              as: "member",
+              input: '$members',
+              as: 'member',
               cond: {
-                $ne: ["$$member.userId", myUser._id],
+                $ne: ['$$member.userId', myUser._id],
               },
             },
           },
@@ -667,34 +667,34 @@ const deleteMessage = asyncHandler(async (req, resp) => {
       },
       {
         $lookup: {
-          from: "users",
-          localField: "member.userId",
-          foreignField: "_id",
-          as: "member.user",
+          from: 'users',
+          localField: 'member.userId',
+          foreignField: '_id',
+          as: 'member.user',
         },
       },
       {
-        $unwind: "$member.user",
+        $unwind: '$member.user',
       },
       {
         $match: {
-          "member.user.online": true,
+          'member.user.online': true,
         },
       },
       {
         $group: {
-          _id: "$_id",
+          _id: '$_id',
           member: {
-            $addToSet: "$member.user",
+            $addToSet: '$member.user',
           },
         },
       },
       {
         $project: {
-          "member._id": 1,
-          "member.socketId": 1,
-          "member.avatar": 1,
-          "member.searchTag": 1,
+          'member._id': 1,
+          'member.socketId': 1,
+          'member.avatar': 1,
+          'member.searchTag': 1,
         },
       },
     ]);
@@ -715,22 +715,22 @@ const deleteMessage = asyncHandler(async (req, resp) => {
     }
   }
 
-  resp.status(201).json(new ApiResponse(201, {}, "deleted from chat"));
+  resp.status(201).json(new ApiResponse(201, {}, 'deleted from chat'));
 });
 
 const replyTo = asyncHandler(async (req, resp) => {
   const user = req.user;
 
   if (!user) {
-    throw new ApiError(400, "Unautharized request", {
-      errorMessage: "User not logged in",
+    throw new ApiError(400, 'Unautharized request', {
+      errorMessage: 'User not logged in',
     });
   }
 
   const myUser = await User.findById(user._id);
 
   if (!myUser._id) {
-    throw new ApiError(501, "Unautharized Request");
+    throw new ApiError(501, 'Unautharized Request');
   }
 
   const {
@@ -745,29 +745,29 @@ const replyTo = asyncHandler(async (req, resp) => {
   } = req.body;
 
   if (!message.trim() && !contain_files) {
-    throw new ApiError(400, "Either send file of Message");
+    throw new ApiError(400, 'Either send file of Message');
   }
 
   if (!contactId || !messageId || !searchTag) {
-    throw new ApiError(400, "messageId || ContactId not found");
+    throw new ApiError(400, 'messageId || ContactId not found');
   }
 
   const contact = await Contact.findById(contactId);
 
   if (!contact._id) {
-    throw new ApiError(400, "Contact not found");
+    throw new ApiError(400, 'Contact not found');
   }
 
   const refMessage = await Message.findById(messageId);
 
   if (!refMessage._id) {
-    throw new ApiError(400, "refMessage not found");
+    throw new ApiError(400, 'refMessage not found');
   }
 
   const targetUser = await User.findOne({ searchTag: searchTag });
 
   if (!targetUser) {
-    throw new ApiError(400, "Invalid search tag");
+    throw new ApiError(400, 'Invalid search tag');
   }
 
   const newMessage = new Message({
@@ -778,9 +778,9 @@ const replyTo = asyncHandler(async (req, resp) => {
     hasAttechment: contain_files,
     attechmentType: contain_files && fileType,
     attechmentId: null,
-    attechmentLink: "",
+    attechmentLink: '',
     callId: null,
-    callType: "",
+    callType: '',
     isCall: false,
     refferTo: {
       msgId: refMessage._id,
@@ -798,39 +798,39 @@ const replyTo = asyncHandler(async (req, resp) => {
   await contact.save();
 
   if (!newMessage._id) {
-    throw new ApiError(501, "Message not created");
+    throw new ApiError(501, 'Message not created');
   }
 
   resp
     .status(200)
-    .json(new ApiResponse(200, { message: newMessage }, "Replied success"));
+    .json(new ApiResponse(200, { message: newMessage }, 'Replied success'));
 });
 
 const reactTo = asyncHandler(async (req, resp) => {
   const user = req.user;
 
   if (!user) {
-    throw new ApiError(400, "Unautharized request", {
-      errorMessage: "User not logged in",
+    throw new ApiError(400, 'Unautharized request', {
+      errorMessage: 'User not logged in',
     });
   }
 
   const myUser = await User.findById(user._id);
 
   if (!myUser._id) {
-    throw new ApiError(501, "Unautharized Request");
+    throw new ApiError(501, 'Unautharized Request');
   }
 
   const { reactionCode, messageId } = req.body;
 
   if (!reactionCode || !messageId) {
-    throw new ApiError(400, "Emoji Reaction Code or MessageId not found");
+    throw new ApiError(400, 'Emoji Reaction Code or MessageId not found');
   }
 
   const message = await Message.findById(messageId);
 
   if (!message._id) {
-    throw new ApiError(400, "message not found");
+    throw new ApiError(400, 'message not found');
   }
 
   const newReaction = new Reaction({
@@ -842,7 +842,7 @@ const reactTo = asyncHandler(async (req, resp) => {
   await newReaction.save();
 
   if (!newReaction) {
-    throw new ApiError(501, "reaction not created");
+    throw new ApiError(501, 'reaction not created');
   }
 
   newReaction.sender._id = myUser._id;
@@ -850,7 +850,7 @@ const reactTo = asyncHandler(async (req, resp) => {
 
   resp
     .status(201)
-    .json(new ApiResponse(201, { reaction: newReaction }, "Reacted"));
+    .json(new ApiResponse(201, { reaction: newReaction }, 'Reacted'));
 });
 
 module.exports = {

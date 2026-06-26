@@ -1,10 +1,10 @@
-const { Schema, default: mongoose } = require("mongoose");
+const { Schema, default: mongoose } = require('mongoose');
 
 const newSchema = new Schema(
   {
     oneOnOne: {
       type: [mongoose.Schema.Types.ObjectId],
-      ref: "User",
+      ref: 'User',
       default: null,
     },
     isGroup: {
@@ -22,7 +22,7 @@ const newSchema = new Schema(
     },
     whoCanSend: {
       type: String,
-      emum: ["anyone", "no_one", "only_admin"],
+      emum: ['anyone', 'no_one', 'only_admin'],
     },
     description: {
       type: String,
@@ -35,27 +35,27 @@ const newSchema = new Schema(
     // },
     lastMessage: {
       type: String,
-      default: "",
+      default: '',
       require: true,
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
     },
     socketId: {
       type: String,
       default: null,
     },
     public_id_avatar: {
-      type: String
-    }
+      type: String,
+    },
   },
   {
     timeseries: true,
     timestamps: true,
-  }
+  },
 );
 
-const Contact = mongoose.model("Contact", newSchema);
+const Contact = mongoose.model('Contact', newSchema);
 
 module.exports = Contact;

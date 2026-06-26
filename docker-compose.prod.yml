@@ -1,0 +1,99 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:7
+    restart: always
+    
+    volumes:
+      - mongo_prod_data:/data/db
+    
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME}
+    
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          
+    networks:
+      - linkup_internal
+
+  backend:
+    image: ${REGISTRY:-myregistry}/mern-backend:${IMAGE_TAG:-latest}
+    build:
+      context: ./backend
+      target: production
+    restart: always
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      # Compose reads these from the shell env or a .env file
+      # that is NEVER committed to source control
+      MONGO_URI: ${MONGO_URI}
+      JWT_SECRET: ${JWT_SECRET}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+    # Port NOT exposed to host — Nginx proxies to it internally
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+    networks:
+      - linkup_internal
+
+  frontend:
+    image: ${REGISTRY:-myregistry}/mern-frontend:${IMAGE_TAG:-latest}
+    build:
+      context: ./frontend
+      target: production
+      args:
+        # Baked into the JS bundle at build time (public anyway)
+        VITE_API_URL: ${VITE_API_URL:-/api}
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"          # wire in your TLS cert via a volume or cert-manager
+    volumes:
+      # Optional: mount TLS certs from host
+      # - /etc/letsencrypt:/etc/letsencrypt:ro
+      - frontend_logs:/var/log/nginx
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+    networks:
+      - linkup_internal
+
+volumes:
+  mongo_prod_data:
+  frontend_logs:
+
+networks:
+  linkup_internal:
+    driver: bridge
+    internal: false 

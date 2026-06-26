@@ -1,0 +1,74 @@
+version: "3.9"
+
+
+services:
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"          # expose only in dev
+    volumes:
+      - mongo_dev_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME}
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - linkup_dev
+
+  backend:
+    build:
+      context: ./backend
+      target: dev            
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    env_file:
+      - .env.dev               
+    environment:
+      
+      NODE_ENV: development
+      MONGO_URI: mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongo:27017/${MONGO_DB_NAME}?authSource=admin
+
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend/src:/app/src  # hot-reload source only
+      - /app/node_modules        # anonymous volume keeps container's node_modules
+    networks:
+      - linkup_dev
+    
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    restart: unless-stopped
+    depends_on:
+      - backend
+    env_file:
+      - .env.dev
+    environment:
+      VITE_API_URL: http://localhost:5000/api/v1
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - /app/node_modules
+    networks:
+      - linkup_dev
+
+
+volumes:
+  mongo_dev_data:
+
+networks:
+  linkup_dev:
+    driver: bridge

@@ -1,10 +1,10 @@
-require("dotenv").config();
-const asyncHandler = require("../utils/asyncHandler.utils");
-const ApiError = require("../utils/ApiError.utils");
+require('dotenv').config();
+const asyncHandler = require('../utils/asyncHandler.utils');
+const ApiError = require('../utils/ApiError.utils');
 
 const Location = asyncHandler(async (req, resp, next) => {
   const { latitude, longitude } = req.body;
-  
+
   if (!latitude || !longitude) {
     throw new ApiError(400, `Coordinates not given`);
   }

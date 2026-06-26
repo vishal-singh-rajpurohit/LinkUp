@@ -1,0 +1,27 @@
+node_modules
+npm-debug.log*
+
+# Build output (builder stage produces its own)
+dist/
+build/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Git
+.git/
+.gitignore
+
+# Docker artefacts
+Dockerfile*
+.dockerignore
+nginx.conf          # copied explicitly in Dockerfile — kept out of build context copy

@@ -29,7 +29,6 @@ const VideoCallPage: React.FC = () => {
                     ref={video.remoteVideoRef}
                     autoPlay
                     playsInline
-                    controls
                     className="absolute inset-0 w-full h-full object-cover bg-[#0a1735]"
                 />
                 <div className="absolute left-3 top-3 z-30 rounded bg-black/60 px-2 py-1 text-xs text-white">
@@ -44,20 +43,20 @@ const VideoCallPage: React.FC = () => {
                 />
             </div>
             <div className="flex fixed bottom-0 w-full justify-center items-center gap-4 p-4 bg-black/80">
-                <button onClick={()=>peer.setAudio(!peer.isAudioOn)}
+                <button onClick={() => peer.setAudio(!peer.isAudioOn)}
                     aria-label="Toggle microphone"
                     className="rounded-full p-3 bg-white/10 hover:bg-white/20 text-white shadow focus:outline-none focus:ring-2 focus:ring-white/40"
                 >
-                    {peer.isAudioOn? <MicOff size={20} />:<Mic size={20} /> }
+                    {peer.isAudioOn ? <MicOff size={20} /> : <Mic size={20} />}
                 </button>
-                <button onClick={()=>peer.setVideo(!peer.isVideoOn)}
+                <button onClick={() => peer.setVideo(!peer.isVideoOn)}
                     aria-label="Toggle camera"
                     className="rounded-full p-3 bg-white/10 hover:bg-white/20 text-white shadow focus:outline-none focus:ring-2 focus:ring-white/40"
                 >
                     {
-                        peer.isVideoOn? <VideoOff size={20} /> :<Video size={20} />
+                        peer.isVideoOn ? <VideoOff size={20} /> : <Video size={20} />
                     }
-                    
+
                 </button>
                 <button
                     aria-label="End call"

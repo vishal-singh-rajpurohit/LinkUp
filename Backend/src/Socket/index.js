@@ -9,12 +9,10 @@ const Call = require('../models/calls.model');
 const { makeCall, endVideoCall } = require('./caller.helpers');
 const nodemailer = require('nodemailer');
 
-
 /**
  * @description event happens when user switches between chats or contacts based on contactId
  * @param {Socket<import("socket.io")}
  */
-
 
 const callRooms = {};
 let mailTransporter = null;
@@ -31,7 +29,8 @@ const getMailTransporter = async () => {
 
   mailTransporterInit = true;
 
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SERVICE } = process.env;
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SERVICE } =
+    process.env;
   if ((!SMTP_SERVICE && !SMTP_HOST) || !SMTP_USER || !SMTP_PASS) {
     return null;
   }
@@ -39,21 +38,21 @@ const getMailTransporter = async () => {
   mailTransporter = nodemailer.createTransport(
     SMTP_SERVICE
       ? {
-        service: SMTP_SERVICE,
-        auth: {
-          user: SMTP_USER,
-          pass: SMTP_PASS,
-        },
-      }
+          service: SMTP_SERVICE,
+          auth: {
+            user: SMTP_USER,
+            pass: SMTP_PASS,
+          },
+        }
       : {
-        host: SMTP_HOST,
-        port: Number(SMTP_PORT) || 587,
-        secure: Number(SMTP_PORT) === 465,
-        auth: {
-          user: SMTP_USER,
-          pass: SMTP_PASS,
+          host: SMTP_HOST,
+          port: Number(SMTP_PORT) || 587,
+          secure: Number(SMTP_PORT) === 465,
+          auth: {
+            user: SMTP_USER,
+            pass: SMTP_PASS,
+          },
         },
-      },
   );
 
   return mailTransporter;
@@ -103,9 +102,8 @@ const sendCallInviteEmails = async ({ members, caller, contact }) => {
  * @returns io connection
  */
 
-
-const searchTagToSocketIdMapping = new Map()
-const socketIdToSearchTagMapping = new Map()
+const searchTagToSocketIdMapping = new Map();
+const socketIdToSearchTagMapping = new Map();
 
 const starterSocketIo = async (io) => {
   return io.on('connection', async (socket) => {
@@ -121,7 +119,9 @@ const starterSocketIo = async (io) => {
         process.env.ACCESS_TOKEN_SECRET,
       );
 
-      const user = await User.findById(decodedToken?._id).select('-password -refreshToken');
+      const user = await User.findById(decodedToken?._id).select(
+        '-password -refreshToken',
+      );
 
       if (!user) {
         throw new ApiError(400, 'Unauthorized User');
@@ -145,7 +145,6 @@ const starterSocketIo = async (io) => {
         socket.emit('joinedRoom', roomId); // Confirm joining the room
 
         const room = io.sockets.adapter.rooms.get(roomId);
-
       });
 
       const contactsOnline = await getUserOnlineFriends(user._id);
@@ -321,7 +320,6 @@ const starterSocketIo = async (io) => {
           throw new ApiError(501, 'Unautharized Request');
         }
 
-
         const message = await Message.findByIdAndUpdate(
           payload.msgid,
           {
@@ -348,68 +346,82 @@ const starterSocketIo = async (io) => {
         });
       });
 
-      socket.on(callEventEnum.MAKE_VIDEO_CALL_PRE, async ({ contactId, callerId, username, avatar }) => {
-        const contact = await Contact.findById(contactId);
-        const user = await User.findById(callerId);
+      socket.on(
+        callEventEnum.MAKE_VIDEO_CALL_PRE,
+        async ({ contactId, callerId, username, avatar }) => {
+          const contact = await Contact.findById(contactId);
+          const user = await User.findById(callerId);
 
-        if (!contact || !user || contact.isGroup) {
-          socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
-            message: 'contacts not found',
-          });
-          return;
-        }
+          if (!contact || !user || contact.isGroup) {
+            socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
+              message: 'contacts not found',
+            });
+            return;
+          }
 
-        const reciver = await getContactsForCall(contact._id);
-        const members = reciver?.[0]?.member || [];
-        const callerMember = members.find((m) => String(m._id) === String(callerId));
-        const calleeMember = members.find((m) => String(m._id) !== String(callerId));
+          const reciver = await getContactsForCall(contact._id);
+          const members = reciver?.[0]?.member || [];
+          const callerMember = members.find(
+            (m) => String(m._id) === String(callerId),
+          );
+          const calleeMember = members.find(
+            (m) => String(m._id) !== String(callerId),
+          );
 
-        if (!callerMember || !calleeMember || !calleeMember.online) {
-          socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
-            message: 'callee is offline',
-          });
-          return;
-        }
+          if (!callerMember || !calleeMember || !calleeMember.online) {
+            socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
+              message: 'callee is offline',
+            });
+            return;
+          }
 
-        // strict one-to-one call: expected 2 participants
-        const newCall = await makeCall(
-          user._id,
-          contact._id,
-          2,
-        );
+          // strict one-to-one call: expected 2 participants
+          const newCall = await makeCall(user._id, contact._id, 2);
 
-        searchTagToSocketIdMapping.set(String(callerMember._id), callerMember.socketId)
-        socketIdToSearchTagMapping.set(callerMember.socketId, String(callerMember._id))
-        searchTagToSocketIdMapping.set(String(calleeMember._id), calleeMember.socketId)
-        socketIdToSearchTagMapping.set(calleeMember.socketId, String(calleeMember._id))
+          searchTagToSocketIdMapping.set(
+            String(callerMember._id),
+            callerMember.socketId,
+          );
+          socketIdToSearchTagMapping.set(
+            callerMember.socketId,
+            String(callerMember._id),
+          );
+          searchTagToSocketIdMapping.set(
+            String(calleeMember._id),
+            calleeMember.socketId,
+          );
+          socketIdToSearchTagMapping.set(
+            calleeMember.socketId,
+            String(calleeMember._id),
+          );
 
-        // caller gets outgoing pre-state with callee as target
-        io.to(`${callerMember.socketId}`).emit(
-          `${callEventEnum.INCOMING_VIDEO_CALL_PRE}`,
-          {
-            roomId: contact._id,
-            callerId: String(callerId),
-            remoteUserId: String(calleeMember._id),
-            searchTag: contact.groupName || username,
-            avatar: contact.groupAvatar || avatar,
-            callId: newCall._id
-          },
-        );
+          // caller gets outgoing pre-state with callee as target
+          io.to(`${callerMember.socketId}`).emit(
+            `${callEventEnum.INCOMING_VIDEO_CALL_PRE}`,
+            {
+              roomId: contact._id,
+              callerId: String(callerId),
+              remoteUserId: String(calleeMember._id),
+              searchTag: contact.groupName || username,
+              avatar: contact.groupAvatar || avatar,
+              callId: newCall._id,
+            },
+          );
 
-        // callee gets incoming pre-state with caller as target
-        io.to(`${calleeMember.socketId}`).emit(
-          `${callEventEnum.INCOMING_VIDEO_CALL_PRE}`,
-          {
-            roomId: contact._id,
-            callerId: String(callerId),
-            remoteUserId: String(callerId),
-            searchTag: contact.groupName || username,
-            avatar: contact.groupAvatar || avatar,
-            callId: newCall._id
-          },
-        );
-
-      });
+          // callee gets incoming pre-state with caller as target
+          io.to(`${calleeMember.socketId}`).emit(
+            `${callEventEnum.INCOMING_VIDEO_CALL_PRE}`,
+            {
+              roomId: contact._id,
+              callerId: String(callerId),
+              remoteUserId: String(callerId),
+              searchTag: contact.groupName || username,
+              avatar: contact.groupAvatar || avatar,
+              callId: newCall._id,
+            },
+          );
+        },
+      );
 
       socket.on(callEventEnum.MAKE_VIDEO_CALL, async ({ to, offer }) => {
         if (!to || !offer) return;
@@ -418,135 +430,160 @@ const starterSocketIo = async (io) => {
 
       socket.on(callEventEnum.ANSWER_CALL, async ({ to, ans }) => {
         if (!to || !ans) return;
-        io.to(`${to}`).emit(callEventEnum.CALL_ANSWERED, { ans })
+        io.to(`${to}`).emit(callEventEnum.CALL_ANSWERED, { ans });
       });
 
       socket.on(callEventEnum.END_CALL, async ({ to }) => {
         if (!to) return;
-        io.to(`${to}`).emit(callEventEnum.ENDED_CALL, {})
-      })
+        io.to(`${to}`).emit(callEventEnum.ENDED_CALL, {});
+      });
 
       socket.on(callEventEnum.ICE_CANDIDATE, ({ to, candidate }) => {
         if (!to || !candidate) return;
-        io.to(`${to}`).emit(callEventEnum.ICE_CANDIDATE_INCOMING, { candidate })
-      })
+        io.to(`${to}`).emit(callEventEnum.ICE_CANDIDATE_INCOMING, {
+          candidate,
+        });
+      });
 
       socket.on(callEventEnum.NEGOTIATION_NEEDED, ({ to, offer }) => {
         if (!to || !offer) return;
-        io.to(`${to}`).emit(callEventEnum.NEGOTIATION_INCOMING, { offer })
+        io.to(`${to}`).emit(callEventEnum.NEGOTIATION_INCOMING, { offer });
       });
 
       socket.on(callEventEnum.NEGOTIATION_DONE, ({ to, ans }) => {
         if (!to || !ans) return;
-        io.to(`${to}`).emit(callEventEnum.NEGOTIATION_FINAL, { ans })
+        io.to(`${to}`).emit(callEventEnum.NEGOTIATION_FINAL, { ans });
       });
 
-      socket.on(callEventEnum.CANCELLED_BEFORE_ANSWER, async ({ contactId, callerId }) => {
+      socket.on(
+        callEventEnum.CANCELLED_BEFORE_ANSWER,
+        async ({ contactId, callerId }) => {
+          const contact = await Contact.findById(contactId);
+          const user = await User.findById(callerId);
 
-        const contact = await Contact.findById(contactId);
-        const user = await User.findById(callerId);
+          if (!contact || !user || contact.isGroup) {
+            socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
+              message: 'contacts not found',
+            });
+            return;
+          }
 
-        if (!contact || !user || contact.isGroup) {
-          socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
-            message: 'contacts not found',
-          });
-          return;
-        }
-
-        const reciver = await getContactsForCall(contact._id);
-        const members = reciver?.[0]?.member || [];
-        const callerMember = members.find((m) => String(m._id) === String(callerId));
-        const calleeMember = members.find((m) => String(m._id) !== String(callerId));
-
-        if (callerMember?.socketId) {
-          io.to(`${callerMember.socketId}`).emit(`${callEventEnum.STOP_CALLING}`, {});
-        }
-
-        if (calleeMember?.socketId) {
-          io.to(`${calleeMember.socketId}`).emit(`${callEventEnum.STOP_CALLING}`, {});
-        }
-      },
-      );
-
-      socket.on(callEventEnum.DENAY_CALL, async ({ callId, memberId, roomId }) => {
-        const call = await Call.findById(callId);
-        if (!call) throw new Error('Call not found');
-
-        const contact = await Contact.findById(roomId);
-        const user = await User.findById(memberId);
-
-        if (!contact || !user) {
-          socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
-            message: 'contacts not found',
-          });
-        }
-
-
-        // strict one-to-one caller flow
-        if (!contact.isGroup) {
           const reciver = await getContactsForCall(contact._id);
           const members = reciver?.[0]?.member || [];
-          const callerMember = members.find((m) => String(m._id) === String(memberId));
-          const calleeMember = members.find((m) => String(m._id) !== String(memberId));
+          const callerMember = members.find(
+            (m) => String(m._id) === String(callerId),
+          );
+          const calleeMember = members.find(
+            (m) => String(m._id) !== String(callerId),
+          );
 
           if (callerMember?.socketId) {
-            io.to(`${callerMember.socketId}`).emit(`${callEventEnum.STOP_CALLING}`, {});
-          }
-          if (calleeMember?.socketId) {
-            io.to(`${calleeMember.socketId}`).emit(`${callEventEnum.STOP_CALLING}`, {});
-          }
-        }
-
-
-        // if(!call.members.length){
-        //   throw new Error("not any member found in the call")
-        // }
-
-      });
-
-      socket.on(chatEventEnumNew.CANCELLED_VIDEO_CALL, async ({ callId, roomId }) => {
-        const contact = await Contact.findById(roomId);
-
-        if (!contact) {
-          socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
-            message: 'contacts not found',
-          });
-        }
-
-        const ended = await endVideoCall(callId);
-
-        if (!ended.successs) {
-        }
-
-        const reciver = await getContactsForCall(contact._id);
-
-        const recivers = reciver[0].member.filter(
-          (val) => val.online === true,
-        );
-
-        delete callRooms[callId];
-
-        for (let reciver of recivers) {
-          if (reciver.online) {
-            // producersMap.delete(reciver._id);
-            io.to(`${reciver.socketId}`).emit(
-              `${chatEventEnumNew.OFFLINE_CALLER}`,
-              {
-                message: 'Call Ended',
-              },
+            io.to(`${callerMember.socketId}`).emit(
+              `${callEventEnum.STOP_CALLING}`,
+              {},
             );
           }
-        }
-      },
+
+          if (calleeMember?.socketId) {
+            io.to(`${calleeMember.socketId}`).emit(
+              `${callEventEnum.STOP_CALLING}`,
+              {},
+            );
+          }
+        },
+      );
+
+      socket.on(
+        callEventEnum.DENAY_CALL,
+        async ({ callId, memberId, roomId }) => {
+          const call = await Call.findById(callId);
+          if (!call) throw new Error('Call not found');
+
+          const contact = await Contact.findById(roomId);
+          const user = await User.findById(memberId);
+
+          if (!contact || !user) {
+            socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
+              message: 'contacts not found',
+            });
+          }
+
+          // strict one-to-one caller flow
+          if (!contact.isGroup) {
+            const reciver = await getContactsForCall(contact._id);
+            const members = reciver?.[0]?.member || [];
+            const callerMember = members.find(
+              (m) => String(m._id) === String(memberId),
+            );
+            const calleeMember = members.find(
+              (m) => String(m._id) !== String(memberId),
+            );
+
+            if (callerMember?.socketId) {
+              io.to(`${callerMember.socketId}`).emit(
+                `${callEventEnum.STOP_CALLING}`,
+                {},
+              );
+            }
+            if (calleeMember?.socketId) {
+              io.to(`${calleeMember.socketId}`).emit(
+                `${callEventEnum.STOP_CALLING}`,
+                {},
+              );
+            }
+          }
+
+          // if(!call.members.length){
+          //   throw new Error("not any member found in the call")
+          // }
+        },
+      );
+
+      socket.on(
+        chatEventEnumNew.CANCELLED_VIDEO_CALL,
+        async ({ callId, roomId }) => {
+          const contact = await Contact.findById(roomId);
+
+          if (!contact) {
+            socket.emit(chatEventEnumNew.OFFLINE_CALLER, {
+              message: 'contacts not found',
+            });
+          }
+
+          const ended = await endVideoCall(callId);
+
+          if (!ended.successs) {
+          }
+
+          const reciver = await getContactsForCall(contact._id);
+
+          const recivers = reciver[0].member.filter(
+            (val) => val.online === true,
+          );
+
+          delete callRooms[callId];
+
+          for (let reciver of recivers) {
+            if (reciver.online) {
+              // producersMap.delete(reciver._id);
+              io.to(`${reciver.socketId}`).emit(
+                `${chatEventEnumNew.OFFLINE_CALLER}`,
+                {
+                  message: 'Call Ended',
+                },
+              );
+            }
+          }
+        },
       );
 
       socket.on(chatEventEnumNew.DISCONNECT_EVENT, async () => {
         if (socket.user?._id) {
-          const socketId = socketIdToSearchTagMapping.get(socket.id)
-          const tag = searchTagToSocketIdMapping.get(socketId)
+          const socketId = socketIdToSearchTagMapping.get(socket.id);
+          const tag = searchTagToSocketIdMapping.get(socketId);
 
-          socketIdToSearchTagMapping.delete(socketId)
-          searchTagToSocketIdMapping.delete(tag)
+          socketIdToSearchTagMapping.delete(socketId);
+          searchTagToSocketIdMapping.delete(tag);
 
           const contactsOnline = await getUserOnlineFriends(user._id);
 
@@ -565,12 +602,11 @@ const starterSocketIo = async (io) => {
           await setUserOffline(user._id);
         }
       });
-
     } catch (error) {
       socket.emit(
         chatEventEnumNew.SOCKET_ERROR_EVENT,
         error?.message ||
-        'Something went wrong while connecting to the socket.',
+          'Something went wrong while connecting to the socket.',
       );
     }
   });
@@ -585,7 +621,6 @@ const emiterCall = (req, userId, event, Payload) => {
 };
 
 const setUserOffline = async (userId) => {
-
   try {
     const user = await User.findById(userId);
 
@@ -763,28 +798,27 @@ const getContactsInCall = async (callId) => {
 
 const markReadToFunction = async (contactId, userId) => {
   try {
-    const contact = await Contact.findById(contactId)
-    const user = await User.findById(userId)
+    const contact = await Contact.findById(contactId);
+    const user = await User.findById(userId);
 
     if (!contact || !user) {
-      throw new Error("Contact or user not found with this contact id")
+      throw new Error('Contact or user not found with this contact id');
     }
 
     await Message.updateMany(
       {
         contactId: contact._id,
         userId: { $ne: user._id },
-        readBy: { $not: { $elemMatch: { $eq: user._id } } }
+        readBy: { $not: { $elemMatch: { $eq: user._id } } },
       },
       {
-        $addToSet: { readBy: user._id }
-      }
-    )
-
+        $addToSet: { readBy: user._id },
+      },
+    );
   } catch (error) {
-    console.error("Error in marking messages: ", error)
+    console.error('Error in marking messages: ', error);
   }
-}
+};
 
 module.exports = {
   starterSocketIo,

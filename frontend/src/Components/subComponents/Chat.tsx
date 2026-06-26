@@ -1,6 +1,6 @@
 import g from '../../assets/no_dp.png'
 import { MdOutlineAudiotrack, MdOutlineFileOpen, MdOutlineImage, MdOutlineVideoLibrary, MdVideoCall } from 'react-icons/md'
-import { TiAttachmentOutline } from 'react-icons/ti'
+import { TiAttachmentOutline, TiCancelOutline } from 'react-icons/ti'
 import { RiSendPlaneFill } from 'react-icons/ri'
 import { BsEmojiWink } from 'react-icons/bs'
 import { BottomButton, DeletedMessage, DeletedMessageMe, Mail, MailAttechment, MailAttechmentMe, MailMe, MailMenu, SendingMedia, TypingIndicator, UploadingMedia } from './Mails'
@@ -117,6 +117,7 @@ interface geoLocType {
 const MailOptions = () => {
     const disp = useAppDispatch()
     const contact = useAppSelector((state) => state.temp.selectedContact);
+    const open = useAppSelector((state) => state.temp.fileSelection);
     const user = useAppSelector((state) => state.auth.user)
     const contain_files = useAppSelector((state) => state.temp.chatStates.hasAttechments)
     const isTyping = useAppSelector((state) => state.temp.typing)
@@ -246,7 +247,12 @@ const MailOptions = () => {
                     </div>
                     <div className="h-full w-full flex justify-items-center items-center justify-center gap-1 grid-cols-[2fr_2fr_2fr] ">
                         <button type='submit' className="h-[3rem] w-full flex items-center justify-center rounded-sm c cursor-pointer md:w-[4rem] md:h-[2rem]">
-                            <TiAttachmentOutline cursor={'pointer'} onClick={() => openFileSelection(true)} className='text-xl md:2xl lg:text-[25px]' />
+                            {
+                                open ?
+                                    <TiCancelOutline size={25} cursor={'pointer'} onClick={() => openFileSelection(true)} className='text-xl md:2xl lg:text-[25px]' />
+                                    :
+                                    <TiAttachmentOutline cursor={'pointer'} onClick={() => openFileSelection(true)} className='text-xl md:2xl lg:text-[25px]' />
+                            }
                         </button>
                         <button type='submit' className="h-[3rem] w-full flex items-center justify-center rounded-sm c cursor-pointer md:w-[4rem] md:h-[2rem]">
                             <BsEmojiWink cursor={'pointer'} onClick={() => openEmojiSelection(true)} className='text-xl md:2xl lg:text-[25px]' />
@@ -292,37 +298,34 @@ const AttechMents = () => {
         <>
             <section className={`w-[80%] h-[8rem] ${open ? "flex" : "hidden"} overflow-auto justify-end mb-1 lg:h-[7rem] mt-1`}>
                 <div className="w-[40%] h-full overflow-auto relative rounded-sm flex items-center justify-center md:w-[30%] lg:w-[20%]" style={{ scrollbarWidth: 'none' }}>
-                    <div className=" bg-[#ffffff5d] w-[8rem] h-[8rem] rounded-md grid grid-cols-2 gap-4 justify-center">
-                        <div className="w-full h-full flex items-center justify-center">
-                            <MdOutlineImage onClick={() => {
-                                disp(triggetUploadType({ tp: 'img' }))
-                                imgRef.current?.click()
-                                disp(setFileSelection({ trigger: false }))
-                            }
-                            } size={25} cursor={'pointer'} />
+                    <div className=" w-[6rem] h-[6rem] rounded-md grid grid-cols-2 gap-0.5 justify-center">
+                        <div className="w-full h-full flex items-center justify-center bg-indigo-400 rounded-[18px_2px_2px_2px] cursor-pointer" onClick={() => {
+                            disp(triggetUploadType({ tp: 'img' }))
+                            imgRef.current?.click()
+                            disp(setFileSelection({ trigger: false }))
+                        }}>
+                            <MdOutlineImage size={20} />
                         </div>
-                        <div className="w-full h-full flex items-center justify-center">
-                            <MdOutlineVideoLibrary onClick={() => {
-                                disp(triggetUploadType({ tp: 'vid' }))
-                                vidRef.current?.click()
-                                disp(setFileSelection({ trigger: false }))
-                            }
-                            } size={25} cursor={'pointer'} />
+                        <div className="w-full h-full flex items-center justify-center  bg-indigo-400 rounded-[2px_18px_2px_2px] cursor-pointer" onClick={() => {
+                            disp(triggetUploadType({ tp: 'vid' }))
+                            vidRef.current?.click()
+                            disp(setFileSelection({ trigger: false }))
+                        }}>
+                            <MdOutlineVideoLibrary size={20} />
                         </div>
-                        <div className="w-full h-full flex items-center justify-center">
-                            <MdOutlineAudiotrack onClick={() => {
-                                disp(triggetUploadType({ tp: 'audio' }))
-                                audioRef.current?.click()
-                                disp(setFileSelection({ trigger: false }))
-                            }} size={25} cursor={'pointer'} />
+                        <div className="w-full h-full flex items-center justify-center  bg-indigo-400 rounded-[2px_2px_2px_18px] cursor-pointer" onClick={() => {
+                            disp(triggetUploadType({ tp: 'audio' }))
+                            audioRef.current?.click()
+                            disp(setFileSelection({ trigger: false }))
+                        }}>
+                            <MdOutlineAudiotrack size={20} />
                         </div>
-                        <div className="w-full h-full flex items-center justify-center">
-                            <MdOutlineFileOpen onClick={() => {
-                                disp(triggetUploadType({ tp: 'doc' }))
-                                docRef.current?.click()
-                                disp(setFileSelection({ trigger: false }))
-                            }
-                            } size={25} cursor={'pointer'} />
+                        <div className="w-full h-full flex items-center justify-center  bg-indigo-400 rounded-[2px_2px_18px_2px] cursor-pointer" onClick={() => {
+                            disp(triggetUploadType({ tp: 'doc' }))
+                            docRef.current?.click()
+                            disp(setFileSelection({ trigger: false }))
+                        }}>
+                            <MdOutlineFileOpen size={20} />
                         </div>
                     </div>
                 </div>
@@ -481,7 +484,7 @@ const ChatBox = () => {
                                         <DeletedMessageMe key={index} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"You"} time={msg.createdAt} />
                                     ) : (
                                         msg.attechmentLink === "" ?
-                                            <MailMe mailOptionsHandler={(x, y) => openMenu(x, y)} cipherText={cipherText} displayText={displayText} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"you"}  time={msg.createdAt} /> :
+                                            <MailMe mailOptionsHandler={(x, y) => openMenu(x, y)} cipherText={cipherText} displayText={displayText} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={msg?.sender?.avatar || ""} _id={msg._id} senderTag={"you"} time={msg.createdAt} /> :
                                             <MailAttechmentMe cipherText={cipherText} displayText={displayText} attechmentLink={msg.attechmentLink} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
                                     )
                                 )
@@ -517,7 +520,7 @@ const ChatBox = () => {
                                         ) :
                                             (
                                                 msg.attechmentLink === "" ?
-                                                    <MailMe mailOptionsHandler={(x, y) => openMenu(x, y)} cipherText={cipherText} displayText={displayText} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"}  time={msg.createdAt} /> :
+                                                    <MailMe mailOptionsHandler={(x, y) => openMenu(x, y)} cipherText={cipherText} displayText={displayText} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} time={msg.createdAt} /> :
                                                     // Working
                                                     <MailAttechmentMe cipherText={cipherText} displayText={displayText} attechmentLink={msg.attechmentLink} mailRef={mailOptions} readBy={msg.readBy} key={index} message={msg.message} avatar={user.avatar} _id={msg._id} senderTag={"You"} mailOptions={mailOptions} time={msg.createdAt} />
                                             ))

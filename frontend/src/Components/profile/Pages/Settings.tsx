@@ -78,6 +78,7 @@ const Settings = () => {
   const [changeMode, setChangeMode] = useState<boolean>(false)
   const [openEditor, setOpenEditor] = useState<boolean>(false)
   const [tempAvatar, setTempAvatar] = useState<string>('');
+
   const [copyUser, setCopyUser] = useState<userType>(
     {
       _id: "",
@@ -130,6 +131,7 @@ const Settings = () => {
       })
     }
   }
+
   async function checkEmail(mail: string) {
     setCopyUserErr({
       ...copyUserErr,
@@ -156,6 +158,7 @@ const Settings = () => {
       ...copyUser, [e.target.name]:
         (e.target.name === 'searchTag' || e.target.name === 'email') ? e.target.value.trim() : e.target.value
     })
+
     if (e.target.value.length > 2) {
       if (changeMode) {
         if (user.searchTag !== copyUser.searchTag) {
@@ -188,6 +191,7 @@ const Settings = () => {
     setCopyUser({
       ...user
     })
+
     setCopyUserErr({
       mailError: 1,
       tagError: 1
@@ -217,6 +221,7 @@ const Settings = () => {
       }
     }
   }
+
   async function saveMail() {
     if (copyUser.email !== user.email) {
       try {
@@ -230,6 +235,7 @@ const Settings = () => {
       }
     }
   }
+
   async function saveUserName() {
     if (copyUser.userName !== user.userName) {
       try {
@@ -243,12 +249,14 @@ const Settings = () => {
       }
     }
   }
+
   async function save() {
     await saveTag();
     await saveUserName();
     await saveMail();
     setChangeMode(false)
   }
+  
   async function submitQuiz() {
     if (quiz.question && quiz.ans) {
       try {
@@ -262,6 +270,7 @@ const Settings = () => {
       }
     }
   }
+
   async function handleAvatar(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] || null;
     if (e.target.files && file) {

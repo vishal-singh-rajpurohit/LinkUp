@@ -1,48 +1,48 @@
-const Contact = require("../models/contacts.model");
-const User = require("../models/user.model");
-const ContactMember = require("../models/contactMember.model");
-const asyncHandler = require("../utils/asyncHandler.utils");
-const ApiError = require("../utils/ApiError.utils");
-const ApiResponse = require("../utils/ApiResponse.utils");
+const Contact = require('../models/contacts.model');
+const User = require('../models/user.model');
+const ContactMember = require('../models/contactMember.model');
+const asyncHandler = require('../utils/asyncHandler.utils');
+const ApiError = require('../utils/ApiError.utils');
+const ApiResponse = require('../utils/ApiResponse.utils');
 const {
   removeFromCloudinary,
   uploadToCloudinary,
-} = require("../utils/cloudinary.utils");
-const { default: mongoose } = require("mongoose");
-const Message = require("../models/message.modal");
-const { emiterSocket } = require("../Socket");
-const { chatEventEnumNew } = require("../constants/constants");
+} = require('../utils/cloudinary.utils');
+const { default: mongoose } = require('mongoose');
+const Message = require('../models/message.modal');
+const { emiterSocket } = require('../Socket');
+const { chatEventEnumNew } = require('../constants/constants');
 
 const createOneOnOneChat = asyncHandler(async (req, resp) => {
   try {
     const user = req.user;
 
     if (!user) {
-      throw new ApiError(401, "Unautharized request", {
-        errorMessage: "Unautharized request",
+      throw new ApiError(401, 'Unautharized request', {
+        errorMessage: 'Unautharized request',
       });
     }
 
     const myUser = await User.findById(user._id);
 
     if (!myUser) {
-      throw new ApiError(401, "Unautharized request", {
-        errorMessage: "Unautharized request",
+      throw new ApiError(401, 'Unautharized request', {
+        errorMessage: 'Unautharized request',
       });
     }
 
     const { reciverId } = req.body;
 
     if (!reciverId) {
-      throw new ApiError(401, "Must Provide user id", {
-        errorMessage: "Unautharized request",
+      throw new ApiError(401, 'Must Provide user id', {
+        errorMessage: 'Unautharized request',
       });
     }
 
     const reciver = await User.findById(reciverId);
 
     if (!reciver) {
-      throw new ApiError(400, "user does not exists");
+      throw new ApiError(400, 'user does not exists');
     }
 
     const isAlreadyContact = await Contact.findOne({
@@ -53,8 +53,8 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
     });
 
     if (isAlreadyContact) {
-      throw new ApiError(500, "already in contact", {
-        errorMessage: "aleady in contact",
+      throw new ApiError(500, 'already in contact', {
+        errorMessage: 'aleady in contact',
       });
     }
 
@@ -63,14 +63,14 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
       isGroup: false,
       oneOnOne: [user._id, reciverId],
       socketId: null,
-      lastMessage: "Welcome to the chat",
+      lastMessage: 'Welcome to the chat',
     });
 
     await newContact.save();
 
     if (!newContact) {
-      throw new ApiError(400, "Unable to create contact", {
-        errorMessage: "Unable to create contact",
+      throw new ApiError(400, 'Unable to create contact', {
+        errorMessage: 'Unable to create contact',
       });
     }
 
@@ -98,8 +98,8 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
 
     if (!memberOne || !memberTwo) {
       await Contact.findByIdAndDelete(newContact._id);
-      throw new ApiError(500, "Members not created contacts", {
-        errorMessage: "Members not created contacts",
+      throw new ApiError(500, 'Members not created contacts', {
+        errorMessage: 'Members not created contacts',
       });
     }
 
@@ -113,20 +113,20 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
       },
       {
         $lookup: {
-          from: "contactmembers",
-          localField: "_id",
-          foreignField: "contactId",
-          as: "members",
+          from: 'contactmembers',
+          localField: '_id',
+          foreignField: 'contactId',
+          as: 'members',
         },
       },
       {
         $addFields: {
           member: {
             $filter: {
-              input: "$members",
-              as: "member",
+              input: '$members',
+              as: 'member',
               cond: {
-                $ne: ["$$member.userId", user._id],
+                $ne: ['$$member.userId', user._id],
               },
             },
           },
@@ -134,14 +134,14 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
       },
       {
         $lookup: {
-          from: "users",
-          localField: "member.userId",
-          foreignField: "_id",
-          as: "member.user",
+          from: 'users',
+          localField: 'member.userId',
+          foreignField: '_id',
+          as: 'member.user',
         },
       },
       {
-        $unwind: "$member.user",
+        $unwind: '$member.user',
       },
       {
         $project: {
@@ -149,15 +149,15 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
           isBlocked: 1,
           updatedAt: 1,
           socketId: 1,
-          "member._id": 1,
-          "member.isArchieved": 1,
-          "member.user._id": 1,
-          "member.user.userName": 1,
-          "member.user.searchTag": 1,
-          "member.user.socketId": 1,
-          "member.user.email": 1,
-          "member.user.avatar": 1,
-          "member.user.online": 1,
+          'member._id': 1,
+          'member.isArchieved': 1,
+          'member.user._id': 1,
+          'member.user.userName': 1,
+          'member.user.searchTag': 1,
+          'member.user.socketId': 1,
+          'member.user.email': 1,
+          'member.user.avatar': 1,
+          'member.user.online': 1,
         },
       },
     ]);
@@ -166,13 +166,13 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
       await Contact.findByIdAndDelete(newContact._id);
       await ContactMember.findByIdAndDelete(memberOne._id);
       await ContactMember.findByIdAndDelete(memberTwo._id);
-      throw new ApiError(400, "Error while getting user details");
+      throw new ApiError(400, 'Error while getting user details');
     }
 
     // Send to the end user
     if (reciver.online) {
       const emitPayload = {
-        lastMessage: "Just Connected to you",
+        lastMessage: 'Just Connected to you',
         isBlocked: false,
         updatedAt: new Date(),
         socketId: newContact._id,
@@ -195,7 +195,7 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
     }
     const emitPayload = {
       _id: newContact._id,
-      lastMessage: "You Approached",
+      lastMessage: 'You Approached',
       isBlocked: false,
       updatedAt: new Date(),
       socketId: newContact._id,
@@ -218,10 +218,10 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
 
     resp
       .status(200)
-      .json(new ApiResponse(200, {}, "Contact created successfully"));
+      .json(new ApiResponse(200, {}, 'Contact created successfully'));
   } catch (error) {
-    console.log("error is; ",error.message)
-    throw new ApiError(400, "Error while creating contacts: ");
+    console.log('error is; ', error.message);
+    throw new ApiError(400, 'Error while creating contacts: ');
   }
 });
 
@@ -230,16 +230,16 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
     const user = req.user;
 
     if (!user) {
-      throw new ApiError(401, "Unauthraized User", {
-        errorMessage: "Unauthraized User",
+      throw new ApiError(401, 'Unauthraized User', {
+        errorMessage: 'Unauthraized User',
       });
     }
 
     const myUser = await User.findById(user._id);
 
     if (!myUser) {
-      throw new ApiError(401, "Unauthraized User", {
-        errorMessage: "Unauthraized User",
+      throw new ApiError(401, 'Unauthraized User', {
+        errorMessage: 'Unauthraized User',
       });
     }
 
@@ -249,8 +249,8 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
     contacts.push({ userId: String(user._id), admin: true });
 
     if (!groupName || !description || !whoCanSend || contacts.length < 3) {
-      throw new ApiError(400, "All values must required", {
-        errorMessage: "All values must required",
+      throw new ApiError(400, 'All values must required', {
+        errorMessage: 'All values must required',
       });
     }
 
@@ -267,8 +267,8 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
     await newGroup.save();
 
     if (!newGroup) {
-      throw new ApiError(400, "Error while creating new group", {
-        errorMessage: "Error while creating new group",
+      throw new ApiError(400, 'Error while creating new group', {
+        errorMessage: 'Error while creating new group',
       });
     }
 
@@ -283,8 +283,8 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
       await addedMember.save();
 
       if (!addedMember) {
-        throw new ApiError(400, "Error while adding new contact member", {
-          errorMessage: "Error while adding new contact member",
+        throw new ApiError(400, 'Error while adding new contact member', {
+          errorMessage: 'Error while adding new contact member',
         });
       }
     }
@@ -298,71 +298,71 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
       },
       {
         $lookup: {
-          from: "contacts",
-          localField: "contactId",
-          foreignField: "_id",
-          as: "group",
+          from: 'contacts',
+          localField: 'contactId',
+          foreignField: '_id',
+          as: 'group',
         },
       },
       {
-        $unwind: "$group",
+        $unwind: '$group',
       },
       {
         $match: {
-          "group.isGroup": true,
+          'group.isGroup': true,
         },
       },
       {
         $lookup: {
-          from: "contactmembers",
-          localField: "group._id",
-          foreignField: "contactId",
-          as: "members",
+          from: 'contactmembers',
+          localField: 'group._id',
+          foreignField: 'contactId',
+          as: 'members',
         },
       },
       {
-        $unwind: "$members",
+        $unwind: '$members',
       },
       {
         $lookup: {
-          from: "users",
-          localField: "members.userId",
-          foreignField: "_id",
-          as: "members.user",
+          from: 'users',
+          localField: 'members.userId',
+          foreignField: '_id',
+          as: 'members.user',
         },
       },
       {
         $addFields: {
-          "members.user": {
-            $first: ["$members.user"],
+          'members.user': {
+            $first: ['$members.user'],
           },
         },
       },
       {
         $group: {
-          _id: "$group._id",
-          isBlocked: { $first: "$isBlocked" },
-          isArchieved: { $first: "$isArchieved" },
-          isGroup: { $first: "$group.isGroup" },
-          groupName: { $first: "$group.groupName" },
-          avatar: { $first: "$group.groupAvatar" },
-          lastMessage: { $first: "$group.lastMessage" },
-          isGroup: { $first: "$group.isGroup" },
-          roomId: { $first: "$group.socketId" },
-          whoCanSend: { $first: "$group.whoCanSend" },
-          description: { $first: "$group.description" },
-          updatedAt: { $first: "$group.updatedAt" },
+          _id: '$group._id',
+          isBlocked: { $first: '$isBlocked' },
+          isArchieved: { $first: '$isArchieved' },
+          isGroup: { $first: '$group.isGroup' },
+          groupName: { $first: '$group.groupName' },
+          avatar: { $first: '$group.groupAvatar' },
+          lastMessage: { $first: '$group.lastMessage' },
+          isGroup: { $first: '$group.isGroup' },
+          roomId: { $first: '$group.socketId' },
+          whoCanSend: { $first: '$group.whoCanSend' },
+          description: { $first: '$group.description' },
+          updatedAt: { $first: '$group.updatedAt' },
           members: {
-            $push: "$members",
+            $push: '$members',
           },
         },
       },
       {
         $lookup: {
-          from: "messages",
-          localField: "contactId",
-          foreignField: "_id",
-          as: "messages",
+          from: 'messages',
+          localField: 'contactId',
+          foreignField: '_id',
+          as: 'messages',
         },
       },
       {
@@ -378,15 +378,15 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
           isGroup: 1,
           lastMessage: 1,
           updatedAt: 1,
-          "members._id": 1,
-          "members.isAdmin": 1,
-          "members.user._id": 1,
-          "members.user.userName": 1,
-          "members.user.searchTag": 1,
-          "members.user.socketId": 1,
-          "members.user.online": 1,
-          "members.user.email": 1,
-          "members.user.avatar": 1,
+          'members._id': 1,
+          'members.isAdmin': 1,
+          'members.user._id': 1,
+          'members.user.userName': 1,
+          'members.user.searchTag': 1,
+          'members.user.socketId': 1,
+          'members.user.online': 1,
+          'members.user.email': 1,
+          'members.user.avatar': 1,
         },
       },
     ]);
@@ -399,13 +399,13 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
       hasAttechment: false,
       attechmentType: null,
       attechmentId: null,
-      attechmentLink: "",
+      attechmentLink: '',
       callId: null,
-      callType: "",
+      callType: '',
       isCall: false,
       geoLoc: {
-        latitude: "0000",
-        longitude: "0000",
+        latitude: '0000',
+        longitude: '0000',
       },
     });
 
@@ -424,7 +424,7 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
           chatEventEnumNew.NEW_GROUP_CHAT,
           {
             newGroupDetails: newGroupDetails[0],
-          }
+          },
         );
       }
     }
@@ -435,12 +435,12 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
         {
           // newGroupDetails: newGroupDetails[0]
         },
-        "Group created successfully"
-      )
+        'Group created successfully',
+      ),
     );
   } catch (error) {
-    throw new ApiError(401, "Error while creating group chat ", {
-      errorMessage: "Error while creating group chat ",
+    throw new ApiError(401, 'Error while creating group chat ', {
+      errorMessage: 'Error while creating group chat ',
     });
   }
 });
@@ -453,16 +453,16 @@ const searchContacts = asyncHandler(async (req, resp) => {
     const user = req.user;
 
     if (!user) {
-      throw new ApiError(401, "Unautharized Request", {
-        errorMessage: "Unautharized Request",
+      throw new ApiError(401, 'Unautharized Request', {
+        errorMessage: 'Unautharized Request',
       });
     }
 
     const { searchKeyword } = req.body;
 
     if (!searchKeyword) {
-      throw new ApiError(400, "Search Keyword must required", {
-        errorMessage: "Search Keyword must required",
+      throw new ApiError(400, 'Search Keyword must required', {
+        errorMessage: 'Search Keyword must required',
       });
     }
 
@@ -471,7 +471,7 @@ const searchContacts = asyncHandler(async (req, resp) => {
         $match: {
           searchTag: {
             $regex: searchKeyword, // Adjust the regex pattern as needed
-            $options: "i",
+            $options: 'i',
           },
         },
       },
@@ -482,10 +482,10 @@ const searchContacts = asyncHandler(async (req, resp) => {
       },
       {
         $lookup: {
-          from: "contacts",
-          localField: "_id",
-          foreignField: "oneOnOne",
-          as: "contacts_list",
+          from: 'contacts',
+          localField: '_id',
+          foreignField: 'oneOnOne',
+          as: 'contacts_list',
         },
       },
       {
@@ -494,22 +494,22 @@ const searchContacts = asyncHandler(async (req, resp) => {
           avatar: 1,
           searchTag: 1,
           isOnline: 1,
-          "contacts_list.oneOnOne": 1,
-          "contacts_list.isGroup": {
-            $cond: [false, "$$REMOVE", "$contacts_list.isGroup"],
+          'contacts_list.oneOnOne': 1,
+          'contacts_list.isGroup': {
+            $cond: [false, '$$REMOVE', '$contacts_list.isGroup'],
           },
         },
       },
       {
         $addFields: {
           isContact: {
-            $first: "$contacts_list.isGroup",
+            $first: '$contacts_list.isGroup',
           },
         },
       },
       {
         $addFields: {
-          isContact: { $first: "$isContact" },
+          isContact: { $first: '$isContact' },
         },
       },
       {
@@ -519,12 +519,12 @@ const searchContacts = asyncHandler(async (req, resp) => {
               {
                 $size: {
                   $filter: {
-                    input: "$contacts_list",
-                    as: "contact",
+                    input: '$contacts_list',
+                    as: 'contact',
                     cond: {
                       $setEquals: [
-                        "$$contact.oneOnOne",
-                        ["$_id", new mongoose.Types.ObjectId(user._id)],
+                        '$$contact.oneOnOne',
+                        ['$_id', new mongoose.Types.ObjectId(user._id)],
                       ],
                     },
                   },
@@ -564,8 +564,8 @@ const searchContacts = asyncHandler(async (req, resp) => {
           new ApiResponse(
             300,
             { Contacts: search_Contacts },
-            "Contact not found with this keyword"
-          )
+            'Contact not found with this keyword',
+          ),
         );
     }
 
@@ -575,8 +575,8 @@ const searchContacts = asyncHandler(async (req, resp) => {
         new ApiResponse(
           200,
           { Users: search_Contacts },
-          "Here are search contacts"
-        )
+          'Here are search contacts',
+        ),
       );
   } catch (error) {}
 });
@@ -590,13 +590,13 @@ const blockContact = asyncHandler(async (req, resp) => {
     const user = req.user;
 
     if (!user) {
-      throw new ApiError(501, "Unauthraized request");
+      throw new ApiError(501, 'Unauthraized request');
     }
 
     const { contactId } = req.body;
 
     if (!contactId) {
-      throw new ApiError(400, "Contact id not found");
+      throw new ApiError(400, 'Contact id not found');
     }
 
     const contact = await ContactMember.findOne({
@@ -605,7 +605,7 @@ const blockContact = asyncHandler(async (req, resp) => {
     });
 
     if (!contact) {
-      throw new ApiError(400, "contact not found");
+      throw new ApiError(400, 'contact not found');
     }
 
     contact.isBlocked = true;
@@ -614,10 +614,10 @@ const blockContact = asyncHandler(async (req, resp) => {
     resp
       .status(201)
       .json(
-        new ApiResponse(200, { message: "blocked" }, "Blocked successfully")
+        new ApiResponse(200, { message: 'blocked' }, 'Blocked successfully'),
       );
   } catch (error) {
-    throw new ApiError(500, "error in block contact");
+    throw new ApiError(500, 'error in block contact');
   }
 });
 
@@ -626,13 +626,13 @@ const unblockContact = asyncHandler(async (req, resp) => {
     const user = req.user;
 
     if (!user) {
-      throw new ApiError(501, "Unauthrized Request");
+      throw new ApiError(501, 'Unauthrized Request');
     }
 
     const { contactId } = req.body;
 
     if (!contactId) {
-      throw new ApiError(400, "Contact id not found");
+      throw new ApiError(400, 'Contact id not found');
     }
 
     const contact = await ContactMember.findOne({
@@ -641,7 +641,7 @@ const unblockContact = asyncHandler(async (req, resp) => {
     });
 
     if (!contact) {
-      throw new ApiError(400, "contact not found");
+      throw new ApiError(400, 'contact not found');
     }
 
     contact.isBlocked = false;
@@ -652,12 +652,12 @@ const unblockContact = asyncHandler(async (req, resp) => {
       .json(
         new ApiResponse(
           200,
-          { message: "un blocked" },
-          "Un Blocked successfully"
-        )
+          { message: 'un blocked' },
+          'Un Blocked successfully',
+        ),
       );
   } catch (error) {
-    throw new ApiError(500, "error in unblock function");
+    throw new ApiError(500, 'error in unblock function');
   }
 });
 
@@ -666,13 +666,13 @@ const archieveContact = asyncHandler(async (req, resp) => {
     const user = req.user;
 
     if (!user) {
-      throw new ApiError(501, "Unauthrized Request");
+      throw new ApiError(501, 'Unauthrized Request');
     }
 
     const { contactId } = req.body;
 
     if (!contactId) {
-      throw new ApiError(400, "Contact id not found");
+      throw new ApiError(400, 'Contact id not found');
     }
 
     const contact = await ContactMember.findOne({
@@ -681,7 +681,7 @@ const archieveContact = asyncHandler(async (req, resp) => {
     });
 
     if (!contact) {
-      throw new ApiError(400, "contact not found");
+      throw new ApiError(400, 'contact not found');
     }
 
     contact.isArchieved = true;
@@ -690,10 +690,14 @@ const archieveContact = asyncHandler(async (req, resp) => {
     resp
       .status(201)
       .json(
-        new ApiResponse(200, { message: "archieved" }, "archieved successfully")
+        new ApiResponse(
+          200,
+          { message: 'archieved' },
+          'archieved successfully',
+        ),
       );
   } catch (error) {
-    throw new ApiError(500, "error in archieved function");
+    throw new ApiError(500, 'error in archieved function');
   }
 });
 
@@ -702,13 +706,13 @@ const unArchieveContact = asyncHandler(async (req, resp) => {
     const user = req.user;
 
     if (!user) {
-      throw new ApiError(501, "Unauthrized Request");
+      throw new ApiError(501, 'Unauthrized Request');
     }
 
     const { contactId } = req.body;
 
     if (!contactId) {
-      throw new ApiError(400, "Contact id not found");
+      throw new ApiError(400, 'Contact id not found');
     }
 
     const contact = await ContactMember.findOne({
@@ -717,7 +721,7 @@ const unArchieveContact = asyncHandler(async (req, resp) => {
     });
 
     if (!contact) {
-      throw new ApiError(400, "contact not found");
+      throw new ApiError(400, 'contact not found');
     }
 
     contact.isArchieved = false;
@@ -728,12 +732,12 @@ const unArchieveContact = asyncHandler(async (req, resp) => {
       .json(
         new ApiResponse(
           200,
-          { message: "un archieved" },
-          "unarchieved successfully"
-        )
+          { message: 'un archieved' },
+          'unarchieved successfully',
+        ),
       );
   } catch (error) {
-    throw new ApiError(500, "error in unarchieved function");
+    throw new ApiError(500, 'error in unarchieved function');
   }
 });
 
@@ -741,19 +745,19 @@ const addToGroup = asyncHandler(async (req, resp) => {
   const user = req.user;
 
   if (!user) {
-    throw new ApiError(501, "Unautharized request");
+    throw new ApiError(501, 'Unautharized request');
   }
 
   const { members, contactId } = req.body;
 
   if (!contactId || !members.length) {
-    throw new ApiError(400, "members or contactId not found");
+    throw new ApiError(400, 'members or contactId not found');
   }
 
   const group = await Contact.findById(contactId);
 
   if (!group) {
-    throw new ApiError(400, "contact not found");
+    throw new ApiError(400, 'contact not found');
   }
 
   for (let val of members) {
@@ -783,76 +787,76 @@ const addToGroup = asyncHandler(async (req, resp) => {
         },
         {
           $lookup: {
-            from: "contacts",
-            localField: "contactId",
-            foreignField: "_id",
-            as: "group",
+            from: 'contacts',
+            localField: 'contactId',
+            foreignField: '_id',
+            as: 'group',
           },
         },
         {
-          $unwind: "$group",
+          $unwind: '$group',
         },
         {
           $match: {
-            "group.isGroup": true,
+            'group.isGroup': true,
           },
         },
         {
           $lookup: {
-            from: "contactmembers",
-            localField: "group._id",
-            foreignField: "contactId",
-            as: "members",
+            from: 'contactmembers',
+            localField: 'group._id',
+            foreignField: 'contactId',
+            as: 'members',
           },
         },
         {
-          $unwind: "$members",
+          $unwind: '$members',
         },
         {
           $lookup: {
-            from: "users",
-            localField: "members.userId",
-            foreignField: "_id",
-            as: "members.user",
+            from: 'users',
+            localField: 'members.userId',
+            foreignField: '_id',
+            as: 'members.user',
           },
         },
         {
           $addFields: {
-            "members.user": {
-              $first: ["$members.user"],
+            'members.user': {
+              $first: ['$members.user'],
             },
           },
         },
         {
           $match: {
-            "members.isBlocked": false,
+            'members.isBlocked': false,
           },
         },
         {
           $group: {
-            _id: "$group._id",
-            isBlocked: { $first: "$isBlocked" },
-            isArchieved: { $first: "$isArchieved" },
-            isGroup: { $first: "$group.isGroup" },
-            groupName: { $first: "$group.groupName" },
-            avatar: { $first: "$group.groupAvatar" },
-            lastMessage: { $first: "$group.lastMessage" },
-            isGroup: { $first: "$group.isGroup" },
-            roomId: { $first: "$group.socketId" },
-            whoCanSend: { $first: "$group.whoCanSend" },
-            description: { $first: "$group.description" },
-            updatedAt: { $first: "$group.updatedAt" },
+            _id: '$group._id',
+            isBlocked: { $first: '$isBlocked' },
+            isArchieved: { $first: '$isArchieved' },
+            isGroup: { $first: '$group.isGroup' },
+            groupName: { $first: '$group.groupName' },
+            avatar: { $first: '$group.groupAvatar' },
+            lastMessage: { $first: '$group.lastMessage' },
+            isGroup: { $first: '$group.isGroup' },
+            roomId: { $first: '$group.socketId' },
+            whoCanSend: { $first: '$group.whoCanSend' },
+            description: { $first: '$group.description' },
+            updatedAt: { $first: '$group.updatedAt' },
             members: {
-              $push: "$members",
+              $push: '$members',
             },
           },
         },
         {
           $lookup: {
-            from: "messages",
-            localField: "contactId",
-            foreignField: "_id",
-            as: "messages",
+            from: 'messages',
+            localField: 'contactId',
+            foreignField: '_id',
+            as: 'messages',
           },
         },
         {
@@ -868,15 +872,15 @@ const addToGroup = asyncHandler(async (req, resp) => {
             isGroup: 1,
             lastMessage: 1,
             updatedAt: 1,
-            "members._id": 1,
-            "members.isAdmin": 1,
-            "members.user._id": 1,
-            "members.user.userName": 1,
-            "members.user.searchTag": 1,
-            "members.user.socketId": 1,
-            "members.user.online": 1,
-            "members.user.email": 1,
-            "members.user.avatar": 1,
+            'members._id': 1,
+            'members.isAdmin': 1,
+            'members.user._id': 1,
+            'members.user.userName': 1,
+            'members.user.searchTag': 1,
+            'members.user.socketId': 1,
+            'members.user.online': 1,
+            'members.user.email': 1,
+            'members.user.avatar': 1,
           },
         },
       ]);
@@ -885,30 +889,31 @@ const addToGroup = asyncHandler(async (req, resp) => {
         emiterSocket(req, reciver.socketId, chatEventEnumNew.NEW_GROUP_CHAT, {
           newGroupDetails: groupDetails[0],
         });
-      } else {}
+      } else {
+      }
     }
   }
 
-  resp.status(201).json(new ApiResponse(201, {}, "Added to Chat"));
+  resp.status(201).json(new ApiResponse(201, {}, 'Added to Chat'));
 });
 
 const kickOutFromGroup = asyncHandler(async (req, resp) => {
   const user = req.user;
 
   if (!user) {
-    throw new ApiError(501, "Unautharized request");
+    throw new ApiError(501, 'Unautharized request');
   }
 
   const { contactId, memberId } = req.body;
 
   if (!contactId || !memberId) {
-    throw new ApiError(400, "Contact Id not found");
+    throw new ApiError(400, 'Contact Id not found');
   }
 
   const contact = await Contact.findById(contactId);
 
   if (!contact) {
-    throw new ApiError(400, "Contact not found");
+    throw new ApiError(400, 'Contact not found');
   }
 
   const isUserInChat = await ContactMember.findOne({
@@ -917,7 +922,7 @@ const kickOutFromGroup = asyncHandler(async (req, resp) => {
   });
 
   if (!isUserInChat.isAdmin) {
-    throw new ApiError(400, "Not a member or not a admin");
+    throw new ApiError(400, 'Not a member or not a admin');
   }
 
   const member = await ContactMember.findOne({
@@ -926,7 +931,7 @@ const kickOutFromGroup = asyncHandler(async (req, resp) => {
   });
 
   if (!member._id) {
-    throw new ApiError(400, "Member not found in Group");
+    throw new ApiError(400, 'Member not found in Group');
   }
   member.isBlocked = true;
   await member.save();
@@ -941,76 +946,76 @@ const kickOutFromGroup = asyncHandler(async (req, resp) => {
     },
     {
       $lookup: {
-        from: "contacts",
-        localField: "contactId",
-        foreignField: "_id",
-        as: "group",
+        from: 'contacts',
+        localField: 'contactId',
+        foreignField: '_id',
+        as: 'group',
       },
     },
     {
-      $unwind: "$group",
+      $unwind: '$group',
     },
     {
       $match: {
-        "group.isGroup": true,
+        'group.isGroup': true,
       },
     },
     {
       $lookup: {
-        from: "contactmembers",
-        localField: "group._id",
-        foreignField: "contactId",
-        as: "members",
+        from: 'contactmembers',
+        localField: 'group._id',
+        foreignField: 'contactId',
+        as: 'members',
       },
     },
     {
-      $unwind: "$members",
+      $unwind: '$members',
     },
     {
       $lookup: {
-        from: "users",
-        localField: "members.userId",
-        foreignField: "_id",
-        as: "members.user",
+        from: 'users',
+        localField: 'members.userId',
+        foreignField: '_id',
+        as: 'members.user',
       },
     },
     {
       $addFields: {
-        "members.user": {
-          $first: ["$members.user"],
+        'members.user': {
+          $first: ['$members.user'],
         },
       },
     },
     {
       $match: {
-        "members.isBlocked": false,
+        'members.isBlocked': false,
       },
     },
     {
       $group: {
-        _id: "$group._id",
-        isBlocked: { $first: "$isBlocked" },
-        isArchieved: { $first: "$isArchieved" },
-        isGroup: { $first: "$group.isGroup" },
-        groupName: { $first: "$group.groupName" },
-        avatar: { $first: "$group.groupAvatar" },
-        lastMessage: { $first: "$group.lastMessage" },
-        isGroup: { $first: "$group.isGroup" },
-        roomId: { $first: "$group.socketId" },
-        whoCanSend: { $first: "$group.whoCanSend" },
-        description: { $first: "$group.description" },
-        updatedAt: { $first: "$group.updatedAt" },
+        _id: '$group._id',
+        isBlocked: { $first: '$isBlocked' },
+        isArchieved: { $first: '$isArchieved' },
+        isGroup: { $first: '$group.isGroup' },
+        groupName: { $first: '$group.groupName' },
+        avatar: { $first: '$group.groupAvatar' },
+        lastMessage: { $first: '$group.lastMessage' },
+        isGroup: { $first: '$group.isGroup' },
+        roomId: { $first: '$group.socketId' },
+        whoCanSend: { $first: '$group.whoCanSend' },
+        description: { $first: '$group.description' },
+        updatedAt: { $first: '$group.updatedAt' },
         members: {
-          $push: "$members",
+          $push: '$members',
         },
       },
     },
     {
       $lookup: {
-        from: "messages",
-        localField: "contactId",
-        foreignField: "_id",
-        as: "messages",
+        from: 'messages',
+        localField: 'contactId',
+        foreignField: '_id',
+        as: 'messages',
       },
     },
     {
@@ -1026,15 +1031,15 @@ const kickOutFromGroup = asyncHandler(async (req, resp) => {
         isGroup: 1,
         lastMessage: 1,
         updatedAt: 1,
-        "members._id": 1,
-        "members.isAdmin": 1,
-        "members.user._id": 1,
-        "members.user.userName": 1,
-        "members.user.searchTag": 1,
-        "members.user.socketId": 1,
-        "members.user.online": 1,
-        "members.user.email": 1,
-        "members.user.avatar": 1,
+        'members._id': 1,
+        'members.isAdmin': 1,
+        'members.user._id': 1,
+        'members.user.userName': 1,
+        'members.user.searchTag': 1,
+        'members.user.socketId': 1,
+        'members.user.online': 1,
+        'members.user.email': 1,
+        'members.user.avatar': 1,
       },
     },
   ]);
@@ -1042,7 +1047,7 @@ const kickOutFromGroup = asyncHandler(async (req, resp) => {
   const kickedUser = await User.findById(member.userId);
 
   if (!kickedUser) {
-    throw new ApiError(400, "User Blocked But not found");
+    throw new ApiError(400, 'User Blocked But not found');
   }
 
   if (kickedUser.online) {
@@ -1057,37 +1062,37 @@ const kickOutFromGroup = asyncHandler(async (req, resp) => {
         req,
         member.user.socketId,
         chatEventEnumNew.KICKED_OUT_MEMBER,
-        { updatedGroup: groupDetails }
+        { updatedGroup: groupDetails },
       );
     }
   }
 
-  resp.status(201).json(new ApiResponse(201, {}, "Member Removed From Chat"));
+  resp.status(201).json(new ApiResponse(201, {}, 'Member Removed From Chat'));
 });
 
 const changeAvatar = asyncHandler(async (req, resp) => {
   const user = req.user;
 
   if (!user) {
-    throw new ApiError(501, "Unautharized request");
+    throw new ApiError(501, 'Unautharized request');
   }
 
   const { contactId } = req.body;
 
   if (!contactId) {
-    throw new ApiError(501, "ContactId not found");
+    throw new ApiError(501, 'ContactId not found');
   }
 
   const myUser = await User.findById(user._id);
 
   if (!myUser) {
-    throw new ApiError(501, "Unautharized request");
+    throw new ApiError(501, 'Unautharized request');
   }
 
   const group = await Contact.findById(contactId);
 
   if (!group) {
-    throw new ApiError(400, "Group not found");
+    throw new ApiError(400, 'Group not found');
   }
 
   const isAdmin = await ContactMember.findOne({
@@ -1096,13 +1101,13 @@ const changeAvatar = asyncHandler(async (req, resp) => {
   });
 
   if (!isAdmin.isAdmin) {
-    throw new ApiError(400, "User not Admin");
+    throw new ApiError(400, 'User not Admin');
   }
 
   const path = req.file.path;
 
   if (!path) {
-    throw new ApiError(501, "path not found request");
+    throw new ApiError(501, 'path not found request');
   }
 
   if (group.public_id_avatar) {
@@ -1119,7 +1124,7 @@ const changeAvatar = asyncHandler(async (req, resp) => {
   const updatedGroup = await Contact.findById(group._id);
 
   if (!updatedGroup) {
-    throw new ApiError(501, "Internal server error contact not updated");
+    throw new ApiError(501, 'Internal server error contact not updated');
   }
 
   resp
@@ -1131,19 +1136,19 @@ const upload = asyncHandler(async (req, resp) => {
   const user = req.user;
 
   if (!user) {
-    throw new ApiError(501, "Unautharized request");
+    throw new ApiError(501, 'Unautharized request');
   }
 
   const myUser = await User.findById(user._id);
 
   if (!myUser) {
-    throw new ApiError(501, "Unautharized request");
+    throw new ApiError(501, 'Unautharized request');
   }
 
   const path = req.file.path;
 
   if (!path) {
-    throw new ApiError(501, "path not found request");
+    throw new ApiError(501, 'path not found request');
   }
 
   const upload_resp = await uploadToCloudinary(path);
@@ -1152,7 +1157,7 @@ const upload = asyncHandler(async (req, resp) => {
     new ApiResponse(201, {
       avatar: upload_resp.url,
       public_id: upload_resp.public_id,
-    })
+    }),
   );
 });
 
@@ -1162,22 +1167,22 @@ const joinChat = asyncHandler(async (req, resp) => {
     const user = req.user;
 
     if (!user) {
-      throw new ApiError(401, "Unautharized request", {
-        errorMessage: "Unautharized request",
+      throw new ApiError(401, 'Unautharized request', {
+        errorMessage: 'Unautharized request',
       });
     }
 
     const User = await User.findById(user._id);
 
     if (!User) {
-      throw new ApiError(401, "Unautharized request", {
-        errorMessage: "Unautharized request",
+      throw new ApiError(401, 'Unautharized request', {
+        errorMessage: 'Unautharized request',
       });
     }
 
     const {} = req.body;
   } catch (error) {
-    throw new ApiError(500, "Error in join room event");
+    throw new ApiError(500, 'Error in join room event');
   }
 });
 

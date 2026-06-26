@@ -1,21 +1,21 @@
-require("dotenv").config();
+require('dotenv').config();
 
-const jwt = require("jsonwebtoken");
-const asyncHandler = require("../utils/asyncHandler.utils");
-const ApiError = require("../utils/ApiError.utils");
-const ApiResponse = require("../utils/ApiResponse.utils");
-const generateTokens = require("../utils/generateTokens.utils");
-const { Options } = require("../constants");
+const jwt = require('jsonwebtoken');
+const asyncHandler = require('../utils/asyncHandler.utils');
+const ApiError = require('../utils/ApiError.utils');
+const ApiResponse = require('../utils/ApiResponse.utils');
+const generateTokens = require('../utils/generateTokens.utils');
+const { Options } = require('../constants');
 
-const User = require("../models/user.model");
-const ContactMember = require("../models/contactMember.model");
-const { default: mongoose } = require("mongoose");
-const Contact = require("../models/contacts.model");
-const Logins = require("../models/login.model");
+const User = require('../models/user.model');
+const ContactMember = require('../models/contactMember.model');
+const { default: mongoose } = require('mongoose');
+const Contact = require('../models/contacts.model');
+const Logins = require('../models/login.model');
 const {
   removeFromCloudinary,
   uploadToCloudinary,
-} = require("../utils/cloudinary.utils");
+} = require('../utils/cloudinary.utils');
 
 /**
  * @description these function will pre check the searchTag and Email Avilability
@@ -24,34 +24,33 @@ const {
 const liveCheckTagSignup = asyncHandler(async (req, resp) => {
   const { searchTag } = req.body;
   if (!searchTag) {
-    throw new ApiError(400, "Must proive search tag");
+    throw new ApiError(400, 'Must proive search tag');
   }
 
   const isUserExists = await User.findOne({ searchTag });
 
-  console.log(isUserExists)
+  console.log(isUserExists);
 
   if (isUserExists?._id) {
-    throw new ApiError(204, "search tag already taken", {
+    throw new ApiError(204, 'search tag already taken', {
       success: false,
-      message: "search tag already taken",
+      message: 'search tag already taken',
     });
   }
 
-
   resp.status(200).json(
-    new ApiResponse(200, "tag is avilable", {
+    new ApiResponse(200, 'tag is avilable', {
       success: true,
-      message: "name Avilable",
-    })
+      message: 'name Avilable',
+    }),
   );
 });
 
 const liveCheckMailSignup = asyncHandler(async (req, resp) => {
   const { email } = req.body;
-  
+
   if (!email) {
-    throw new ApiError(400, "Must proive email", {
+    throw new ApiError(400, 'Must proive email', {
       isError: true,
     });
   }
@@ -59,13 +58,13 @@ const liveCheckMailSignup = asyncHandler(async (req, resp) => {
   const isUserExists = await User.exists({ email });
 
   if (isUserExists) {
-    throw new ApiError(401, "this email is not avilable", {
+    throw new ApiError(401, 'this email is not avilable', {
       isError: false,
-      resp_message: "An account already existed with this email",
+      resp_message: 'An account already existed with this email',
     });
   }
 
-  resp.status(200).json(new ApiResponse(200, "email is avilable", {}));
+  resp.status(200).json(new ApiResponse(200, 'email is avilable', {}));
 });
 
 /**
@@ -74,7 +73,7 @@ const liveCheckMailSignup = asyncHandler(async (req, resp) => {
 const liveCheckTagMailLogin = asyncHandler(async (req, resp) => {
   const { searchTag } = req.body;
   if (!searchTag) {
-    throw new ApiError(400, "Must proive search tag");
+    throw new ApiError(400, 'Must proive search tag');
   }
 
   const isUserExists = await User.exists({
@@ -89,12 +88,12 @@ const liveCheckTagMailLogin = asyncHandler(async (req, resp) => {
   });
 
   if (!isUserExists) {
-    throw new ApiError(401, "user with this email and search tag not found", {
-      errorMessege: "user with this email and search tag not found",
+    throw new ApiError(401, 'user with this email and search tag not found', {
+      errorMessege: 'user with this email and search tag not found',
     });
   }
 
-  resp.status(200).json(new ApiResponse(200, "valid user", {}));
+  resp.status(200).json(new ApiResponse(200, 'valid user', {}));
 });
 
 /**
@@ -105,13 +104,8 @@ const signUp = asyncHandler(async (req, resp) => {
     const { userName, searchTag, email, password, longitude, latitude } =
       req.body;
 
-    if (
-      !userName ||
-      !searchTag ||
-      !email ||
-      !password
-    ) {
-      throw new ApiError(401, "all data must required :");
+    if (!userName || !searchTag || !email || !password) {
+      throw new ApiError(401, 'all data must required :');
     }
 
     const isUserExistsWithThisMail = await User.exists({
@@ -119,8 +113,8 @@ const signUp = asyncHandler(async (req, resp) => {
     });
 
     if (isUserExistsWithThisMail) {
-      throw new ApiError(400, "An User Already Exists With Email", {
-        errorMessege: "an user already exists with this email",
+      throw new ApiError(400, 'An User Already Exists With Email', {
+        errorMessege: 'an user already exists with this email',
       });
     }
 
@@ -130,31 +124,31 @@ const signUp = asyncHandler(async (req, resp) => {
       email,
       password,
       online: true,
-      longitude: longitude || "0000",
-      latitude: latitude || "0000"
+      longitude: longitude || '0000',
+      latitude: latitude || '0000',
     });
 
     await newUser.save();
 
     if (!newUser) {
-      throw new ApiError(501, "error while saving the user in database");
+      throw new ApiError(501, 'error while saving the user in database');
     }
 
     const { newRefreshToken, newAccessToken } = await generateTokens(
-      newUser._id
+      newUser._id,
     );
 
     if (!newRefreshToken || !newAccessToken) {
-      throw new ApiError(501, "new Token not found");
+      throw new ApiError(501, 'new Token not found');
     }
 
     const decodedToken = jwt.verify(
       newAccessToken,
-      process.env.ACCESS_TOKEN_SECRET
+      process.env.ACCESS_TOKEN_SECRET,
     );
 
     if (!decodedToken) {
-      throw new ApiError(501, "Somthing went wrong with decoded token");
+      throw new ApiError(501, 'Somthing went wrong with decoded token');
     }
 
     const updatedUser = await User.findByIdAndUpdate(decodedToken._id, {
@@ -162,10 +156,10 @@ const signUp = asyncHandler(async (req, resp) => {
         refreshToken: newRefreshToken,
         online: false,
       },
-    }).select("-password -refreshToken");
+    }).select('-password -refreshToken');
 
     if (!updatedUser) {
-      throw new ApiError(501, "Error while setting refreshToken to userDB");
+      throw new ApiError(501, 'Error while setting refreshToken to userDB');
     }
 
     // const location = navigator.geolocation()
@@ -191,14 +185,14 @@ const signUp = asyncHandler(async (req, resp) => {
 
     const newLogin = new Logins({
       userId: newUser._id,
-    })
+    });
 
-    await newLogin.save()
+    await newLogin.save();
 
     resp
       .status(200)
-      .cookie("accessToken", newAccessToken, Options)
-      .cookie("refreshToken", newRefreshToken, Options)
+      .cookie('accessToken', newAccessToken, Options)
+      .cookie('refreshToken', newRefreshToken, Options)
       .json(
         new ApiResponse(
           201,
@@ -206,17 +200,17 @@ const signUp = asyncHandler(async (req, resp) => {
             User: finalUser,
             accessToken: newAccessToken,
           },
-          "Registration Successful"
-        )
+          'Registration Successful',
+        ),
       );
-  } catch (error) { }
+  } catch (error) {}
 });
 
 const logIn = asyncHandler(async (req, resp) => {
   const { searchTag, password, longitude, latitude } = req.body;
 
   if (!searchTag || !password) {
-    throw new ApiError(400, "All data must required");
+    throw new ApiError(400, 'All data must required');
   }
 
   const user = await User.findOne({
@@ -231,30 +225,30 @@ const logIn = asyncHandler(async (req, resp) => {
   });
 
   if (!user) {
-    throw new ApiError(401, "User Not Found", { type: "user_not_found" });
+    throw new ApiError(401, 'User Not Found', { type: 'user_not_found' });
   }
 
   const isPasswordCorrect = await user.isPasswordCorect(password);
 
   if (!isPasswordCorrect) {
-    throw new ApiError(501, "Password incorrect ", {
-      errorMessege: "Incorrect Password",
+    throw new ApiError(501, 'Password incorrect ', {
+      errorMessege: 'Incorrect Password',
     });
   }
 
   const { newAccessToken, newRefreshToken } = await generateTokens(user._id);
 
   if (!newRefreshToken || !newAccessToken) {
-    throw new ApiError(501, "new Token not found");
+    throw new ApiError(501, 'new Token not found');
   }
 
   const decodedToken = jwt.verify(
     newAccessToken,
-    process.env.ACCESS_TOKEN_SECRET
+    process.env.ACCESS_TOKEN_SECRET,
   );
 
   if (!decodedToken) {
-    throw new ApiError(501, "Error in decoded Token");
+    throw new ApiError(501, 'Error in decoded Token');
   }
 
   const updatedUser = await User.findByIdAndUpdate(decodedToken._id, {
@@ -262,10 +256,10 @@ const logIn = asyncHandler(async (req, resp) => {
     online: true,
     longitude,
     latitude,
-  }).select("-password -refreshToken");
+  }).select('-password -refreshToken');
 
   if (!updatedUser) {
-    throw new ApiError(400, "Error while updating user");
+    throw new ApiError(400, 'Error while updating user');
   }
 
   const finalUser = await User.aggregate([
@@ -298,20 +292,20 @@ const logIn = asyncHandler(async (req, resp) => {
     },
     {
       $lookup: {
-        from: "contactmembers",
-        localField: "_id",
-        foreignField: "contactId",
-        as: "members",
+        from: 'contactmembers',
+        localField: '_id',
+        foreignField: 'contactId',
+        as: 'members',
       },
     },
     {
       $addFields: {
         member: {
           $filter: {
-            input: "$members",
-            as: "member",
+            input: '$members',
+            as: 'member',
             cond: {
-              $ne: ["$$member.userId", user._id],
+              $ne: ['$$member.userId', user._id],
             },
           },
         },
@@ -319,21 +313,21 @@ const logIn = asyncHandler(async (req, resp) => {
     },
     {
       $lookup: {
-        from: "users",
-        localField: "member.userId",
-        foreignField: "_id",
-        as: "member.user",
+        from: 'users',
+        localField: 'member.userId',
+        foreignField: '_id',
+        as: 'member.user',
       },
     },
     {
-      $unwind: "$member.user",
+      $unwind: '$member.user',
     },
     {
       $lookup: {
-        from: "messages",
-        localField: "_id",
-        foreignField: "contactId",
-        as: "messages",
+        from: 'messages',
+        localField: '_id',
+        foreignField: 'contactId',
+        as: 'messages',
       },
     },
     {
@@ -343,22 +337,22 @@ const logIn = asyncHandler(async (req, resp) => {
         updatedAt: 1,
         socketId: 1,
         messages: 1,
-        "member._id": 1,
-        "member.isArchieved": 1,
-        "member.user._id": 1,
-        "member.user.userName": 1,
-        "member.user.searchTag": 1,
-        "member.user.socketId": 1,
-        "member.user.email": 1,
-        "member.user.avatar": 1,
-        "member.user.online": 1,
+        'member._id': 1,
+        'member.isArchieved': 1,
+        'member.user._id': 1,
+        'member.user.userName': 1,
+        'member.user.searchTag': 1,
+        'member.user.socketId': 1,
+        'member.user.email': 1,
+        'member.user.avatar': 1,
+        'member.user.online': 1,
       },
     },
     {
       $addFields: {
         messages: {
           $sortArray: {
-            input: "$messages",
+            input: '$messages',
             sortBy: { createdAt: 1 }, // 1 = ascending (oldest first)
           },
         },
@@ -366,7 +360,7 @@ const logIn = asyncHandler(async (req, resp) => {
     },
     {
       $sort: {
-        "messages.createdAt": 1,
+        'messages.createdAt': 1,
       },
     },
   ]);
@@ -381,20 +375,20 @@ const logIn = asyncHandler(async (req, resp) => {
     },
     {
       $lookup: {
-        from: "contactmembers",
-        localField: "_id",
-        foreignField: "contactId",
-        as: "members",
+        from: 'contactmembers',
+        localField: '_id',
+        foreignField: 'contactId',
+        as: 'members',
       },
     },
     {
       $addFields: {
         member: {
           $filter: {
-            input: "$members",
-            as: "member",
+            input: '$members',
+            as: 'member',
             cond: {
-              $ne: ["$$member.userId", user._id],
+              $ne: ['$$member.userId', user._id],
             },
           },
         },
@@ -402,31 +396,31 @@ const logIn = asyncHandler(async (req, resp) => {
     },
     {
       $lookup: {
-        from: "users",
-        localField: "member.userId",
-        foreignField: "_id",
-        as: "member.user",
+        from: 'users',
+        localField: 'member.userId',
+        foreignField: '_id',
+        as: 'member.user',
       },
     },
     {
-      $unwind: "$member.user",
+      $unwind: '$member.user',
     },
     {
       $lookup: {
-        from: "messages",
-        localField: "_id",
-        foreignField: "contactId",
-        as: "messages",
+        from: 'messages',
+        localField: '_id',
+        foreignField: 'contactId',
+        as: 'messages',
       },
     },
     {
-      $unwind: "$members",
+      $unwind: '$members',
     },
     {
       $group: {
-        _id: "$_id",
+        _id: '$_id',
         isArchieved: {
-          $first: "$members.isArchieved",
+          $first: '$members.isArchieved',
         },
       },
     },
@@ -441,13 +435,13 @@ const logIn = asyncHandler(async (req, resp) => {
 
   archivedContactIds.forEach((item) => {
     const newArchivedcontact = contacts.filter(
-      (con) => con._id.toString() === item._id.toString()
+      (con) => con._id.toString() === item._id.toString(),
     );
 
     if (contacts.length) {
       archivedContacts.push(newArchivedcontact[0]);
       contacts = contacts.filter(
-        (con) => con._id.toString() !== item._id.toString()
+        (con) => con._id.toString() !== item._id.toString(),
       );
     }
   });
@@ -464,99 +458,99 @@ const logIn = asyncHandler(async (req, resp) => {
     },
     {
       $lookup: {
-        from: "contacts",
-        localField: "contactId",
-        foreignField: "_id",
-        as: "group",
+        from: 'contacts',
+        localField: 'contactId',
+        foreignField: '_id',
+        as: 'group',
       },
     },
     {
-      $unwind: "$group",
+      $unwind: '$group',
     },
     {
       $match: {
-        "group.isGroup": true,
+        'group.isGroup': true,
       },
     },
     {
       $lookup: {
-        from: "contactmembers",
-        localField: "group._id",
-        foreignField: "contactId",
-        as: "members",
+        from: 'contactmembers',
+        localField: 'group._id',
+        foreignField: 'contactId',
+        as: 'members',
       },
     },
     {
-      $unwind: "$members",
+      $unwind: '$members',
     },
     {
       $match: {
-        "members.isBlocked": false,
+        'members.isBlocked': false,
       },
     },
     {
       $lookup: {
-        from: "users",
-        localField: "members.userId",
-        foreignField: "_id",
-        as: "members.user",
+        from: 'users',
+        localField: 'members.userId',
+        foreignField: '_id',
+        as: 'members.user',
       },
     },
     {
       $addFields: {
-        "members.user": {
-          $first: ["$members.user"],
+        'members.user': {
+          $first: ['$members.user'],
         },
       },
     },
     {
       $lookup: {
-        from: "messages",
-        localField: "group._id",
-        foreignField: "contactId",
-        as: "messages",
+        from: 'messages',
+        localField: 'group._id',
+        foreignField: 'contactId',
+        as: 'messages',
       },
     },
     {
-      $unwind: "$messages",
+      $unwind: '$messages',
     },
     {
       $sort: {
-        "messages.createdAt": 1,
+        'messages.createdAt': 1,
       },
     },
     {
       $lookup: {
-        from: "users",
-        localField: "messages.userId",
-        foreignField: "_id",
-        as: "messages.sender",
+        from: 'users',
+        localField: 'messages.userId',
+        foreignField: '_id',
+        as: 'messages.sender',
       },
     },
     {
       $addFields: {
-        "messages.sender": {
-          $first: ["$messages.sender"],
+        'messages.sender': {
+          $first: ['$messages.sender'],
         },
       },
     },
     {
       $group: {
-        _id: "$group._id",
-        isBlocked: { $first: "$isBlocked" },
-        isArchieved: { $first: "$isArchieved" },
-        isGroup: { $first: "$group.isGroup" },
-        groupName: { $first: "$group.groupName" },
-        avatar: { $first: "$group.groupAvatar" },
-        messages: { $addToSet: "$messages" },
-        lastMessage: { $first: "$group.lastMessage" },
-        isGroup: { $first: "$group.isGroup" },
-        roomId: { $first: "$group.socketId" },
-        whoCanSend: { $first: "$group.whoCanSend" },
-        description: { $first: "$group.description" },
-        updatedAt: { $first: "$group.updatedAt" },
+        _id: '$group._id',
+        isBlocked: { $first: '$isBlocked' },
+        isArchieved: { $first: '$isArchieved' },
+        isGroup: { $first: '$group.isGroup' },
+        groupName: { $first: '$group.groupName' },
+        avatar: { $first: '$group.groupAvatar' },
+        messages: { $addToSet: '$messages' },
+        lastMessage: { $first: '$group.lastMessage' },
+        isGroup: { $first: '$group.isGroup' },
+        roomId: { $first: '$group.socketId' },
+        whoCanSend: { $first: '$group.whoCanSend' },
+        description: { $first: '$group.description' },
+        updatedAt: { $first: '$group.updatedAt' },
         members: {
-          $addToSet: "$members",
+          $addToSet: '$members',
         },
       },
     },
@@ -573,37 +567,37 @@ const logIn = asyncHandler(async (req, resp) => {
         isGroup: 1,
         lastMessage: 1,
         updatedAt: 1,
-        "members._id": 1,
-        "members.isAdmin": 1,
-        "members.user._id": 1,
-        "members.user.userId": 1,
-        "members.user.userName": 1,
-        "members.user.searchTag": 1,
-        "members.user.socketId": 1,
-        "members.user.online": 1,
-        "members.user.email": 1,
-        "members.user.avatar": 1,
-        "messages._id": 1,
-        "messages.message": 1,
-        "messages.hasAttechment": 1,
-        "messages.pending": 1,
-        "messages.attechmentLink": 1,
-        "messages.attechmentType": 1,
-        "messages.isCall": 1,
-        "messages.callType": 1,
-        "messages.createdAt": 1,
-        "messages.isDeleted": 1,
-        "messages.readBy": 1,
-        "messages.sender._id": 1,
-        "messages.sender.searchTag": 1,
-        "messages.sender.avatar": 1,
+        'members._id': 1,
+        'members.isAdmin': 1,
+        'members.user._id': 1,
+        'members.user.userId': 1,
+        'members.user.userName': 1,
+        'members.user.searchTag': 1,
+        'members.user.socketId': 1,
+        'members.user.online': 1,
+        'members.user.email': 1,
+        'members.user.avatar': 1,
+        'messages._id': 1,
+        'messages.message': 1,
+        'messages.hasAttechment': 1,
+        'messages.pending': 1,
+        'messages.attechmentLink': 1,
+        'messages.attechmentType': 1,
+        'messages.isCall': 1,
+        'messages.callType': 1,
+        'messages.createdAt': 1,
+        'messages.isDeleted': 1,
+        'messages.readBy': 1,
+        'messages.sender._id': 1,
+        'messages.sender.searchTag': 1,
+        'messages.sender.avatar': 1,
       },
     },
     {
       $addFields: {
         messages: {
           $sortArray: {
-            input: "$messages",
+            input: '$messages',
             sortBy: { createdAt: 1 }, // 1 = ascending (oldest first)
           },
         },
@@ -611,7 +605,7 @@ const logIn = asyncHandler(async (req, resp) => {
     },
     {
       $sort: {
-        "messages.createdAt": 1,
+        'messages.createdAt': 1,
       },
     },
   ]);
@@ -619,21 +613,21 @@ const logIn = asyncHandler(async (req, resp) => {
   finalUser[0].groups = groups;
 
   const newLogin = new Logins({
-      userId: updatedUser._id,
-    })
+    userId: updatedUser._id,
+  });
 
   await newLogin.save();
 
   resp
     .status(201)
-    .cookie("accessToken", newAccessToken, Options)
-    .cookie("refreshToken", newRefreshToken, Options)
+    .cookie('accessToken', newAccessToken, Options)
+    .cookie('refreshToken', newRefreshToken, Options)
     .json(
       new ApiResponse(
         201,
         { User: finalUser[0], accessToken: newAccessToken },
-        "User logged in"
-      )
+        'User logged in',
+      ),
     );
 });
 
@@ -641,15 +635,15 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
   const user = req.user;
 
   if (!user) {
-    throw new ApiError(400, "User not already logged in", {
-      errorMessege: "User not already logged in",
+    throw new ApiError(400, 'User not already logged in', {
+      errorMessege: 'User not already logged in',
     });
   }
 
   const { longitude, latitude } = req.body;
 
   if (!longitude || !latitude) {
-    throw new ApiError(401, "Location not found");
+    throw new ApiError(401, 'Location not found');
   }
 
   const isUserExists = await User.exists({
@@ -657,24 +651,24 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
   });
 
   if (!isUserExists) {
-    throw new ApiError(400, "User not found", {
-      errorMessege: "User not found",
+    throw new ApiError(400, 'User not found', {
+      errorMessege: 'User not found',
     });
   }
 
   const { newAccessToken, newRefreshToken } = await generateTokens(user._id);
 
   if (!newRefreshToken || !newAccessToken) {
-    throw new ApiError(501, "new Token not found");
+    throw new ApiError(501, 'new Token not found');
   }
 
   const decodedToken = jwt.verify(
     newAccessToken,
-    process.env.ACCESS_TOKEN_SECRET
+    process.env.ACCESS_TOKEN_SECRET,
   );
 
   if (!decodedToken) {
-    throw new ApiError(501, "Error in decoded Token");
+    throw new ApiError(501, 'Error in decoded Token');
   }
 
   const updatedUser = await User.findByIdAndUpdate(decodedToken._id, {
@@ -685,7 +679,7 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
   });
 
   if (!updatedUser) {
-    throw new ApiError(400, "Error while updating user");
+    throw new ApiError(400, 'Error while updating user');
   }
 
   const finalUser = await User.aggregate([
@@ -718,20 +712,20 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
     },
     {
       $lookup: {
-        from: "contactmembers",
-        localField: "_id",
-        foreignField: "contactId",
-        as: "members",
+        from: 'contactmembers',
+        localField: '_id',
+        foreignField: 'contactId',
+        as: 'members',
       },
     },
     {
       $addFields: {
         member: {
           $filter: {
-            input: "$members",
-            as: "member",
+            input: '$members',
+            as: 'member',
             cond: {
-              $ne: ["$$member.userId", user._id],
+              $ne: ['$$member.userId', user._id],
             },
           },
         },
@@ -739,21 +733,21 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
     },
     {
       $lookup: {
-        from: "users",
-        localField: "member.userId",
-        foreignField: "_id",
-        as: "member.user",
+        from: 'users',
+        localField: 'member.userId',
+        foreignField: '_id',
+        as: 'member.user',
       },
     },
     {
-      $unwind: "$member.user",
+      $unwind: '$member.user',
     },
     {
       $lookup: {
-        from: "messages",
-        localField: "_id",
-        foreignField: "contactId",
-        as: "messages",
+        from: 'messages',
+        localField: '_id',
+        foreignField: 'contactId',
+        as: 'messages',
       },
     },
     {
@@ -762,34 +756,34 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
         isBlocked: 1,
         updatedAt: 1,
         socketId: 1,
-        "member._id": 1,
-        "member.isArchieved": 1,
-        "member.user._id": 1,
-        "member.user.userName": 1,
-        "member.user.searchTag": 1,
-        "member.user.socketId": 1,
-        "member.user.email": 1,
-        "member.user.avatar": 1,
-        "member.user.online": 1,
-        "messages._id": 1,
-        "messages.userId": 1,
-        "messages.message": 1,
-        "messages.hasAttechment": 1,
-        "messages.pending": 1,
-        "messages.attechmentLink": 1,
-        "messages.attechmentType": 1,
-        "messages.isDeleted": 1,
-        "messages.readBy": 1,
-        "messages.isCall": 1,
-        "messages.callType": 1,
-        "messages.createdAt": 1,
+        'member._id': 1,
+        'member.isArchieved': 1,
+        'member.user._id': 1,
+        'member.user.userName': 1,
+        'member.user.searchTag': 1,
+        'member.user.socketId': 1,
+        'member.user.email': 1,
+        'member.user.avatar': 1,
+        'member.user.online': 1,
+        'messages._id': 1,
+        'messages.userId': 1,
+        'messages.message': 1,
+        'messages.hasAttechment': 1,
+        'messages.pending': 1,
+        'messages.attechmentLink': 1,
+        'messages.attechmentType': 1,
+        'messages.isDeleted': 1,
+        'messages.readBy': 1,
+        'messages.isCall': 1,
+        'messages.callType': 1,
+        'messages.createdAt': 1,
       },
     },
     {
       $addFields: {
         messages: {
           $sortArray: {
-            input: "$messages",
+            input: '$messages',
             sortBy: { createdAt: 1 }, // 1 = ascending (oldest first)
           },
         },
@@ -797,7 +791,7 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
     },
     {
       $sort: {
-        "messages.createdAt": 1,
+        'messages.createdAt': 1,
       },
     },
   ]);
@@ -812,20 +806,20 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
     },
     {
       $lookup: {
-        from: "contactmembers",
-        localField: "_id",
-        foreignField: "contactId",
-        as: "members",
+        from: 'contactmembers',
+        localField: '_id',
+        foreignField: 'contactId',
+        as: 'members',
       },
     },
     {
       $addFields: {
         member: {
           $filter: {
-            input: "$members",
-            as: "member",
+            input: '$members',
+            as: 'member',
             cond: {
-              $ne: ["$$member.userId", user._id],
+              $ne: ['$$member.userId', user._id],
             },
           },
         },
@@ -833,31 +827,31 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
     },
     {
       $lookup: {
-        from: "users",
-        localField: "member.userId",
-        foreignField: "_id",
-        as: "member.user",
+        from: 'users',
+        localField: 'member.userId',
+        foreignField: '_id',
+        as: 'member.user',
       },
     },
     {
-      $unwind: "$member.user",
+      $unwind: '$member.user',
     },
     {
       $lookup: {
-        from: "messages",
-        localField: "_id",
-        foreignField: "contactId",
-        as: "messages",
+        from: 'messages',
+        localField: '_id',
+        foreignField: 'contactId',
+        as: 'messages',
       },
     },
     {
-      $unwind: "$members",
+      $unwind: '$members',
     },
     {
       $group: {
-        _id: "$_id",
+        _id: '$_id',
         isArchieved: {
-          $first: "$members.isArchieved",
+          $first: '$members.isArchieved',
         },
       },
     },
@@ -872,13 +866,13 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
 
   archivedContactIds.forEach((item) => {
     const newArchivedcontact = contacts.filter(
-      (con) => con._id.toString() === item._id.toString()
+      (con) => con._id.toString() === item._id.toString(),
     );
 
     if (contacts.length) {
       archivedContacts.push(newArchivedcontact[0]);
       contacts = contacts.filter(
-        (con) => con._id.toString() !== item._id.toString()
+        (con) => con._id.toString() !== item._id.toString(),
       );
     }
   });
@@ -895,99 +889,99 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
     },
     {
       $lookup: {
-        from: "contacts",
-        localField: "contactId",
-        foreignField: "_id",
-        as: "group",
+        from: 'contacts',
+        localField: 'contactId',
+        foreignField: '_id',
+        as: 'group',
       },
     },
     {
-      $unwind: "$group",
+      $unwind: '$group',
     },
     {
       $match: {
-        "group.isGroup": true,
+        'group.isGroup': true,
       },
     },
     {
       $lookup: {
-        from: "contactmembers",
-        localField: "group._id",
-        foreignField: "contactId",
-        as: "members",
+        from: 'contactmembers',
+        localField: 'group._id',
+        foreignField: 'contactId',
+        as: 'members',
       },
     },
     {
-      $unwind: "$members",
+      $unwind: '$members',
     },
     {
       $match: {
-        "members.isBlocked": false,
+        'members.isBlocked': false,
       },
     },
     {
       $lookup: {
-        from: "users",
-        localField: "members.userId",
-        foreignField: "_id",
-        as: "members.user",
+        from: 'users',
+        localField: 'members.userId',
+        foreignField: '_id',
+        as: 'members.user',
       },
     },
     {
       $addFields: {
-        "members.user": {
-          $first: ["$members.user"],
+        'members.user': {
+          $first: ['$members.user'],
         },
       },
     },
     {
       $lookup: {
-        from: "messages",
-        localField: "group._id",
-        foreignField: "contactId",
-        as: "messages",
+        from: 'messages',
+        localField: 'group._id',
+        foreignField: 'contactId',
+        as: 'messages',
       },
     },
     {
-      $unwind: "$messages",
+      $unwind: '$messages',
     },
     {
       $sort: {
-        "messages.createdAt": 1,
+        'messages.createdAt': 1,
       },
     },
     {
       $lookup: {
-        from: "users",
-        localField: "messages.userId",
-        foreignField: "_id",
-        as: "messages.sender",
+        from: 'users',
+        localField: 'messages.userId',
+        foreignField: '_id',
+        as: 'messages.sender',
       },
     },
     {
       $addFields: {
-        "messages.sender": {
-          $first: ["$messages.sender"],
+        'messages.sender': {
+          $first: ['$messages.sender'],
         },
       },
     },
     {
       $group: {
-        _id: "$group._id",
-        isBlocked: { $first: "$isBlocked" },
-        isArchieved: { $first: "$isArchieved" },
-        isGroup: { $first: "$group.isGroup" },
-        groupName: { $first: "$group.groupName" },
-        avatar: { $first: "$group.groupAvatar" },
-        messages: { $addToSet: "$messages" },
-        lastMessage: { $first: "$group.lastMessage" },
-        isGroup: { $first: "$group.isGroup" },
-        roomId: { $first: "$group.socketId" },
-        whoCanSend: { $first: "$group.whoCanSend" },
-        description: { $first: "$group.description" },
-        updatedAt: { $first: "$group.updatedAt" },
+        _id: '$group._id',
+        isBlocked: { $first: '$isBlocked' },
+        isArchieved: { $first: '$isArchieved' },
+        isGroup: { $first: '$group.isGroup' },
+        groupName: { $first: '$group.groupName' },
+        avatar: { $first: '$group.groupAvatar' },
+        messages: { $addToSet: '$messages' },
+        lastMessage: { $first: '$group.lastMessage' },
+        isGroup: { $first: '$group.isGroup' },
+        roomId: { $first: '$group.socketId' },
+        whoCanSend: { $first: '$group.whoCanSend' },
+        description: { $first: '$group.description' },
+        updatedAt: { $first: '$group.updatedAt' },
         members: {
-          $addToSet: "$members",
+          $addToSet: '$members',
         },
       },
     },
@@ -1004,37 +998,37 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
         isGroup: 1,
         lastMessage: 1,
         updatedAt: 1,
-        "members._id": 1,
-        "members.isAdmin": 1,
-        "members.user._id": 1,
-        "members.user.userName": 1,
-        "members.user.searchTag": 1,
-        "members.user.socketId": 1,
-        "members.user.online": 1,
-        "members.user.email": 1,
-        "members.user.avatar": 1,
-        "messages._id": 1,
-        "messages.userId": 1,
-        "messages.message": 1,
-        "messages.hasAttechment": 1,
-        "messages.pending": 1,
-        "messages.attechmentLink": 1,
-        "messages.attechmentType": 1,
-        "messages.isCall": 1,
-        "messages.callType": 1,
-        "messages.createdAt": 1,
-        "messages.isDeleted": 1,
-        "messages.readBy": 1,
-        "messages.sender._id": 1,
-        "messages.sender.searchTag": 1,
-        "messages.sender.avatar": 1,
+        'members._id': 1,
+        'members.isAdmin': 1,
+        'members.user._id': 1,
+        'members.user.userName': 1,
+        'members.user.searchTag': 1,
+        'members.user.socketId': 1,
+        'members.user.online': 1,
+        'members.user.email': 1,
+        'members.user.avatar': 1,
+        'messages._id': 1,
+        'messages.userId': 1,
+        'messages.message': 1,
+        'messages.hasAttechment': 1,
+        'messages.pending': 1,
+        'messages.attechmentLink': 1,
+        'messages.attechmentType': 1,
+        'messages.isCall': 1,
+        'messages.callType': 1,
+        'messages.createdAt': 1,
+        'messages.isDeleted': 1,
+        'messages.readBy': 1,
+        'messages.sender._id': 1,
+        'messages.sender.searchTag': 1,
+        'messages.sender.avatar': 1,
       },
     },
     {
       $addFields: {
         messages: {
           $sortArray: {
-            input: "$messages",
+            input: '$messages',
             sortBy: { createdAt: 1 }, // 1 = ascending (oldest first)
           },
         },
@@ -1042,7 +1036,7 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
     },
     {
       $sort: {
-        "messages.createdAt": 1,
+        'messages.createdAt': 1,
       },
     },
   ]);
@@ -1050,21 +1044,21 @@ const checkAlreadyLoddedIn = asyncHandler(async (req, resp) => {
   finalUser[0].groups = groups;
 
   const newLogin = new Logins({
-      userId: updatedUser._id,
-    })
+    userId: updatedUser._id,
+  });
 
   await newLogin.save();
 
   resp
     .status(201)
-    .cookie("accessToken", newAccessToken, Options)
-    .cookie("refreshToken", newRefreshToken, Options)
+    .cookie('accessToken', newAccessToken, Options)
+    .cookie('refreshToken', newRefreshToken, Options)
     .json(
       new ApiResponse(
         201,
         { User: finalUser[0], accessToken: newAccessToken },
-        "User alrady logged in"
-      )
+        'User alrady logged in',
+      ),
     );
 });
 
@@ -1078,21 +1072,21 @@ const logOut = asyncHandler(async (req, resp) => {
     },
     {
       $set: {
-        refreshToken: "",
-        socketId: "0000",
+        refreshToken: '',
+        socketId: '0000',
         online: false,
       },
     },
     {
       new: true,
-    }
+    },
   );
 
   resp
     .status(200)
-    .clearCookie("refreshToken", Options)
-    .clearCookie("accessToken", Options)
-    .json(new ApiResponse(200, {}, "Logged Out"));
+    .clearCookie('refreshToken', Options)
+    .clearCookie('accessToken', Options)
+    .json(new ApiResponse(200, {}, 'Logged Out'));
 });
 
 /**
@@ -1103,13 +1097,13 @@ const updateSearchTag = asyncHandler(async (req, resp) => {
   const user = req.user;
 
   if (!user) {
-    throw new ApiError(501, "Unautharized request");
+    throw new ApiError(501, 'Unautharized request');
   }
 
   const myUser = await User.findById(user._id);
 
   if (!myUser) {
-    throw new ApiError(501, "Unautharized request");
+    throw new ApiError(501, 'Unautharized request');
   }
 
   const { searchTag } = req.body;
@@ -1117,7 +1111,7 @@ const updateSearchTag = asyncHandler(async (req, resp) => {
   const checkTag = await User.findOne({ searchTag: searchTag });
 
   if (checkTag?._id) {
-    throw new ApiError(501, "Tag already taken");
+    throw new ApiError(501, 'Tag already taken');
   }
 
   myUser.searchTag = searchTag;
@@ -1126,7 +1120,7 @@ const updateSearchTag = asyncHandler(async (req, resp) => {
   const updatedUser = await User.findById(user._id);
 
   if (!updatedUser) {
-    throw new ApiError(501, "Not Updated Internal Server Error");
+    throw new ApiError(501, 'Not Updated Internal Server Error');
   }
 
   resp
@@ -1135,8 +1129,8 @@ const updateSearchTag = asyncHandler(async (req, resp) => {
       new ApiResponse(
         201,
         { searchTag: updatedUser.searchTag },
-        "Updated Search tag"
-      )
+        'Updated Search tag',
+      ),
     );
 });
 
@@ -1144,13 +1138,13 @@ const updateMail = asyncHandler(async (req, resp) => {
   const user = req.user;
 
   if (!user) {
-    throw new ApiError(501, "Unautharized request");
+    throw new ApiError(501, 'Unautharized request');
   }
 
   const myUser = await User.findById(user._id);
 
   if (!myUser) {
-    throw new ApiError(501, "Unautharized request");
+    throw new ApiError(501, 'Unautharized request');
   }
 
   const { email } = req.body;
@@ -1158,7 +1152,7 @@ const updateMail = asyncHandler(async (req, resp) => {
   const checkMail = await User.findOne({ email: email });
 
   if (checkMail?._id) {
-    throw new ApiError(501, "Email already Used");
+    throw new ApiError(501, 'Email already Used');
   }
 
   myUser.email = email;
@@ -1167,25 +1161,25 @@ const updateMail = asyncHandler(async (req, resp) => {
   const updatedUser = await User.findById(user._id);
 
   if (!updatedUser) {
-    throw new ApiError(501, "Not Updated Internal Server Error");
+    throw new ApiError(501, 'Not Updated Internal Server Error');
   }
 
   resp
     .status(201)
-    .json(new ApiResponse(201, { email: updatedUser.email }, "Updated Mail"));
+    .json(new ApiResponse(201, { email: updatedUser.email }, 'Updated Mail'));
 });
 
 const updateName = asyncHandler(async (req, resp) => {
   const user = req.user;
 
   if (!user) {
-    throw new ApiError(501, "Unautharized request");
+    throw new ApiError(501, 'Unautharized request');
   }
 
   const myUser = await User.findById(user._id);
 
   if (!myUser) {
-    throw new ApiError(501, "Unautharized request");
+    throw new ApiError(501, 'Unautharized request');
   }
 
   const { userName } = req.body;
@@ -1196,7 +1190,7 @@ const updateName = asyncHandler(async (req, resp) => {
   const updatedUser = await User.findById(user._id);
 
   if (!updatedUser) {
-    throw new ApiError(501, "Not Updated Internal Server Error");
+    throw new ApiError(501, 'Not Updated Internal Server Error');
   }
 
   resp
@@ -1205,8 +1199,8 @@ const updateName = asyncHandler(async (req, resp) => {
       new ApiResponse(
         201,
         { userName: updatedUser.userName },
-        "Updated userName"
-      )
+        'Updated userName',
+      ),
     );
 });
 
@@ -1214,13 +1208,13 @@ const setTheme = asyncHandler(async (req, resp) => {
   const user = req.user;
 
   if (!user) {
-    throw new ApiError(501, "Unautharized request");
+    throw new ApiError(501, 'Unautharized request');
   }
 
   const UUser = await User.findById(user._id);
 
   if (!UUser) {
-    throw new ApiError(501, "Unautharized request internal server error");
+    throw new ApiError(501, 'Unautharized request internal server error');
   }
 
   UUser.theme = !UUser.theme;
@@ -1229,26 +1223,26 @@ const setTheme = asyncHandler(async (req, resp) => {
 
   resp
     .status(201)
-    .json(new ApiResponse(201, { theme: UUser.theme }, "Theme Changed"));
+    .json(new ApiResponse(201, { theme: UUser.theme }, 'Theme Changed'));
 });
 
 const changeAvatar = asyncHandler(async (req, resp) => {
   const user = req.user;
 
   if (!user) {
-    throw new ApiError(501, "Unautharized request");
+    throw new ApiError(501, 'Unautharized request');
   }
 
   const path = req.file.path;
 
   if (!path) {
-    throw new ApiError(501, "path not found request");
+    throw new ApiError(501, 'path not found request');
   }
 
   const myUser = await User.findById(user._id);
 
   if (!myUser) {
-    throw new ApiError(501, "Unautharized request");
+    throw new ApiError(501, 'Unautharized request');
   }
 
   if (myUser.public_id_avatar) {
@@ -1265,7 +1259,7 @@ const changeAvatar = asyncHandler(async (req, resp) => {
   const updatedUser = await User.findById(myUser._id);
 
   if (!updatedUser) {
-    throw new ApiError(501, "Internal server error user not updated");
+    throw new ApiError(501, 'Internal server error user not updated');
   }
   resp.status(201).json(new ApiResponse(201, { avatar: updatedUser.avatar }));
 });
@@ -1280,8 +1274,8 @@ const getAllAccountDetails = asyncHandler(async (req, resp) => {
   const user = req.user;
 
   if (!user) {
-    throw new ApiError(400, "User not logged in ", {
-      errorMessege: "User not logged in ",
+    throw new ApiError(400, 'User not logged in ', {
+      errorMessege: 'User not logged in ',
     });
   }
 
@@ -1293,59 +1287,59 @@ const getAllAccountDetails = asyncHandler(async (req, resp) => {
     },
     {
       $lookup: {
-        from: "contacts",
-        localField: "contactId",
-        foreignField: "_id",
-        as: "contact_det",
+        from: 'contacts',
+        localField: 'contactId',
+        foreignField: '_id',
+        as: 'contact_det',
       },
     },
     {
-      $unwind: "$contact_det",
+      $unwind: '$contact_det',
     },
     {
       $lookup: {
-        from: "messages",
-        localField: "contact_det._id",
-        foreignField: "contactId",
-        as: "chats",
+        from: 'messages',
+        localField: 'contact_det._id',
+        foreignField: 'contactId',
+        as: 'chats',
       },
     },
     {
       $lookup: {
-        from: "contactmembers",
-        localField: "contact_det._id",
-        foreignField: "contactId",
-        as: "contact_det.chat_members",
+        from: 'contactmembers',
+        localField: 'contact_det._id',
+        foreignField: 'contactId',
+        as: 'contact_det.chat_members',
       },
     },
     {
       $group: {
-        _id: "$_id",
+        _id: '$_id',
         contact_det: {
-          $first: "$contact_det",
+          $first: '$contact_det',
         },
       },
     },
     {
       $lookup: {
-        from: "users",
-        localField: "contact_det.chat_members.userId",
-        foreignField: "_id",
-        as: "contact_det.chat_members",
+        from: 'users',
+        localField: 'contact_det.chat_members.userId',
+        foreignField: '_id',
+        as: 'contact_det.chat_members',
       },
     },
     {
       $project: {
         chats: 1,
-        "contact_det.oneOnOne": 1,
-        "contact_det.isGroup": 1,
-        "contact_det.groupName": 1,
-        "contact_det.whoCanSendMessage": 1,
-        "contact_det.chat_members.userName": 1,
-        "contact_det.chat_members.searchTag": 1,
-        "contact_det.chat_members.email": 1,
-        "contact_det.chat_members.avatar": 1,
-        "contact_det.chat_members.online": 1,
+        'contact_det.oneOnOne': 1,
+        'contact_det.isGroup': 1,
+        'contact_det.groupName': 1,
+        'contact_det.whoCanSendMessage': 1,
+        'contact_det.chat_members.userName': 1,
+        'contact_det.chat_members.searchTag': 1,
+        'contact_det.chat_members.email': 1,
+        'contact_det.chat_members.avatar': 1,
+        'contact_det.chat_members.online': 1,
       },
     },
   ]);
@@ -1358,41 +1352,41 @@ const getAllAccountDetails = asyncHandler(async (req, resp) => {
     },
     {
       $lookup: {
-        from: "users",
-        localField: "userId",
-        foreignField: "_id",
-        as: "user",
+        from: 'users',
+        localField: 'userId',
+        foreignField: '_id',
+        as: 'user',
       },
     },
     {
       $lookup: {
-        from: "contacts",
-        localField: "contactId",
-        foreignField: "_id",
-        as: "contact",
+        from: 'contacts',
+        localField: 'contactId',
+        foreignField: '_id',
+        as: 'contact',
       },
     },
     {
       $match: {
-        "contact.isGroup": false,
+        'contact.isGroup': false,
       },
     },
     {
       $addFields: {
         user: {
-          $first: "$user",
+          $first: '$user',
         },
         contact: {
-          $first: "$contact",
+          $first: '$contact',
         },
       },
     },
     {
       $lookup: {
-        from: "users",
-        localField: "contact.oneOnOne",
-        foreignField: "_id",
-        as: "oneOnOne",
+        from: 'users',
+        localField: 'contact.oneOnOne',
+        foreignField: '_id',
+        as: 'oneOnOne',
       },
     },
     {
@@ -1400,7 +1394,7 @@ const getAllAccountDetails = asyncHandler(async (req, resp) => {
         contact_name: {
           $cond: {
             if: {
-              $eq: ["$user.userName", "$contact.groupName"],
+              $eq: ['$user.userName', '$contact.groupName'],
             },
             then: {
               $let: {
@@ -1408,19 +1402,19 @@ const getAllAccountDetails = asyncHandler(async (req, resp) => {
                   otherUser: {
                     $first: {
                       $filter: {
-                        input: "$oneOnOne",
-                        as: "u",
+                        input: '$oneOnOne',
+                        as: 'u',
                         cond: {
-                          $ne: ["$$u._id", "$userId"],
+                          $ne: ['$$u._id', '$userId'],
                         },
                       },
                     },
                   },
                 },
-                in: "$$otherUser.userName",
+                in: '$$otherUser.userName',
               },
             },
-            else: "$contact.groupName",
+            else: '$contact.groupName',
           },
         },
         contact_user_id: {
@@ -1429,42 +1423,42 @@ const getAllAccountDetails = asyncHandler(async (req, resp) => {
               otherUser: {
                 $first: {
                   $filter: {
-                    input: "$oneOnOne",
-                    as: "u",
+                    input: '$oneOnOne',
+                    as: 'u',
                     cond: {
-                      $ne: ["$$u._id", "$userId"],
+                      $ne: ['$$u._id', '$userId'],
                     },
                   },
                 },
               },
             },
-            in: "$$otherUser._id",
+            in: '$$otherUser._id',
           },
         },
       },
     },
     {
       $addFields: {
-        contact_det: "$contact",
+        contact_det: '$contact',
       },
     },
     {
       $lookup: {
-        from: "users",
-        localField: "contact.oneOnOne",
-        foreignField: "_id",
-        as: "chat_members",
+        from: 'users',
+        localField: 'contact.oneOnOne',
+        foreignField: '_id',
+        as: 'chat_members',
       },
     },
     {
-      $unwind: "$chat_members",
+      $unwind: '$chat_members',
     },
     {
       $addFields: {
         same_: {
           $cond: {
             if: {
-              $eq: ["$chat_members._id", "$userId"],
+              $eq: ['$chat_members._id', '$userId'],
             },
             then: true,
             else: false,
@@ -1475,19 +1469,19 @@ const getAllAccountDetails = asyncHandler(async (req, resp) => {
     {
       $match: {
         same_: { $ne: true }, // Removes documents where same_ is true
-        "contact.isSecured": { $ne: true },
+        'contact.isSecured': { $ne: true },
       },
     },
     {
       $project: {
         contact_name: 1,
-        "contact_det.isGroup": 1,
-        "contact_det._id": 1,
-        "contact_det.groupName": 1,
-        "contact_det.lastMessage": 1,
-        "contact_det._id": 1,
-        "chat_members.searchTag": 1,
-        "chat_members._id": 1,
+        'contact_det.isGroup': 1,
+        'contact_det._id': 1,
+        'contact_det.groupName': 1,
+        'contact_det.lastMessage': 1,
+        'contact_det._id': 1,
+        'chat_members.searchTag': 1,
+        'chat_members._id': 1,
         contact_user_id: 1,
       },
     },
@@ -1501,27 +1495,27 @@ const getAllAccountDetails = asyncHandler(async (req, resp) => {
     },
     {
       $lookup: {
-        from: "users",
-        localField: "userId",
-        foreignField: "_id",
-        as: "user",
+        from: 'users',
+        localField: 'userId',
+        foreignField: '_id',
+        as: 'user',
       },
     },
     {
       $lookup: {
-        from: "contacts",
-        localField: "contactId",
-        foreignField: "_id",
-        as: "contact",
+        from: 'contacts',
+        localField: 'contactId',
+        foreignField: '_id',
+        as: 'contact',
       },
     },
     {
       $addFields: {
         user: {
-          $first: "$user",
+          $first: '$user',
         },
         contact: {
-          $first: "$contact",
+          $first: '$contact',
         },
       },
     },
@@ -1529,35 +1523,35 @@ const getAllAccountDetails = asyncHandler(async (req, resp) => {
       $addFields: {
         contact_name: {
           $cond: {
-            if: { $eq: ["$user.userName", "$contact.groupName"] },
-            then: "$contact.groupName",
-            else: "$contact.groupName",
+            if: { $eq: ['$user.userName', '$contact.groupName'] },
+            then: '$contact.groupName',
+            else: '$contact.groupName',
           },
         },
       },
     },
     {
       $addFields: {
-        contact_det: "$contact",
+        contact_det: '$contact',
       },
     },
     {
       $lookup: {
-        from: "users",
-        localField: "contact.oneOnOne",
-        foreignField: "_id",
-        as: "chat_members",
+        from: 'users',
+        localField: 'contact.oneOnOne',
+        foreignField: '_id',
+        as: 'chat_members',
       },
     },
     {
-      $unwind: "$chat_members",
+      $unwind: '$chat_members',
     },
     {
       $addFields: {
         same_: {
           $cond: {
             if: {
-              $eq: ["$chat_members._id", "$userId"],
+              $eq: ['$chat_members._id', '$userId'],
             },
             then: true,
             else: false,
@@ -1568,22 +1562,22 @@ const getAllAccountDetails = asyncHandler(async (req, resp) => {
     {
       $match: {
         same_: { $ne: true }, // Removes documents where same_ is false
-        "contact.isSecured": { $ne: true },
+        'contact.isSecured': { $ne: true },
       },
     },
     {
       $addFields: {
-        "contact_det.searchTag": "$chat_members.searchTag",
-        "contact_det.groupName": "$chat_members.userName",
+        'contact_det.searchTag': '$chat_members.searchTag',
+        'contact_det.groupName': '$chat_members.userName',
       },
     },
     {
       $project: {
-        "contact_det.oneOnOne": 1,
-        "contact_det.isGroup": 1,
-        "contact_det.groupName": 1,
-        "contact_det.searchTag": 1,
-        "contact_det.searchTag": 1,
+        'contact_det.oneOnOne': 1,
+        'contact_det.isGroup': 1,
+        'contact_det.groupName': 1,
+        'contact_det.searchTag': 1,
+        'contact_det.searchTag': 1,
       },
     },
   ]);
@@ -1596,53 +1590,53 @@ const getAllAccountDetails = asyncHandler(async (req, resp) => {
     },
     {
       $lookup: {
-        from: "contacts",
-        localField: "contactId",
-        foreignField: "_id",
-        as: "contact_det",
+        from: 'contacts',
+        localField: 'contactId',
+        foreignField: '_id',
+        as: 'contact_det',
       },
     },
     {
-      $unwind: "$contact_det",
+      $unwind: '$contact_det',
     },
     {
       $match: {
-        "contact_det.isGroup": true,
+        'contact_det.isGroup': true,
       },
     },
     {
       $lookup: {
-        from: "contactmembers",
-        localField: "group._id",
-        foreignField: "contactId",
-        as: "contact_det.members",
+        from: 'contactmembers',
+        localField: 'group._id',
+        foreignField: 'contactId',
+        as: 'contact_det.members',
       },
     },
     {
       $lookup: {
-        from: "users",
-        localField: "group.members.userId",
-        foreignField: "_id",
-        as: "contact_det.members",
+        from: 'users',
+        localField: 'group.members.userId',
+        foreignField: '_id',
+        as: 'contact_det.members',
       },
     },
     {
       $project: {
         isAdmin: 1,
-        "contact_det._id": 1,
-        "contact_det.groupName": 1,
-        "contact_det.whoCanSendMessage": 1,
-        "contact_det.members._id": 1,
-        "contact_det.members.userName": 1,
-        "contact_det.members.searchTag": 1,
-        "contact_det.members.avatar": 1,
+        'contact_det._id': 1,
+        'contact_det.groupName': 1,
+        'contact_det.whoCanSendMessage': 1,
+        'contact_det.members._id': 1,
+        'contact_det.members.userName': 1,
+        'contact_det.members.searchTag': 1,
+        'contact_det.members.avatar': 1,
       },
     },
   ]);
 
   if (!WholeChats) {
-    throw new ApiError(400, "Error while fetching chats history", {
-      errorMessege: "Error while fetching chats history",
+    throw new ApiError(400, 'Error while fetching chats history', {
+      errorMessege: 'Error while fetching chats history',
     });
   }
 
@@ -1657,8 +1651,8 @@ const getAllAccountDetails = asyncHandler(async (req, resp) => {
           group_chats: group_chats,
         },
       },
-      "Here all the message history"
-    )
+      'Here all the message history',
+    ),
   );
 });
 
@@ -1670,35 +1664,35 @@ const sendAns = asyncHandler(async (req, resp) => {
   const user = req.user;
 
   if (!user) {
-    throw new ApiError(501, "Unautharized request", {
-      errorMessege: "Unautharized request",
+    throw new ApiError(501, 'Unautharized request', {
+      errorMessege: 'Unautharized request',
     });
   }
 
   const { password } = req.body;
 
   if (!password) {
-    throw new ApiResponse(400, "Password not found");
+    throw new ApiResponse(400, 'Password not found');
   }
 
   const myUser = await User.findById(user._id);
 
   if (!myUser) {
-    throw new ApiError(501, "Unautharized request", {
-      errorMessege: "Unautharized request",
+    throw new ApiError(501, 'Unautharized request', {
+      errorMessege: 'Unautharized request',
     });
   }
 
   const isPasswordCorect = await myUser.isPasswordCorect(password);
 
   if (!isPasswordCorect) {
-    throw new ApiResponse(501, "Invalid Password");
+    throw new ApiResponse(501, 'Invalid Password');
   }
 
   resp
     .status(200)
     .json(
-      new ApiResponse(200, { question: myUser.securityAnswer }, "Your answer")
+      new ApiResponse(200, { question: myUser.securityAnswer }, 'Your answer'),
     );
 });
 
@@ -1707,16 +1701,16 @@ const addSecurityQnA = asyncHandler(async (req, resp) => {
     const user = req.user;
 
     if (!user) {
-      throw new ApiError(501, "Unautharized request", {
-        errorMessege: "Unautharized request",
+      throw new ApiError(501, 'Unautharized request', {
+        errorMessege: 'Unautharized request',
       });
     }
 
     const { question, ans } = req.body;
 
     if (!question || !ans) {
-      throw new ApiError(400, "Must Provide Questions and Answers", {
-        errorMessege: "Must Provide Questions and Answers",
+      throw new ApiError(400, 'Must Provide Questions and Answers', {
+        errorMessege: 'Must Provide Questions and Answers',
       });
     }
 
@@ -1726,8 +1720,8 @@ const addSecurityQnA = asyncHandler(async (req, resp) => {
     });
 
     if (!updatedUser) {
-      throw new ApiError(400, "Error while updating question to the db", {
-        errorMessege: "Error while updating question to the db",
+      throw new ApiError(400, 'Error while updating question to the db', {
+        errorMessege: 'Error while updating question to the db',
       });
     }
 
@@ -1737,12 +1731,12 @@ const addSecurityQnA = asyncHandler(async (req, resp) => {
         new ApiResponse(
           200,
           { ans: updatedUser.securityAnswer, qu: updatedUser.securityQuestion },
-          "Questions added successfully"
-        )
+          'Questions added successfully',
+        ),
       );
   } catch (error) {
-    throw new ApiError(400, "Error while adding security ", {
-      errorMessege: "Error while adding security ",
+    throw new ApiError(400, 'Error while adding security ', {
+      errorMessege: 'Error while adding security ',
     });
   }
 });
@@ -1751,7 +1745,7 @@ const forgetPasswordVerify = asyncHandler(async (req, resp, next) => {
   const { searchTag, securityAnswer } = req.body;
 
   if (!searchTag || !securityAnswer) {
-    throw new ApiError(400, "search Tag Must Required");
+    throw new ApiError(400, 'search Tag Must Required');
   }
 
   const isValidUser = await User.findOne({
@@ -1766,38 +1760,38 @@ const forgetPasswordVerify = asyncHandler(async (req, resp, next) => {
   });
 
   if (!isValidUser) {
-    throw new ApiError(401, "Invalid user", { errorMessege: "Invalid User" });
+    throw new ApiError(401, 'Invalid user', { errorMessege: 'Invalid User' });
   }
 
   if (isValidUser.securityAnswer !== securityAnswer) {
-    throw new ApiError(401, "Invalid Answer", {
-      errorMessege: "Invalid Answer",
+    throw new ApiError(401, 'Invalid Answer', {
+      errorMessege: 'Invalid Answer',
     });
   }
 
   resp
     .status(200)
-    .cookie("allowResat", true, Options)
-    .json(new ApiResponse(200, {}, "Valid User"));
+    .cookie('allowResat', true, Options)
+    .json(new ApiResponse(200, {}, 'Valid User'));
 });
 
 const resetPassword = asyncHandler(async (req, resp) => {
   const allowResat = req.cookies?.allowResat;
 
   if (!allowResat) {
-    throw new ApiError(401, "Not Allowed To Resat", {
-      errorMessege: "Not Allowed To Resat",
+    throw new ApiError(401, 'Not Allowed To Resat', {
+      errorMessege: 'Not Allowed To Resat',
     });
   }
 
   const { newPassword, conformPassword, searchTag } = req.body;
 
   if (!newPassword || !conformPassword) {
-    throw new ApiError(400, "Must Provide new Password");
+    throw new ApiError(400, 'Must Provide new Password');
   }
 
   if (newPassword !== conformPassword) {
-    throw new ApiError(400, "Both Password not matching");
+    throw new ApiError(400, 'Both Password not matching');
   }
 
   const isValid = await User.findOneAndUpdate(
@@ -1813,17 +1807,17 @@ const resetPassword = asyncHandler(async (req, resp) => {
     },
     {
       password: newPassword,
-    }
+    },
   );
 
   if (!isValid) {
-    throw new ApiError(400, "Error while updating passwords");
+    throw new ApiError(400, 'Error while updating passwords');
   }
 
   resp
     .status(200)
-    .clearCookie("allowResat", Options)
-    .json(new ApiResponse(200, {}, "Password Updated Successfully"));
+    .clearCookie('allowResat', Options)
+    .json(new ApiResponse(200, {}, 'Password Updated Successfully'));
 });
 
 /**
@@ -1833,19 +1827,19 @@ const updateSocketId = asyncHandler((req, resp) => {
   const accessToken = req.cookie?.accessToken;
 
   if (!accessToken) {
-    throw new ApiError(401, "Unauthraized request");
+    throw new ApiError(401, 'Unauthraized request');
   }
 
   const { socektId } = req.body;
 
   if (!socektId) {
-    throw new ApiError(400, "SocketId not found");
+    throw new ApiError(400, 'SocketId not found');
   }
 
   const decodedToken = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET);
 
   if (!decodedToken) {
-    throw new ApiError(400, "Unable to decode the token");
+    throw new ApiError(400, 'Unable to decode the token');
   }
 
   const user = User.findByIdAndUpdate(
@@ -1855,16 +1849,16 @@ const updateSocketId = asyncHandler((req, resp) => {
     },
     {
       new: true,
-    }
-  ).select("-refreshToken -password");
+    },
+  ).select('-refreshToken -password');
 
   if (!user) {
-    throw new ApiError(400, "unable to update the user socket id");
+    throw new ApiError(400, 'unable to update the user socket id');
   }
 
   resp
     .status(200)
-    .json(new ApiResponse(200, { User: user }, "socket updated "));
+    .json(new ApiResponse(200, { User: user }, 'socket updated '));
 });
 
 /**

@@ -1,21 +1,23 @@
-const crypto = require("crypto");
+const crypto = require('crypto');
 
-const ALGO = "aes-256-gcm";
+const ALGO = 'aes-256-gcm';
 const IV_LEN = 12; // recommended for GCM
 
 function loadKeyFromEnv() {
   const raw = process.env.CHAT_SECRET_KEY; // <-- set this in backend .env
-  console.log('the key: ', raw)
-  if (!raw) throw new Error("Missing API_CHAT_SECRET_KEY in env");
+  console.log('the key: ', raw);
+  if (!raw) throw new Error('Missing CHAT_SECRET_KEY in env');
 
   // 64 hex chars => 32 bytes
-  if (/^[0-9a-fA-F]{64}$/.test(raw)) return Buffer.from(raw, "hex");
+  if (/^[0-9a-fA-F]{64}$/.test(raw)) return Buffer.from(raw, 'hex');
 
   // base64 => must decode to 32 bytes
-  const b = Buffer.from(raw, "base64");
+  const b = Buffer.from(raw, 'base64');
   if (b.length === 32) return b;
 
-  throw new Error("API_CHAT_SECRET_KEY must be 32 bytes (64 hex chars OR base64 of 32 bytes).");
+  throw new Error(
+    'API_CHAT_SECRET_KEY must be 32 bytes (64 hex chars OR base64 of 32 bytes).',
+  );
 }
 
 const KEY = loadKeyFromEnv();
@@ -26,21 +28,20 @@ const KEY = loadKeyFromEnv();
  */
 
 function encryptMessage(plainText) {
-  if (typeof plainText !== "string") throw new Error("encryptMsg expects a string");
+  if (typeof plainText !== 'string')
+    throw new Error('encryptMsg expects a string');
 
   const iv = crypto.randomBytes(IV_LEN);
   const cipher = crypto.createCipheriv(ALGO, KEY, iv);
 
   const ciphertext = Buffer.concat([
-    cipher.update(plainText, "utf8"),
+    cipher.update(plainText, 'utf8'),
     cipher.final(),
   ]);
 
   const tag = cipher.getAuthTag();
 
-  return `${iv.toString("base64")}:${tag.toString("base64")}:${ciphertext.toString("base64")}`;
+  return `${iv.toString('base64')}:${tag.toString('base64')}:${ciphertext.toString('base64')}`;
 }
-
-
 
 module.exports = { encryptMessage };

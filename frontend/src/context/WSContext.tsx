@@ -49,16 +49,19 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
     const remoteStreamRef = useRef<MediaStream>(new MediaStream());
 
     const attachRemoteToVideo = useCallback((stream: MediaStream | null) => {
-        if (!stream || !remoteVideoRef.current) return;
-        if (remoteVideoRef.current.srcObject !== stream) {
-            remoteVideoRef.current.srcObject = stream;
+        const el = remoteVideoRef.current
+        if (!stream || !el) return;
+        if (el.srcObject !== stream) {
+            el.srcObject = stream;
+            el.muted = false;
+            el.volume = 1;
         }
-        remoteVideoRef.current.onloadedmetadata = () => {
+        el.onloadedmetadata = () => {
             remoteVideoRef.current?.play().catch((err) => {
                 console.log("remote play blocked:", err?.message || err);
             });
         };
-        remoteVideoRef.current.play().catch((err) => {
+        el.play().catch((err) => {
             console.log("remote play initial failed:", err?.message || err);
         });
     }, []);
@@ -323,9 +326,6 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
     }, [socket, isLoggedIn])
 
     const handleTracks = useCallback(async (ev: RTCTrackEvent) => {
-        if (ev.track.kind === "video") {
-            console.log("incoming tracks: ", ev.streams[0]);
-        }
         const stream = ev.streams?.[0];
         const finalStream = stream ?? (() => {
             remoteStreamRef.current.addTrack(ev.track);

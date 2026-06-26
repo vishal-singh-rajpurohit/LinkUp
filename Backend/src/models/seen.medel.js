@@ -1,21 +1,21 @@
-const { default: mongoose } = require("mongoose");
-const { Schems } = require("mongoose");
+const { default: mongoose } = require('mongoose');
+const { Schems } = require('mongoose');
 
 const newSchema = new Schems(
   {
     messageId: {
       type: mongoose.Types.ObjectId,
-      ref: "Message",
+      ref: 'Message',
       required: true,
     },
     userId: {
       type: mongoose.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
     },
     contactId: {
       type: mongoose.Types.ObjectId,
-      ref: "Contact",
+      ref: 'Contact',
       required: true,
     },
     seen: {
@@ -27,9 +27,9 @@ const newSchema = new Schems(
   {
     timeseries: true,
     timestamps: true,
-  }
+  },
 );
 
-const Seen = mongoose.model("Seen", newSchema);
+const Seen = mongoose.model('Seen', newSchema);
 
 module.exports = Seen;

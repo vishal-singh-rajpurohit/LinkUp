@@ -1,8 +1,8 @@
 const chatEventEnumNew = {
   CONNECTED_EVENT: 'connected',
   DISCONNECT_EVENT: 'disconnect',
-  ONLINE_EVENT: "is_online",
-  OFFLINE_EVENT: "offline",
+  ONLINE_EVENT: 'is_online',
+  OFFLINE_EVENT: 'offline',
   JOIN_CHAT_EVENT: 'joinChat',
   LEAVE_CHAT_EVENT: 'leaveChat',
   UPDATE_GROUP_NAME: 'updateGroupName',
@@ -11,24 +11,23 @@ const chatEventEnumNew = {
   MESSAGE_UNDO_EVENT: 'messageUndo',
   NEW_CHAT_EVENT: 'newChat',
   SOCKET_EVENT_ERROR: 'socketError',
-  DELETED_MESSAGE: "deleted_message",
+  DELETED_MESSAGE: 'deleted_message',
   STOP_TYPING_EVENT: 'stopTyping',
 
   TYPING_ON: 'typing_on',
   TYPING_OFF: 'typing_off',
 
-  MARK_READ: "mark_read",
-  MARKED: "marked_read",
+  MARK_READ: 'mark_read',
+  MARKED: 'marked_read',
 
   MESSAGE_DELETE_EVENT: 'messageDeleted',
   SOCKET_ERROR_EVENT: 'socketError',
-  NEW_MESSAGE: "message"
-}
+  NEW_MESSAGE: 'message',
+};
 
 const CallEventEnum = {
-
   // Done
-  REQUEST_VIDEO_CALL: "request_video_call",
+  REQUEST_VIDEO_CALL: 'request_video_call',
 
   // Pending
   REQUESTED_VIDEO_CALL: 'requested_video_call',
@@ -38,24 +37,22 @@ const CallEventEnum = {
   ANSWER_VIDEO_CALL: 'answer_video_call',
 
   ACCEPTED_VIDEO_CALL: 'accepted_video_call',
-}
-
+};
 
 const callEventEnum = Object.freeze({
-  MAKE_VIDEO_CALL_PRE: "call:request:pre",
-  INCOMING_VIDEO_CALL_PRE: "call:incoming:pre",
+  MAKE_VIDEO_CALL_PRE: 'call:request:pre',
+  INCOMING_VIDEO_CALL_PRE: 'call:incoming:pre',
 
-  MAKE_VIDEO_CALL: "call:request",
-  INCOMING_VIDEO_CALL: "call:incoming",
+  MAKE_VIDEO_CALL: 'call:request',
+  INCOMING_VIDEO_CALL: 'call:incoming',
 
-  ANSWER_CALL: "call:answer",
-  CALL_ANSWERED: "call:answered",
+  ANSWER_CALL: 'call:answer',
+  CALL_ANSWERED: 'call:answered',
 
-  CALL_ANSWERED_MAIN: "call:answered:main",
+  CALL_ANSWERED_MAIN: 'call:answered:main',
 
-  END_CALL: "call:end",
-  ENDED_CALL: "call:ended",
-
+  END_CALL: 'call:end',
+  ENDED_CALL: 'call:ended',
 
   ICE_CANDIDATE: 'call:ice-candidate',
   ICE_CANDIDATE_INCOMING: 'call:ice-candidate:incoming',
@@ -64,13 +61,13 @@ const callEventEnum = Object.freeze({
   NEGOTIATION_DONE: 'call:nego:done',
   NEGOTIATION_FINAL: 'call:nego:FINAL',
 
-  CANCELLED_BEFORE_ANSWER: "cancelled-before-answer",
-  STOP_CALLING: "stop-calling",
-  DENAY_CALL: "denay-call",
-  USER_LEFT_CALL: "user-left-call",
+  CANCELLED_BEFORE_ANSWER: 'cancelled-before-answer',
+  STOP_CALLING: 'stop-calling',
+  DENAY_CALL: 'denay-call',
+  USER_LEFT_CALL: 'user-left-call',
 
-  DISCART_VIDEO_CLL: "discart-video-call",
-})
+  DISCART_VIDEO_CLL: 'discart-video-call',
+});
 
 const LoadLimits = Object.freeze({
   CONTACT_LIMIT: 50,

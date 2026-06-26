@@ -1,5 +1,5 @@
-const { Schema, default: mongoose } = require("mongoose");
-const { encryptMessage, decryptMsg } = require("../utils/encryption.utils");
+const { Schema, default: mongoose } = require('mongoose');
+const { encryptMessage, decryptMsg } = require('../utils/encryption.utils');
 
 const geoSchcma = new Schema({
   longitude: {
@@ -19,12 +19,12 @@ const newSchema = new Schema(
     },
     contactId: {
       type: mongoose.Types.ObjectId,
-      ref: "Contacts",
+      ref: 'Contacts',
       required: true,
     },
     userId: {
       type: mongoose.Types.ObjectId,
-      ref: "Users",
+      ref: 'Users',
       required: true,
     },
     hasAttechment: {
@@ -47,7 +47,7 @@ const newSchema = new Schema(
     },
     attechmentId: {
       type: mongoose.Types.ObjectId,
-      ref: "Attechments",
+      ref: 'Attechments',
     },
     isCall: {
       type: Boolean,
@@ -57,11 +57,11 @@ const newSchema = new Schema(
     callType: {
       type: String,
       required: false,
-      default: "VIDEO",
+      default: 'VIDEO',
     },
     callId: {
       type: mongoose.Types.ObjectId,
-      ref: "Calls",
+      ref: 'Calls',
       required: false,
     },
     geoLoc: {
@@ -71,7 +71,7 @@ const newSchema = new Schema(
     refferTo: {
       msgId: {
         type: mongoose.Types.ObjectId,
-        ref: "messages",
+        ref: 'messages',
       },
       targetUserTag: {
         type: String,
@@ -84,27 +84,27 @@ const newSchema = new Schema(
     },
     readBy: {
       type: [mongoose.Types.ObjectId],
-      ref: "Users",
+      ref: 'Users',
       default: [],
       required: true,
-    }
+    },
   },
   {
     timeseries: true,
     timestamps: true,
-  }
+  },
 );
 
-newSchema.pre('save', async function (next){
-  this.message = await encryptMessage(this.message)
-  next()
-})
+newSchema.pre('save', async function (next) {
+  this.message = await encryptMessage(this.message);
+  next();
+});
 
 // newSchema.pre('find', async function(next){
 //   this.message = await decryptMsg(this.message)
 //   next()
 // })
 
-const Message = mongoose.model("Message", newSchema);
+const Message = mongoose.model('Message', newSchema);
 
 module.exports = Message;

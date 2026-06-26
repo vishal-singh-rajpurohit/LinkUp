@@ -1,4 +1,4 @@
-const { Schema, default: mongoose } = require("mongoose");
+const { Schema, default: mongoose } = require('mongoose');
 
 const newModel = new Schema(
   {
@@ -26,10 +26,10 @@ const newModel = new Schema(
   {
     timeseries: true,
     timestamps: true,
-  }
+  },
 );
 
-const Attachment = mongoose.model("Attachment", newModel);
+const Attachment = mongoose.model('Attachment', newModel);
 
 module.exports = {
   Attachment,
