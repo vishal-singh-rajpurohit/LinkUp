@@ -1,3 +1,86 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ─── Theme CSS Custom Properties ─── */
+:root {
+  /* Backgrounds */
+  --c-app: #ffffff;
+  --c-panel: #f1f5f9;
+  --c-inset: #e2e8f0;
+  --c-elevated: #94a3b8;
+  --c-field: #cbd5e1;
+  --c-chatbg: #f8fafc;
+  --c-bubble: #e2e8f0;
+  --c-subtle: rgba(0, 0, 0, 0.04);
+  --c-hovered: #e2e8f0;
+
+  /* Text */
+  --c-heading: #0f172a;
+  --c-body: #334155;
+  --c-label: #64748b;
+  --c-hint: #6b7280;
+  --c-link: #2563eb;
+
+  /* Borders */
+  --c-divider: #cbd5e1;
+  --c-edge: rgba(0, 0, 0, 0.10);
+
+  /* Misc */
+  --c-avatarbg: #cbd5e1;
+}
+
+.dark {
+  /* Backgrounds */
+  --c-app: #0f172a;
+  --c-panel: #1e293b;
+  --c-inset: #334155;
+  --c-elevated: #475569;
+  --c-field: #64748b;
+  --c-chatbg: #1f2937;
+  --c-bubble: #334155;
+  --c-subtle: rgba(235, 235, 235, 0.05);
+  --c-hovered: #334155;
+
+  /* Text */
+  --c-heading: #ffffff;
+  --c-body: #e2e8f0;
+  --c-label: #cbd5e1;
+  --c-hint: #d1d5db;
+  --c-link: #93c5fd;
+
+  /* Borders */
+  --c-divider: #4b5563;
+  --c-edge: rgba(255, 255, 255, 0.1);
+
+  /* Misc */
+  --c-avatarbg: #374151;
+}
+
+/* Register as Tailwind v4 color tokens (inline = keep as CSS var references) */
+@theme inline {
+  --color-app: var(--c-app);
+  --color-panel: var(--c-panel);
+  --color-inset: var(--c-inset);
+  --color-elevated: var(--c-elevated);
+  --color-field: var(--c-field);
+  --color-chatbg: var(--c-chatbg);
+  --color-bubble: var(--c-bubble);
+  --color-subtle: var(--c-subtle);
+  --color-hovered: var(--c-hovered);
+  --color-heading: var(--c-heading);
+  --color-body: var(--c-body);
+  --color-label: var(--c-label);
+  --color-hint: var(--c-hint);
+  --color-link: var(--c-link);
+  --color-divider: var(--c-divider);
+  --color-edge: var(--c-edge);
+  --color-avatarbg: var(--c-avatarbg);
+}
+
+/* Smooth theme transition (applied momentarily during toggle) */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease !important;
+}
