@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { NavLink } from 'react-router-dom';
 import { useAppDispatch } from '../../app/hooks';
 import { firstEnter, type initialRespType } from '../../app/functions/auth'
+import { FaComments } from 'react-icons/fa';
 
 const api = import.meta.env.VITE_API;
 const passValidator = new RegExp("^[a-zA-Z0-9!@#$%^&*_=+-]{8,12}$");
@@ -19,7 +21,7 @@ interface FormData {
 
 const Signup = () => {
     const disp = useAppDispatch();
-    
+
     const [formData, setFormData] = useState<FormData>({
         userName: '',
         searchTag: '',
@@ -50,21 +52,23 @@ const Signup = () => {
 
         if (formData.searchTag.length < 3) {
             setErrors({
-                message: 'search tag must be min 3 Characters',
+                message: 'Search tag must be minimum 3 characters',
                 type: 'tag'
             })
+            return;
         }
 
         if (!searchTagRegEx.test(formData.searchTag)) {
             setErrors({
-                message: "search tag only can contain alphabet and numbers and Underscores (_)",
+                message: "Search tag can only contain letters, numbers, and underscores (_)",
                 type: "tag"
             })
+            return;
         }
 
         if (!passValidator.test(formData.password) || !passValidator.test(formData.confirmPassword)) {
             setErrors({
-                message: "password must contain one uppercase, lowercase, number, speial character and 8 to 12 character",
+                message: "Password must contain uppercase, lowercase, number, special character and 8-12 characters",
                 type: "pass"
             })
             return
@@ -116,7 +120,7 @@ const Signup = () => {
 
             } catch (error) {
                 setErrors({
-                    message: "Search tag Alredy taken",
+                    message: "Search tag already taken",
                     type: "tag"
                 })
                 setPass(false)
@@ -134,7 +138,7 @@ const Signup = () => {
                 })
             } catch (error) {
                 setErrors({
-                    message: "this email alredy used",
+                    message: "This email is already in use",
                     type: "email"
                 })
             }
@@ -144,11 +148,11 @@ const Signup = () => {
             checkSearchTag()
         }
 
-        if (formData.email.length > 3 && pass) [
+        if (formData.email.length > 3 && pass) {
             checkEmail()
-        ]
+        }
 
-    }, [formData, setFormData])
+    }, [formData, pass])
 
     useEffect(() => {
         navigator.geolocation.getCurrentPosition(
@@ -163,43 +167,57 @@ const Signup = () => {
     }, [])
 
     return (
-        <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
+        <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-[var(--c-app-bg)] py-8">
+            <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 accent-bg opacity-10 rounded-full blur-3xl pointer-events-none"></div>
+
             <form
                 onSubmit={handleSubmit}
-                className="bg-slate-800 p-8 rounded-lg shadow-md w-full max-w-md"
+                className="glass-panel p-8 rounded-3xl shadow-2xl w-full max-w-md border border-white/15 relative z-10 space-y-4"
             >
-                <h2 className="text-2xl font-semibold text-white mb-1">Sign Up</h2>
-                <p className="text-xl font-semibold text-white mb-6">Welcome to app</p>
+                <div className="flex flex-col items-center text-center space-y-1.5">
+                    <div className="p-3 rounded-2xl accent-bg text-black shadow-lg">
+                        <FaComments size={26} />
+                    </div>
+                    <h2 className="text-2xl font-extrabold text-[var(--c-text-primary)]">Create Account</h2>
+                    <p className="text-xs text-[var(--c-text-muted)]">Join LinkUp for secure real-time messaging</p>
+                </div>
 
-                <div className="mb-4">
-                    <label className="block text-slate-300 mb-1" htmlFor="userName">Username</label>
+                {errors?.message && (
+                    <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-2.5 text-xs text-red-200 text-center font-medium">
+                        {errors.message}
+                    </div>
+                )}
+
+                <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-[var(--c-text-muted)]" htmlFor="userName">Full Name</label>
                     <input
                         type="text"
                         id="userName"
                         name="userName"
-
                         value={formData.userName}
                         onChange={handleChange}
                         required
-                        className="w-full px-3 py-2 rounded bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-slate-500"
+                        placeholder="John Doe"
+                        className="w-full h-10 px-3.5 rounded-xl glass-card text-sm text-[var(--c-text-primary)] outline-none border border-white/10 focus:border-[var(--c-accent)] transition placeholder:text-[var(--c-text-muted)]"
                     />
                 </div>
-                {errors?.type === 'tag' && <div className="text-red-400 mb-4">{errors.message}</div>}
-                <div className="mb-4">
-                    <label className="block text-slate-300 mb-1" htmlFor="searchTag">Search Tag</label>
+
+                <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-[var(--c-text-muted)]" htmlFor="searchTag">Search Tag</label>
                     <input
                         type="text"
                         id="searchTag"
                         name="searchTag"
-                        pattern="^[A-Za-z0-9_]{3,20}$"
                         value={formData.searchTag}
                         onChange={handleChange}
                         required
-                        className="w-full px-3 py-2 rounded bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-slate-500"
+                        placeholder="john_doe"
+                        className="w-full h-10 px-3.5 rounded-xl glass-card text-sm text-[var(--c-text-primary)] outline-none border border-white/10 focus:border-[var(--c-accent)] transition placeholder:text-[var(--c-text-muted)]"
                     />
                 </div>
-                <div className="mb-4">
-                    <label className="block text-slate-300 mb-1" htmlFor="email">Email</label>
+
+                <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-[var(--c-text-muted)]" htmlFor="email">Email</label>
                     <input
                         type="email"
                         id="email"
@@ -207,45 +225,52 @@ const Signup = () => {
                         value={formData.email}
                         onChange={handleChange}
                         required
-                        className="w-full px-3 py-2 rounded bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-slate-500"
+                        placeholder="john@example.com"
+                        className="w-full h-10 px-3.5 rounded-xl glass-card text-sm text-[var(--c-text-primary)] outline-none border border-white/10 focus:border-[var(--c-accent)] transition placeholder:text-[var(--c-text-muted)]"
                     />
                 </div>
-                {errors?.type === 'email' && <div className="text-red-400 mb-4">{errors.message}</div>}
 
-                <div className="mb-4">
-                    <label className="block text-slate-300 mb-1" htmlFor="password">Password</label>
+                <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-[var(--c-text-muted)]" htmlFor="password">Password</label>
                     <input
                         type="password"
                         id="password"
                         name="password"
-                        pattern="/^[a-zA-Z0-9!@#\$%\^\&*_=+-]{8,12}$/g"
                         value={formData.password}
                         onChange={handleChange}
                         required
-                        className="w-full px-3 py-2 rounded bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-slate-500"
+                        placeholder="••••••••"
+                        className="w-full h-10 px-3.5 rounded-xl glass-card text-sm text-[var(--c-text-primary)] outline-none border border-white/10 focus:border-[var(--c-accent)] transition placeholder:text-[var(--c-text-muted)]"
                     />
                 </div>
-                {errors?.type === 'pass' && <div className="text-red-400 mb-4">{errors.message}</div>}
-                <div className="mb-6">
-                    <label className="block text-slate-300 mb-1" htmlFor="confirmPassword">Confirm Password</label>
+
+                <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-[var(--c-text-muted)]" htmlFor="confirmPassword">Confirm Password</label>
                     <input
                         type="password"
                         id="confirmPassword"
                         name="confirmPassword"
-                        pattern="/^[a-zA-Z0-9!@#\$%\^\&*_=+-]{8,12}$/g"
                         value={formData.confirmPassword}
                         onChange={handleChange}
                         required
-                        className="w-full px-3 py-2 rounded bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-slate-500"
+                        placeholder="••••••••"
+                        className="w-full h-10 px-3.5 rounded-xl glass-card text-sm text-[var(--c-text-primary)] outline-none border border-white/10 focus:border-[var(--c-accent)] transition placeholder:text-[var(--c-text-muted)]"
                     />
                 </div>
 
                 <button
                     type="submit"
-                    className="w-full bg-slate-600 hover:bg-slate-500 text-white font-semibold py-2 px-4 rounded transition"
+                    className="w-full h-11 accent-bg text-black font-bold text-sm rounded-xl shadow-lg hover:brightness-110 transition cursor-pointer mt-2"
                 >
                     Create Account
                 </button>
+
+                <div className="text-center text-xs text-[var(--c-text-muted)] pt-2 border-t border-white/10">
+                    Already have an account?{' '}
+                    <NavLink to={'/login'} className="accent-text font-bold hover:underline">
+                        Log In
+                    </NavLink>
+                </div>
             </form>
         </div>
     );

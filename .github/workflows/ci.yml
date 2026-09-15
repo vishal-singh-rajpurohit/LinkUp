@@ -1,0 +1,10 @@
+name: Deploy on EC2
+
+on:
+    push:
+        branches: -prod
+
+jobs:
+    collect-env:
+        name: collect-env
+        runs-on: ubuntu-latest

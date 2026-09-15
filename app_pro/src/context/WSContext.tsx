@@ -78,6 +78,43 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
     const [callerId, setCallerId] = useState<string>('')
     const callerIdRef = useRef(callerId);
 
+    const [isAudioOn, setIsAudioOn] = useState<boolean>(true);
+    const [isVideoOn, setIsVideoOn] = useState<boolean>(true);
+
+    const toggleAudio = useCallback(() => {
+        setIsAudioOn((prev) => {
+            const next = !prev;
+            peer.setAudio(next, localStreamRef.current);
+            return next;
+        });
+    }, []);
+
+    const toggleVideo = useCallback(() => {
+        setIsVideoOn((prev) => {
+            const next = !prev;
+            peer.setVideo(next, localStreamRef.current);
+            return next;
+        });
+    }, []);
+
+    const stopMediaTracks = useCallback(() => {
+        if (localStreamRef.current) {
+            localStreamRef.current.getTracks().forEach((t) => {
+                try { t.stop(); } catch { }
+            });
+            localStreamRef.current = null;
+        }
+        if (remoteStream) {
+            remoteStream.getTracks().forEach((t) => {
+                try { t.stop(); } catch { }
+            });
+        }
+        setRemoteStream(null);
+        remoteStreamRef.current = new MediaStream();
+        if (localVideoRef.current) localVideoRef.current.srcObject = null;
+        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    }, [remoteStream]);
+
     const addTrack = async (stream: MediaStream) => {
         if (!peer.peer) return;
 
@@ -97,15 +134,22 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
                 throw new Error('Error in make a call function: ' + error.message)
             }
         }
-    }, [socket, peer, selectedContact, user, nav])
+    }, [socket, selectedContact, user])
 
     const ensureLocalStream = useCallback(async () => {
         if (localStreamRef.current) return localStreamRef.current;
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: peer.isAudioOn, video: peer.isVideoOn });
-        localStreamRef.current = stream;
-        if (localVideoRef.current) localVideoRef.current.srcObject = stream;
-        return stream;
-    }, []);
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+            localStreamRef.current = stream;
+            stream.getAudioTracks().forEach(t => { t.enabled = isAudioOn; });
+            stream.getVideoTracks().forEach(t => { t.enabled = isVideoOn; });
+            if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+            return stream;
+        } catch (err) {
+            console.error("Failed to acquire user media:", err);
+            throw err;
+        }
+    }, [isAudioOn, isVideoOn]);
 
     useEffect(() => {
         if (
@@ -181,26 +225,47 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
     const createAnswer = useCallback(async () => { }, [])
 
     const denayCall = useCallback(async () => {
-        if (!peer.peer) return;
-        await peer.resetPeer()
-        socket?.emit(callEventEnum.END_CALL, { to: callerIdRef.current })
-        window.location.reload()
-    }, [])
+        const to = String(callerIdRef.current || call.callerId || "");
+        if (to && to !== "[object Object]") {
+            socket?.emit(callEventEnum.END_CALL, { to });
+        }
+        stopMediaTracks();
+        await peer.resetPeer();
+        disp(clearCallfunc());
+        disp(setCallingStatus({ status: 'OFF' }));
+        setIsAudioOn(true);
+        setIsVideoOn(true);
+        setCallerId('');
+        callerIdRef.current = '';
+    }, [call.callerId, disp, socket, stopMediaTracks]);
 
     const clearCall = useCallback(async () => {
-        if (!peer.peer) return;
-        await peer.resetPeer()
-        socket?.emit(callEventEnum.END_CALL, { to: callerIdRef.current })
-        window.location.reload()
-    }, [callerIdRef, callerIdRef.current])
-
+        const to = String(callerIdRef.current || call.callerId || "");
+        if (to && to !== "[object Object]") {
+            socket?.emit(callEventEnum.END_CALL, { to });
+        }
+        stopMediaTracks();
+        await peer.resetPeer();
+        disp(clearCallfunc());
+        disp(setCallingStatus({ status: 'OFF' }));
+        setIsAudioOn(true);
+        setIsVideoOn(true);
+        setCallerId('');
+        callerIdRef.current = '';
+        nav('/');
+    }, [call.callerId, disp, nav, socket, stopMediaTracks]);
 
     const handleEndCall = useCallback(async () => {
-        if (!peer.peer) return;
-        await peer.resetPeer()
-        disp(clearCallfunc())
-        window.location.reload()
-    }, [])
+        stopMediaTracks();
+        await peer.resetPeer();
+        disp(clearCallfunc());
+        disp(setCallingStatus({ status: 'OFF' }));
+        setIsAudioOn(true);
+        setIsVideoOn(true);
+        setCallerId('');
+        callerIdRef.current = '';
+        nav('/');
+    }, [disp, nav, stopMediaTracks]);
 
     useEffect(() => {
         if (!isLoggedIn) return;
@@ -245,14 +310,28 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         })
 
         socket?.on(ChatEventsEnum.NEW_MESSAGE, async ({ newMessage, contactId }: { newMessage: groupMssageType; contactId: string; }) => {
-            const decryptedMessage = await decryptMsg(newMessage.message);
+            let decryptedMessage = newMessage?.message || "";
+            if (newMessage?.message && newMessage.message.includes(":")) {
+                try {
+                    decryptedMessage = await decryptMsg(newMessage.message);
+                } catch (e) {
+                    console.warn("Failed to decrypt NEW_MESSAGE:", e);
+                }
+            }
             disp(messageRecived({ contactId: contactId, newMsg: newMessage, decryptedMessage }));
             disp(newMessageInRoom({ contactId: contactId, newMsg: newMessage }));
             disp(notificationPup({ trigger: true }))
         });
 
         socket?.on(ChatEventsEnum.SENDING_MEDIA, async ({ newMessage, contactId }: { newMessage: groupMssageType; contactId: string; }) => {
-            const decryptedMessage = await decryptMsg(newMessage.message);
+            let decryptedMessage = newMessage?.message || "";
+            if (newMessage?.message && newMessage.message.includes(":")) {
+                try {
+                    decryptedMessage = await decryptMsg(newMessage.message);
+                } catch (e) {
+                    console.warn("Failed to decrypt SENDING_MEDIA:", e);
+                }
+            }
             disp(messageRecived({ contactId: contactId, newMsg: newMessage, decryptedMessage }));
             disp(newMessageInRoom({ contactId: contactId, newMsg: newMessage }));
         })
@@ -396,6 +475,10 @@ const WSProvider = ({ children }: { children: React.ReactNode }) => {
         denayCall,
         createAnswer,
         clearCall,
+        toggleAudio,
+        toggleVideo,
+        isAudioOn,
+        isVideoOn,
         video: {
             localVideoRef,
             remoteVideoRef,

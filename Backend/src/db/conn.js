@@ -1,8 +1,8 @@
 require('dotenv').config()
-const {mongoose} = require('mongoose');
+const { mongoose } = require('mongoose');
 const ApiError = require('../utils/ApiError.utils')
 
-const conn = async () =>{
+const conn = async () => {
     try {
         await mongoose.connect(process.env.ATLAS_LINK);
     } catch (error) {

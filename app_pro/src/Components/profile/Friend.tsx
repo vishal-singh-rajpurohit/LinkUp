@@ -1,6 +1,5 @@
 import { BiBlock, BiExit, BiUserCircle } from "react-icons/bi"
 import { FaAngleLeft } from "react-icons/fa"
-// import { FcSettings } from "react-icons/fc"
 import { HiLocationMarker } from "react-icons/hi"
 import { RiArchive2Line } from "react-icons/ri"
 import { NavLink, useNavigate } from "react-router-dom"
@@ -10,7 +9,7 @@ import { useAppDispatch, useAppSelector } from "../../app/hooks"
 import { addArchieved, blockTrigger, kickoutAuth, removeArchieved, type contactTypes } from "../../app/functions/auth"
 import { blockSelected, clearTemp, contactListingFunction, kickoutTemp, setAddGroupModal, setKickoutModal, setKickoutWarning, setTempString, setTempUser } from "../../app/functions/temp"
 import { GrDown, GrUp } from "react-icons/gr"
-import { useContext, useEffect, useRef, useState } from "react"
+import React, { useContext, useEffect, useRef, useState } from "react"
 import { ContactItem } from "../subComponents/Contact"
 import { GiKickScooter } from "react-icons/gi"
 import { AppContext } from "../../context/Contexts"
@@ -18,7 +17,6 @@ import { SampleCropper2 } from "../Cropper/Cropper"
 import { CheckCircle } from "lucide-react"
 
 const env = import.meta.env.VITE_API
-
 
 const SelectContactItem = ({ searchTag, avatar, userId }: {
     searchTag: string,
@@ -28,7 +26,6 @@ const SelectContactItem = ({ searchTag, avatar, userId }: {
 }) => {
     const disp = useAppDispatch()
     const tempUsers = useAppSelector((state) => state.temp.tempUser)
-
     const [isSelected, setIsSelected] = useState<boolean>(false)
 
     async function select() {
@@ -41,31 +38,27 @@ const SelectContactItem = ({ searchTag, avatar, userId }: {
             }
         }))
 
-        let isSel = tempUsers.filter((val) => val._id === userId)
-
+        const isSel = tempUsers.filter((val) => val._id === userId)
         setIsSelected(!(Boolean(isSel.length)));
     }
 
     return (
-        <div onClick={() => select()} className={`px-2 w-full h-[4rem] cursor-pointer`}>
-            <div className="grid h-full grid-cols-[0.1fr_1.3fr_5.7fr_0.8fr] items-center px-1 ">
-                <div className="flex items-center">
-                    {/* <input type="checkbox" checked={isSelected} className="" onChange={() => select()} /> */}
-                </div>
-                <div className="w-full overflow-hidden h-full flex items-center justify-center relative">
-                    <div className='w-[2.5rem] h-[2.5rem] flex items-center justify-center overflow-hidden rounded-[10rem] bg-[#e4e6e7] md:h-[2rem] md:w-[2rem]'>
-                        <img src={avatar || x} alt="😒" className="max-h-[2.5rem] h-full md:max-h-[1.5rem]" />
+        <div 
+            onClick={() => select()} 
+            className={`w-full h-14 rounded-xl cursor-pointer transition-all duration-200 flex items-center px-3 gap-3 border ${
+                isSelected ? 'bg-[var(--c-accent)]/20 border-[var(--c-accent)]' : 'glass-card border-white/10 hover:bg-white/10'
+            }`}
+        >
+            <div className="relative w-9 h-9 rounded-full overflow-hidden border border-white/10 shrink-0">
+                <img src={avatar || x} alt="" className="w-full h-full object-cover" />
+                {isSelected && (
+                    <div className="absolute inset-0 bg-[var(--c-accent)]/40 flex items-center justify-center">
+                        <CheckCircle className="w-5 h-5 text-white" />
                     </div>
-                    <div className={`absolute pt-[30%] pl-[40%] ${isSelected ? 'flex' : 'hidden'}`}>
-                        <CheckCircle color='#45ff60' />
-                    </div>
-                </div>
-                <div className="w-full h-full pl-1 flex gap-0  justify-center flex-col">
-                    <p className="text-xl font-mono text-[#E2E8F0] md:text-[15px]">{searchTag}</p>
-                </div>
-                <div className="">
-                    <div className=""></div>
-                </div>
+                )}
+            </div>
+            <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-[var(--c-text-primary)] truncate">{searchTag}</p>
             </div>
         </div>
     )
@@ -78,7 +71,6 @@ const AddMemberModel = () => {
     const contacts = useAppSelector((state) => state.auth.contacts)
     const open = useAppSelector((state) => state.temp.activeAddToGroup)
     const [filteredUsers, setFilteredUser] = useState<contactTypes[]>([])
-
 
     async function addNewMember() {
         if (tempUsers.length) {
@@ -108,24 +100,40 @@ const AddMemberModel = () => {
             })
         }
         getFiltered()
-    }, [])
+    }, [contacts, selectedContact])
+
+    if (!open) return null;
 
     return (
-        <section className={`absolute w-full h-full bg-[#2342708a] ${open ? 'flex' : 'hidden'} justify-center items-center flex-col`}>
-            <div className="min-h-[90%] w-[90%] flex flex-col items-center bg-slate-800 rounded-md overflow-hidden">
-                <div className="w-full flex justify-between h-12 items-center px-2 bg-slate-900">
-                    <div className="">Members</div>
-                    <div className="flex gap-1">
-                        <button className="w-[5rem] text-sm h-[1.6rem] cursor-pointer bg-pink-500 hover:bg-red-500 rounded-md" onClick={() => disp(setAddGroupModal({ trigger: false }))}>CLose</button>
-                        <button className="w-[5rem] text-sm h-[1.6rem] cursor-pointer bg-pink-500 hover:bg-red-500 rounded-md" disabled={tempUsers.length < 1} onClick={() => addNewMember()}>Add</button>
+        <section className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
+            <div className="w-full max-w-md rounded-3xl glass-panel shadow-2xl overflow-hidden border border-white/15">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+                    <h3 className="text-base font-bold text-[var(--c-text-primary)]">Add Members</h3>
+                    <div className="flex gap-2">
+                        <button 
+                            className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-semibold text-white transition cursor-pointer" 
+                            onClick={() => disp(setAddGroupModal({ trigger: false }))}
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            className="px-3 py-1.5 rounded-xl accent-bg text-black font-bold text-xs shadow-md hover:brightness-110 transition disabled:opacity-50 cursor-pointer" 
+                            disabled={tempUsers.length < 1} 
+                            onClick={addNewMember}
+                        >
+                            Add ({tempUsers.length})
+                        </button>
                     </div>
                 </div>
-                <div className=" w-full flex flex-col items-center justify-center">
-                    {
+
+                <div className="p-4 space-y-2 max-h-80 overflow-y-auto">
+                    {filteredUsers.length ? (
                         filteredUsers.map((user, index) => (
                             <SelectContactItem userId={user.userId} key={index} _id={user._id} avatar={user.avatar} searchTag={user.searchTag} />
                         ))
-                    }
+                    ) : (
+                        <p className="text-xs text-[var(--c-text-muted)] text-center py-6">All available contacts are already in this group</p>
+                    )}
                 </div>
             </div>
         </section>
@@ -138,7 +146,6 @@ const KickoutUsers = ({ _id, searchTag, avatar }: {
     avatar: string,
     userId?: string
 }) => {
-
     const disp = useAppDispatch()
 
     const select = () => {
@@ -147,23 +154,17 @@ const KickoutUsers = ({ _id, searchTag, avatar }: {
     }
 
     return (
-        <div onClick={() => select()} className={`px-2 w-full h-[4rem] cursor-pointer hover:bg-purple-900`}>
-            <div className="grid h-full grid-cols-[0.1fr_1.3fr_5.7fr_0.8fr] items-center px-1 ">
-                <div className="flex items-center">
-                    {/* <input type="checkbox" checked={isSelected} className="" onChange={() => select()} /> */}
+        <div 
+            onClick={() => select()} 
+            className="w-full h-14 rounded-xl cursor-pointer transition-all duration-200 flex items-center justify-between px-3 glass-card border border-white/10 hover:border-red-500/40 hover:bg-red-500/10 group"
+        >
+            <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full overflow-hidden border border-white/10 shrink-0">
+                    <img src={avatar || x} alt="" className="w-full h-full object-cover" />
                 </div>
-                <div className="w-full overflow-hidden h-full flex items-center justify-center">
-                    <div className='w-[2.5rem] h-[2.5rem] flex items-center justify-center overflow-hidden rounded-[10rem] bg-[#e4e6e7] md:h-[2rem] md:w-[2rem]'>
-                        <img src={avatar || x} alt="😒" className="max-h-[2.5rem] h-full md:max-h-[1.5rem]" />
-                    </div>
-                </div>
-                <div className="w-full h-full pl-1 flex gap-0  justify-center flex-col">
-                    <p className="text-xl font-mono text-[#E2E8F0] md:text-[15px]">{searchTag}</p>
-                </div>
-                <div className="">
-                    <div className=""></div>
-                </div>
+                <p className="text-sm font-semibold text-[var(--c-text-primary)] truncate">{searchTag}</p>
             </div>
+            <span className="text-xs font-bold text-red-400 group-hover:underline">Kick Out</span>
         </div>
     )
 }
@@ -194,15 +195,21 @@ const KickOutWarning = () => {
         }
     }
 
+    if (!open) return null;
+
     return (
-        <section className={`${open ? 'flex' : 'hidden'} absolute w-full h-[100vh] bg-[#2342702c] z-30 justify-center items-center flex-col`}>
-            <div className="bg-slate-900 w-[70%] h-[10rem] flex flex-col items-center justify-center px-[2rem] rounded-md">
-                <div className="text-orange-400 font-bold text-2xl font-mono">Are You Sure!</div>
-                <div className="text-orange-300 font-medium text-xl">Kickout User</div>
-                <div className="h-[2rem]"></div>
-                <div className="flex gap-[1rem]">
-                    <button className="cursor-pointer bg-red-500 w-[4rem] h-[1.6rem] rounded-md hover:bg-red-600" onClick={() => kick()}>kickout</button>
-                    <button className="cursor-pointer bg-green-500 w-[4rem] h-[1.6rem] rounded-md hover:bg-green-600" onClick={() => disp(setKickoutWarning({ trigger: false }))}>Cancel</button>
+        <section className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+            <div className="w-full max-w-sm rounded-3xl glass-panel p-6 shadow-2xl border border-white/15 text-center space-y-4">
+                <div className="text-amber-400 font-extrabold text-lg">Remove Member?</div>
+                <p className="text-xs text-[var(--c-text-muted)]">This user will be permanently kicked out of the group conversation.</p>
+                
+                <div className="flex gap-2 w-full pt-2">
+                    <button className="flex-1 h-10 bg-red-500 hover:bg-red-600 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer" onClick={kick}>
+                        Confirm Kick Out
+                    </button>
+                    <button className="flex-1 h-10 bg-white/10 hover:bg-white/15 text-white font-semibold text-xs rounded-xl transition cursor-pointer" onClick={() => disp(setKickoutWarning({ trigger: false }))}>
+                        Cancel
+                    </button>
                 </div>
             </div>
         </section>
@@ -214,23 +221,26 @@ const KickoutModel = () => {
     const selectedContact = useAppSelector((state) => state.temp.selectedContact);
     const open = useAppSelector((state) => state.temp.kickOutGroup);
 
+    if (!open) return null;
+
     return (
         <>
             <KickOutWarning />
-            <section className={`absolute w-full h-full bg-[#2342708a] ${open ? 'flex' : 'hidden'} justify-center items-center flex-col`}>
-                <div className="min-h-[90%] w-[90%] flex flex-col items-center bg-slate-800 rounded-md overflow-hidden">
-                    <div className="w-full flex justify-between h-12 items-center px-2 bg-slate-900">
-                        <div className="">Click to Kick Out</div>
-                        <div className="flex gap-1">
-                            <button className="w-[5rem] text-sm h-[1.6rem] cursor-pointer bg-pink-500 hover:bg-red-500 rounded-md" onClick={() => disp(setKickoutModal({ trigger: false }))} >close</button>
-                        </div>
+            <section className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
+                <div className="w-full max-w-md rounded-3xl glass-panel shadow-2xl overflow-hidden border border-white/15">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+                        <h3 className="text-base font-bold text-[var(--c-text-primary)]">Kick Out Members</h3>
+                        <button 
+                            className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-semibold text-white transition cursor-pointer" 
+                            onClick={() => disp(setKickoutModal({ trigger: false }))} 
+                        >
+                            Close
+                        </button>
                     </div>
-                    <div className=" w-full flex flex-col items-center justify-center">
-                        {
-                            selectedContact?.members && selectedContact?.members.map((user, index) => (
-                                <KickoutUsers key={index} _id={user._id} avatar={user.avatar} searchTag={user.searchTag} />
-                            ))
-                        }
+                    <div className="p-4 space-y-2 max-h-80 overflow-y-auto">
+                        {selectedContact?.members && selectedContact?.members.map((user, index) => (
+                            <KickoutUsers key={index} _id={user._id} avatar={user.avatar} searchTag={user.searchTag} />
+                        ))}
                     </div>
                 </div>
             </section>
@@ -296,7 +306,6 @@ const Friend = () => {
 
     async function archiev() {
         try {
-
             if (contact?._id) {
                 await axios.post(`${env}/chat/archieve`, {
                     contactId: contact._id
@@ -351,140 +360,176 @@ const Friend = () => {
         } else {
             setShowEditor(false)
         }
-    }, [showEditor, setShowEditor, tempAvatar, setTempAvatar])
+    }, [tempAvatar])
 
     return (
         <>
             <SampleCropper2 contactId={contact._id} open={showEditor} image={tempAvatar} setImage={setTempAvatar} />
             <AddMemberModel />
             <KickoutModel />
-            <section className="w-full h-[100vh] overflow-y-auto flex justify-center rounded-sm">
-                <section className="w-[90%] h-[98%] flex flex-col gap-2 md:w-[98%]">
-                    <div className="w-full grid grid-cols-[0.3fr_9.7fr] pt-3 mt-1  bg-slate-800 rounded-[9px_9px_0_0]">
-                        <div className="pt-2 pl-1"><NavLink to={'/'} ><FaAngleLeft size={20} /></NavLink></div>
-                        <div className="w-full flex flex-col justify-center items-center gap-3">
-                            <div className="w-full h-auto flex flex-col gap-1 justify-center items-center">
-                                <div className="bg-inherit w-[10rem] h-[10rem] rounded-[50%] overflow-hidden sha">
-                                    <img src={contact?.avatar || x} onClick={clickAvatar} alt="profile picture" className="w-full h-auto" />
-                                    <input type="file" accept="image/*" className="hide" ref={avatarRef} onChange={handleAvatar} />
-                                </div>
-                                <div className="w-full flex flex-col gap-0.5 items-center justify-center">
-                                    <p className="text-[22px] font-bold">{contact?.userName}</p>
-                                    <div className="flex items-center justify-center gap-1 text-sm"><HiLocationMarker color="#c8bfbf" />NY, New Yourk City</div>
-                                </div>
-                            </div>
-                            <div className="w-full grid items-center justify-center grid-cols-[1fr_1fr]">
-                                <div className="w-full h-[5rem] flex justify-center flex-col  text-center border-t-2 border-r-2 border-gray-400">
-                                    <p className="text-[12px] md:text-[20px] font-bold">{contact?.members?.length || contact?.email}</p>
-                                    <p className="text-[12px] md:text-[17px] ">{contact?.isGroup ? 'Members' : 'Email'}</p>
-                                </div>
-                                <div className="w-full h-[5rem] flex justify-center flex-col  text-center border-t-2 border-l-2 border-gray-400">
-                                    <p className="text-[12px] md:text-[20px] font-bold">{contact?.email || user.email}</p>
-                                    <p className="text-[12px] md:text-[17px]  ">{contact?.searchTag || user.searchTag}</p>
-                                </div>
+            
+            <section className="w-full min-h-screen py-4 flex justify-center overflow-y-auto">
+                <section className="w-[95%] lg:w-[80%] max-w-5xl glass-panel rounded-3xl border border-white/10 shadow-2xl p-4 md:p-6 space-y-6">
+                    {/* Top Navigation */}
+                    <div className="flex items-center justify-between pb-4 border-b border-white/10">
+                        <div className="flex items-center gap-3">
+                            <NavLink to={'/'} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-[var(--c-text-primary)] transition">
+                                <FaAngleLeft size={20} />
+                            </NavLink>
+                            <div>
+                                <h1 className="text-xl font-bold text-[var(--c-text-primary)]">{contact?.isGroup ? 'Group Information' : 'Contact Profile'}</h1>
+                                <p className="text-xs text-[var(--c-text-muted)]">View details and manage actions</p>
                             </div>
                         </div>
                     </div>
-                    {
-                        contact?.isGroup &&
-                        <div className="w-full flex flex-col items-center justify-center gap-1">
-                            <div className="w-[100%]  px-[5%]">
-                                <div onClick={() => setShowMembers(!showMembers)} className="w-full h-[3rem] flex justify-between items-center cursor-pointer px-2 hover:bg-slate-800">
-                                    <div className="text-xl">Members</div>
-                                    <div className="">{!showMembers ? <GrDown /> : <GrUp />}</div>
+
+                    {/* Contact Profile Overview */}
+                    <div className="glass-card rounded-2xl p-6 border border-white/10 flex flex-col items-center text-center space-y-4">
+                        <div className="relative group cursor-pointer" onClick={clickAvatar}>
+                            <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-[var(--c-accent)] shadow-2xl bg-slate-700">
+                                <img src={contact?.avatar || x} alt="Profile" className="w-full h-full object-cover" />
+                            </div>
+                            {contact?.isGroup && isAdmin && (
+                                <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-bold">
+                                    Change Logo
                                 </div>
-                                {/*  */}
-                                <div className={`${showMembers ? 'block' : 'hidden'} cursor-pointer w-[100%] `}>
-                                    <div className="text-gray-300 flex items-center justify-between flex-col"></div>
-                                    {
-                                        contact.members?.map((member, index) => (
-                                            <ContactItem _id={member._id} avatar={member.avatar} searchTag={member.searchTag} key={index} isOnline={member.isOnline} />
-                                        ))
-                                    }
-                                </div>
+                            )}
+                            <input type="file" accept="image/*" className="hidden" ref={avatarRef} onChange={handleAvatar} />
+                        </div>
+
+                        <div>
+                            <h2 className="text-2xl font-extrabold text-[var(--c-text-primary)]">{contact?.userName || contact?.searchTag}</h2>
+                            <div className="flex items-center justify-center gap-1 text-xs text-[var(--c-text-muted)] mt-1">
+                                <HiLocationMarker size={14} className="accent-text" />
+                                <span>NY, New York City</span>
                             </div>
                         </div>
-                    }
 
-                    <div className="w-full flex flex-col items-center justify-center gap-1 ">
-                        {
-                            chatType === 3 ?
-                                (
-                                    <div onClick={() => unArchiev()} className={`cursor-pointer w-[100%] h-[4rem] px-[5%] grid grid-cols-[1fr_8fr_1fr] gap-1 items-center justify-center hover:bg-[#4a697894]`}>
-                                        <div className="text-gray-300 flex items-center justify-between"><RiArchive2Line size={20} /></div>
-                                        <div className="w-full ">
-                                            <div className="text-[18px] font-mono">Un Archive</div>
-                                            <div className="text-[15px]">Take Chat Out Of Archived</div>
-                                        </div>
-                                    </div>
-                                ) :
-                                (
-                                    <div onClick={() => archiev()} className={`cursor-pointer w-[100%] h-[4rem] px-[5%] ${chatType === 2 ? 'hidden' : 'grid'} grid-cols-[1fr_8fr_1fr] gap-1 items-center justify-center hover:bg-[#4a697894]`}>
-                                        <div className="text-gray-300 flex items-center justify-between"><RiArchive2Line size={20} /></div>
-                                        <div className="w-full ">
-                                            <div className="text-[18px] font-mono">Archive</div>
-                                            <div className="text-[15px]">Achive Chat</div>
-                                        </div>
-                                    </div>
-                                )
-                        }
+                        <div className="grid grid-cols-2 gap-4 w-full pt-4 border-t border-white/10">
+                            <div className="glass-card p-3 rounded-xl border border-white/10 text-center">
+                                <p className="text-xs font-semibold text-[var(--c-text-primary)] truncate">{contact?.isGroup ? `${contact?.members?.length || 0} Members` : (contact?.email || 'N/A')}</p>
+                                <p className="text-[10px] text-[var(--c-text-muted)] uppercase tracking-wider">{contact?.isGroup ? 'Group Members' : 'Email Address'}</p>
+                            </div>
+                            <div className="glass-card p-3 rounded-xl border border-white/10 text-center">
+                                <p className="text-xs font-semibold text-[var(--c-text-primary)] truncate">{contact?.searchTag || user.searchTag}</p>
+                                <p className="text-[10px] text-[var(--c-text-muted)] uppercase tracking-wider">Search Tag</p>
+                            </div>
+                        </div>
+                    </div>
 
-                        {
-                            (contact?.isGroup && isAdmin) &&
-                            <div onClick={() => disp(setAddGroupModal({ trigger: true }))} className="cursor-pointer w-[100%] h-[4rem] px-[5%] grid grid-cols-[1fr_8fr_1fr] gap-2 items-center justify-center hover:bg-[#4a697894]">
-                                <div className="text-gray-300 flex items-center justify-between"><BiUserCircle size={20} /></div>
-                                <div className="w-full ">
-                                    <div className="text-[18px] font-mono">Add Member</div>
-                                    <div className="text-[15px]">add new member</div>
+                    {/* Accordion: Group Members */}
+                    {contact?.isGroup && (
+                        <div className="glass-card rounded-2xl border border-white/10 overflow-hidden">
+                            <button 
+                                onClick={() => setShowMembers(!showMembers)} 
+                                className="w-full px-5 py-3.5 flex justify-between items-center cursor-pointer hover:bg-white/5 transition"
+                            >
+                                <span className="text-sm font-bold text-[var(--c-text-primary)]">Group Members ({contact.members?.length || 0})</span>
+                                {showMembers ? <GrUp size={14} className="text-[var(--c-text-muted)]" /> : <GrDown size={14} className="text-[var(--c-text-muted)]" />}
+                            </button>
+
+                            {showMembers && (
+                                <div className="p-3 border-t border-white/10 space-y-1 max-h-60 overflow-y-auto">
+                                    {contact.members?.map((member, index) => (
+                                        <ContactItem _id={member._id} avatar={member.avatar} searchTag={member.searchTag} key={index} isOnline={member.isOnline} />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Actions List */}
+                    <div className="space-y-2">
+                        {chatType === 3 ? (
+                            <div 
+                                onClick={unArchiev} 
+                                className="glass-card p-4 rounded-2xl border border-white/10 flex items-center gap-3 cursor-pointer hover:bg-white/10 transition"
+                            >
+                                <div className="p-2.5 rounded-xl accent-bg text-black shadow-md"><RiArchive2Line size={20} /></div>
+                                <div>
+                                    <p className="text-sm font-bold text-[var(--c-text-primary)]">Unarchive Chat</p>
+                                    <p className="text-xs text-[var(--c-text-muted)]">Restore this conversation to main list</p>
                                 </div>
                             </div>
-                        }
-                        {
-                            (contact?.isGroup && isAdmin) &&
-                            <div onClick={() => disp(setKickoutModal({ trigger: true }))} className="cursor-pointer w-[100%] h-[4rem] px-[5%] grid grid-cols-[1fr_8fr_1fr] gap-2 items-center justify-center hover:bg-[#4a697894]">
-                                <div className="text-gray-300 flex items-center justify-between"><GiKickScooter size={20} /></div>
-                                <div className="w-full ">
-                                    <div className="text-[18px] font-mono">Kick Out Members</div>
-                                    <div className="text-[15px]">Kick Out Member</div>
+                        ) : (
+                            chatType !== 2 && (
+                                <div 
+                                    onClick={archiev} 
+                                    className="glass-card p-4 rounded-2xl border border-white/10 flex items-center gap-3 cursor-pointer hover:bg-white/10 transition"
+                                >
+                                    <div className="p-2.5 rounded-xl accent-bg text-black shadow-md"><RiArchive2Line size={20} /></div>
+                                    <div>
+                                        <p className="text-sm font-bold text-[var(--c-text-primary)]">Archive Chat</p>
+                                        <p className="text-xs text-[var(--c-text-muted)]">Move conversation to archived folder</p>
+                                    </div>
+                                </div>
+                            )
+                        )}
+
+                        {contact?.isGroup && isAdmin && (
+                            <>
+                                <div 
+                                    onClick={() => disp(setAddGroupModal({ trigger: true }))} 
+                                    className="glass-card p-4 rounded-2xl border border-white/10 flex items-center gap-3 cursor-pointer hover:bg-white/10 transition"
+                                >
+                                    <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"><BiUserCircle size={20} /></div>
+                                    <div>
+                                        <p className="text-sm font-bold text-[var(--c-text-primary)]">Add Members</p>
+                                        <p className="text-xs text-[var(--c-text-muted)]">Invite new participants to group</p>
+                                    </div>
+                                </div>
+
+                                <div 
+                                    onClick={() => disp(setKickoutModal({ trigger: true }))} 
+                                    className="glass-card p-4 rounded-2xl border border-white/10 flex items-center gap-3 cursor-pointer hover:bg-white/10 transition"
+                                >
+                                    <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30"><GiKickScooter size={20} /></div>
+                                    <div>
+                                        <p className="text-sm font-bold text-[var(--c-text-primary)]">Kick Out Members</p>
+                                        <p className="text-xs text-[var(--c-text-muted)]">Remove members from group</p>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {!contact?.email ? (
+                            <div 
+                                onClick={block_left} 
+                                className="glass-card p-4 rounded-2xl border border-red-500/20 flex items-center gap-3 cursor-pointer hover:bg-red-500/10 transition"
+                            >
+                                <div className="p-2.5 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30"><BiExit size={20} /></div>
+                                <div>
+                                    <p className="text-sm font-bold text-red-400">Leave Group</p>
+                                    <p className="text-xs text-[var(--c-text-muted)]">Exit this group conversation</p>
                                 </div>
                             </div>
-                        }
-
-                        {
-                            !contact?.email ? (
-                                <div onClick={() => block_left()} className=" cursor-pointer w-[100%] h-[4rem] px-[5%] grid grid-cols-[1fr_8fr_1fr] gap-2 items-center justify-center hover:bg-[#4a697894]">
-                                    <div className="text-gray-300 flex items-center justify-between"><BiExit size={20} /></div>
-                                    <div className="w-full ">
-                                        <div className="text-[18px] font-mono">Leave Group</div>
-                                        <div className="text-[15px]">Leave this group</div>
+                        ) : (
+                            contact.isBlocked ? (
+                                <div 
+                                    onClick={ub_block} 
+                                    className="glass-card p-4 rounded-2xl border border-emerald-500/20 flex items-center gap-3 cursor-pointer hover:bg-emerald-500/10 transition"
+                                >
+                                    <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"><BiBlock size={20} /></div>
+                                    <div>
+                                        <p className="text-sm font-bold text-emerald-400">Unblock User</p>
+                                        <p className="text-xs text-[var(--c-text-muted)]">Allow messages from this user</p>
                                     </div>
                                 </div>
                             ) : (
-
-                                contact.isBlocked ? (
-                                    <div onClick={() => ub_block()} className="cursor-pointer w-[100%] h-[4rem] px-[5%] grid grid-cols-[1fr_8fr_1fr] gap-2 items-center justify-center hover:bg-[#4a697894]">
-                                        <div className="text-gray-300 flex items-center justify-between"><BiBlock size={20} /></div>
-                                        <div className="w-full ">
-                                            <div className="text-[18px] font-mono">Unblock</div>
-                                            <div className="text-[15px]">Unblock this user</div>
-                                        </div>
+                                <div 
+                                    onClick={block_left} 
+                                    className="glass-card p-4 rounded-2xl border border-red-500/20 flex items-center gap-3 cursor-pointer hover:bg-red-500/10 transition"
+                                >
+                                    <div className="p-2.5 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30"><BiBlock size={20} /></div>
+                                    <div>
+                                        <p className="text-sm font-bold text-red-400">Block User</p>
+                                        <p className="text-xs text-[var(--c-text-muted)]">Stop receiving messages from this contact</p>
                                     </div>
-                                ) : (
-                                    <div onClick={() => block_left()} className="cursor-pointer w-[100%] h-[4rem] px-[5%] grid grid-cols-[1fr_8fr_1fr] gap-2 items-center justify-center hover:bg-[#4a697894]">
-                                        <div className="text-gray-300 flex items-center justify-between"><BiBlock size={20} /></div>
-                                        <div className="w-full ">
-                                            <div className="text-[18px] font-mono">Block</div>
-                                            <div className="text-[15px]">Block this user</div>
-                                        </div>
-                                    </div>
-                                )
+                                </div>
                             )
-                        }
-
-
+                        )}
                     </div>
                 </section>
-                {/* </section> */}
             </section>
         </>
     )

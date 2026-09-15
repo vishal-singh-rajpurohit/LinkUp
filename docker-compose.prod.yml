@@ -3,10 +3,16 @@ services:
     image: mongo:latest
     container_name: linkup-mongodb-prod
     restart: unless-stopped
-    ports:
-      - "27017:27017"
+    # ports:
+    #   - "27017:27017" # Secured in production; only accessible internally within docker network.
     volumes:
       - mongo-data-prod:/data/db
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - linkup-network
 
@@ -17,11 +23,12 @@ services:
     container_name: linkup-backend-prod
     restart: unless-stopped
     ports:
-      - "5000:5000"
+      - "5000:5000" # Secured in production; reverse-proxied through frontend Nginx.
     env_file:
       - ./Backend/.env
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
     networks:
       - linkup-network
 

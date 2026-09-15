@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
-import { selectContact, selectGroup, setHasAttechments } from '../app/functions/temp'
+import { selectContact, selectGroup, setHasAttechments, triggetUploadType } from '../app/functions/temp'
 import { AppContext, type appContextTypes } from "./Contexts";
 export const AppContextProvider = ({ children }: {
     children: React.ReactNode
@@ -14,6 +14,9 @@ export const AppContextProvider = ({ children }: {
     const user = useAppSelector((state) => state.auth.user)
     const [isAdmin, setIsAdmin] = useState<boolean>(false)
 
+    const [selectedFile, setSelectedFile] = useState<File | null>(null)
+    const [filePreview, setFilePreview] = useState<string | null>(null)
+    const messageFormDataRef = useRef<FormData>(new FormData())
 
     function selectToTalk(id: string) {
         if (chatTypes === 1) {
@@ -42,37 +45,85 @@ export const AppContextProvider = ({ children }: {
         }
     }, [selectedContact, user._id])
 
-    const messageFormData = new FormData()
-    const fileType = useAppSelector((state) => state.temp.fileType)
+    // Cleanup object URLs to prevent memory leaks
+    useEffect(() => {
+        return () => {
+            if (filePreview) {
+                URL.revokeObjectURL(filePreview);
+            }
+        };
+    }, [filePreview]);
 
-    async function handelFile(files: FileList | null) {
-        if (files?.[0]) {
-            if (fileType === 'img') {
-                console.log('attachment : ')
-                messageFormData.append('attechment', files[0])
-                disp(setHasAttechments({trigger: true}))
-            }
-            else if (fileType === 'vid') {
-                messageFormData.append('attechment', files[0])
-                disp(setHasAttechments({trigger: true}))
-            }
-            else if (fileType === 'audio') {
-                messageFormData.append('attechment', files[0])
-                disp(setHasAttechments({trigger: true}))
-            }
-            else if (fileType === 'doc') {
-                messageFormData.append('attechment', files[0])
-                disp(setHasAttechments({trigger: true}))
-            }
-            
+    function clearSelectedFile() {
+        if (filePreview) {
+            URL.revokeObjectURL(filePreview);
         }
+        setFilePreview(null);
+        setSelectedFile(null);
+        messageFormDataRef.current.delete('attechment');
+        disp(setHasAttechments({ trigger: false }));
+        disp(triggetUploadType({ tp: '' }));
+    }
+
+    function handelFile(files: FileList | File[] | File | null, explicitType?: string) {
+        if (!files) return;
+        let file: File | null = null;
+        if (files instanceof File) {
+            file = files;
+        } else if ('length' in files && files.length > 0) {
+            file = files[0];
+        }
+        if (!file) return;
+
+        // Validate max 30MB file size
+        const MAX_SIZE = 30 * 1024 * 1024;
+        if (file.size > MAX_SIZE) {
+            alert("The selected file exceeds the 30MB size limit. Please choose a smaller file.");
+            return;
+        }
+
+        // Determine or infer media type
+        let resolvedType = explicitType;
+        const lowerName = file.name.toLowerCase();
+        if (!resolvedType || resolvedType === 'undefined') {
+            if (file.type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|svg|bmp|avif)$/.test(lowerName)) {
+                resolvedType = 'img';
+            } else if (file.type.startsWith('video/') || /\.(mp4|webm|mov|mkv|avi|m4v)$/.test(lowerName)) {
+                resolvedType = 'vid';
+            } else if (file.type.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|aac|flac)$/.test(lowerName)) {
+                resolvedType = 'audio';
+            } else {
+                resolvedType = 'doc';
+            }
+        }
+
+        // Clean previous preview if exists
+        if (filePreview) {
+            URL.revokeObjectURL(filePreview);
+            setFilePreview(null);
+        }
+
+        if (resolvedType === 'img' || resolvedType === 'vid' || file.type.startsWith('image/') || file.type.startsWith('video/')) {
+            const previewUrl = URL.createObjectURL(file);
+            setFilePreview(previewUrl);
+        }
+
+        setSelectedFile(file);
+        messageFormDataRef.current.delete('attechment');
+        messageFormDataRef.current.append('attechment', file);
+
+        disp(triggetUploadType({ tp: resolvedType }));
+        disp(setHasAttechments({ trigger: true }));
     }
 
     const data: appContextTypes = {
         selectToTalk,
         isAdmin,
         handelFile,
-        messageFormData
+        clearSelectedFile,
+        selectedFile,
+        filePreview,
+        messageFormData: messageFormDataRef.current
     }
 
     return (

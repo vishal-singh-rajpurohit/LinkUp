@@ -29,110 +29,111 @@ export const Account = () => {
     } catch (error) {
       console.log(`Error in logout ${error}`);
     }
-
   }
 
   return (
-    <>
-      <section className="w-full h-[100vh] overflow-y-auto flex justify-center rounded-sm">
-        <section className="w-full h-full flex items-center justify-center md:gap-2 md:grid md:grid-cols-[3fr_7fr]">
-          {/* left part : Naviation part*/}
-          <section className="hidden w-full h-[98%] items-center justify-center md:flex">
-            <div className="w-[90%] h-full bg-slate-800 rounded-md flex flex-col gap-1">
-              <div className="cursor-pointer w-[100%] h-[4rem] bg-slate-900 px-[2%] grid grid-cols-[2fr_8fr] gap-1 items-center justify-center hover:bg-[#4a697894]">
-                <div className="text-gray-300 flex items-center justify-between"><BiChat size={20} /></div>
-                <div className="w-full">
-                  <div className="text-[18px] font-mono">Chats</div>
-                  <div className="text-[15px]">Find your chats</div>
-                </div>
-              </div>
-              <div onClick={() => router('/user/settings')} className="cursor-pointer w-[100%] h-[4rem] bg-slate-900 px-[2%] grid grid-cols-[2fr_8fr] gap-1 items-center justify-center hover:bg-[#4a697894]">
-                <div className="text-gray-300 flex items-center justify-between"><FcSettings size={20} /></div>
-                <div className="w-full ">
-                  <div className="text-[18px] font-mono">Settings</div>
-                  <div className="text-[15px]">Your Profile</div>
-                </div>
-              </div>
-              <div onClick={() => router('/user/help')} className="cursor-pointer w-[100%] h-[4rem] bg-slate-900 px-[2%] grid grid-cols-[2fr_8fr] gap-1 items-center justify-center hover:bg-[#4a697894]">
-                <div className="text-gray-300 flex items-center justify-between"><IoHelp size={20} /></div>
-                <div className="w-full ">
-                  <div className="text-[18px] font-mono">Help</div>
-                  <div className="text-[15px]">Need Help?</div>
-                </div>
-              </div>
-              <div className="cursor-pointer w-[100%] h-[4rem] bg-slate-900 px-[2%] grid grid-cols-[2fr_8fr] gap-1 items-center justify-center hover:bg-[#4a697894]" onClick={() => logOutFunc()}>
-                <div className="text-gray-300 flex items-center justify-between"><IoLogOut size={20} /></div>
-                <div className="w-full ">
-                  <div className="text-[18px] font-mono">Log Out</div>
-                  {/* <div className="text-[15px]">Need Help?</div> */}
-                </div>
-              </div>
+    <section className="w-full min-h-screen py-4 flex justify-center overflow-y-auto">
+      <section className="w-[95%] lg:w-[80%] max-w-5xl glass-panel rounded-3xl border border-white/10 shadow-2xl p-4 md:p-6 space-y-6">
+        {/* Navigation Header */}
+        <div className="flex items-center justify-between pb-4 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <NavLink to={'/'} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-[var(--c-text-primary)] transition">
+              <FaAngleLeft size={20} />
+            </NavLink>
+            <div>
+              <h1 className="text-xl font-bold text-[var(--c-text-primary)]">User Profile</h1>
+              <p className="text-xs text-[var(--c-text-muted)]">Account overview and system actions</p>
             </div>
-          </section>
-          {/* The top part will remain same for both */}
-          <section className="w-[90%] h-[98%] flex flex-col gap-2 md:w-[98%]">
-            <div className="w-full grid grid-cols-[0.3fr_9.7fr] pt-3 mt-1  bg-slate-800 rounded-[9px_9px_0_0]">
-              <div className="pt-2 pl-1"><NavLink to={'/'} ><FaAngleLeft size={20} /></NavLink></div>
-              <div className="w-full flex flex-col justify-center items-center gap-3">
-                <div className="w-full h-auto flex flex-col gap-1 justify-center items-center">
-                  <div className="bg-inherit w-[10rem] h-[10rem] rounded-[50%] overflow-hidden sha">
-                    <img src={user.avatar || x}  alt="profile picture" className="w-full h-auto" />
-                  </div>
-                  <div className="w-full flex flex-col gap-0.5 items-center justify-center">
-                    <p className="text-[22px] font-bold">{user.userName}</p>
-                    <div className="flex items-center justify-center gap-1 text-sm"><HiLocationMarker color="#c8bfbf" />NY, New Yourk City</div>
-                  </div>
-                </div>
-                <div className="w-full grid items-center justify-center grid-cols-[1fr_1fr]">
-                  <div className="w-full h-[5rem] flex justify-center flex-col  text-center border-t-2 border-r-2 border-gray-400">
-                    <p className="text-[12px] md:text-[20px] font-bold">{user.email}</p>
-                    <p className="text-[12px] md:text-[17px] ">Email</p>
-                  </div>
-                  <div className="w-full h-[5rem] flex justify-center flex-col  text-center border-t-2 border-l-2 border-gray-400">
-                    <p className="text-[12px] md:text-[20px] font-bold">{user.searchTag}</p>
-                    <p className="text-[12px] md:text-[17px] ">SearchTag</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="w-full flex flex-col items-center justify-center gap-1 ">
-              <div className="cursor-pointer w-[100%] h-[4rem] px-[5%] grid grid-cols-[1fr_8fr_1fr] gap-1 items-center justify-center hover:bg-[#4a697894]">
-                <div className="text-gray-300 flex items-center justify-between"><BiChat size={20} /></div>
-                <div className="w-full ">
-                  <div className="text-[18px] font-mono">Chat</div>
-                  <div className="text-[15px]">Find your chats</div>
-                </div>
-                <div className="text-lg"><FaAngleRight /></div>
-              </div>
-              <div onClick={() => router('/user/settings')} className="cursor-pointer w-[100%] h-[4rem] px-[5%] grid grid-cols-[1fr_8fr_1fr] gap-2 items-center justify-center hover:bg-[#4a697894]">
-                <div className="text-gray-300 flex items-center justify-between"><FcSettings size={20} /></div>
-                <div className="w-full ">
-                  <div className="text-[18px] font-mono">Settings</div>
-                  <div className="text-[15px]">Account and Theme</div>
-                </div>
-                <div className="text-lg"><FaAngleRight /></div>
-              </div>
-              <div onClick={() => router('/user/help')} className="cursor-pointer w-[100%] h-[4rem] px-[5%] grid grid-cols-[1fr_8fr_1fr] gap-2 items-center justify-center hover:bg-[#4a697894]">
-                <div className="text-gray-300 flex items-center justify-between"><IoHelp size={20} /></div>
-                <div className="w-full ">
-                  <div className="text-[18px] font-mono">Help</div>
-                  <div className="text-[15px]">Need Help?</div>
-                </div>
-                <div className="text-lg"><FaAngleRight /></div>
-              </div>
-              <div className="cursor-pointer w-[100%] h-[4rem] px-[5%] grid grid-cols-[1fr_8fr_1fr] gap-2 items-center justify-center hover:bg-[#4a697894]" onClick={() => logOutFunc()}>
-                <div className="text-gray-300 flex items-center justify-between"><IoLogOut size={20} /></div>
-                <div className="w-full ">
-                  <div className="text-[18px] font-mono">Log Out</div>
-                  {/* <div className="text-[15px]">Need Help?</div> */}
-                </div>
-                <div className="text-lg"><BiExit /></div>
-              </div>
-            </div>
-          </section>
-        </section>
-      </section>
-    </>
+          </div>
+        </div>
 
+        {/* Profile Card */}
+        <div className="glass-card rounded-2xl p-6 border border-white/10 flex flex-col items-center text-center space-y-4">
+          <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-[var(--c-accent)] shadow-2xl bg-slate-700">
+            <img src={user.avatar || x} alt="Profile" className="w-full h-full object-cover" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-extrabold text-[var(--c-text-primary)]">{user.userName}</h2>
+            <p className="text-xs accent-text font-semibold mt-0.5">@{user.searchTag}</p>
+            <div className="flex items-center justify-center gap-1 text-xs text-[var(--c-text-muted)] mt-1">
+              <HiLocationMarker size={14} className="accent-text" />
+              <span>NY, New York City</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 w-full pt-4 border-t border-white/10">
+            <div className="glass-card p-3 rounded-xl border border-white/10 text-center">
+              <p className="text-xs font-semibold text-[var(--c-text-primary)] truncate">{user.email}</p>
+              <p className="text-[10px] text-[var(--c-text-muted)] uppercase tracking-wider">Email Address</p>
+            </div>
+            <div className="glass-card p-3 rounded-xl border border-white/10 text-center">
+              <p className="text-xs font-semibold text-[var(--c-text-primary)] truncate">{user.searchTag}</p>
+              <p className="text-[10px] text-[var(--c-text-muted)] uppercase tracking-wider">Search Tag</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation Menu Links */}
+        <div className="space-y-2">
+          <div 
+            onClick={() => router('/')}
+            className="glass-card p-4 rounded-2xl border border-white/10 flex items-center justify-between cursor-pointer hover:bg-white/10 transition group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl accent-bg text-black shadow-md"><BiChat size={20} /></div>
+              <div>
+                <p className="text-sm font-bold text-[var(--c-text-primary)]">Chats & Messages</p>
+                <p className="text-xs text-[var(--c-text-muted)]">Return to active conversations</p>
+              </div>
+            </div>
+            <FaAngleRight className="text-[var(--c-text-muted)] group-hover:translate-x-1 transition" size={16} />
+          </div>
+
+          <div 
+            onClick={() => router('/user/settings')}
+            className="glass-card p-4 rounded-2xl border border-white/10 flex items-center justify-between cursor-pointer hover:bg-white/10 transition group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30"><FcSettings size={20} /></div>
+              <div>
+                <p className="text-sm font-bold text-[var(--c-text-primary)]">Settings & Themes</p>
+                <p className="text-xs text-[var(--c-text-muted)]">Customize visual presets and account details</p>
+              </div>
+            </div>
+            <FaAngleRight className="text-[var(--c-text-muted)] group-hover:translate-x-1 transition" size={16} />
+          </div>
+
+          <div 
+            onClick={() => router('/user/help')}
+            className="glass-card p-4 rounded-2xl border border-white/10 flex items-center justify-between cursor-pointer hover:bg-white/10 transition group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-sky-500/20 text-sky-400 border border-sky-500/30"><IoHelp size={20} /></div>
+              <div>
+                <p className="text-sm font-bold text-[var(--c-text-primary)]">Help & Support</p>
+                <p className="text-xs text-[var(--c-text-muted)]">Need assistance or reporting issues</p>
+              </div>
+            </div>
+            <FaAngleRight className="text-[var(--c-text-muted)] group-hover:translate-x-1 transition" size={16} />
+          </div>
+
+          <div 
+            onClick={logOutFunc}
+            className="glass-card p-4 rounded-2xl border border-red-500/20 flex items-center justify-between cursor-pointer hover:bg-red-500/10 transition group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30"><IoLogOut size={20} /></div>
+              <div>
+                <p className="text-sm font-bold text-red-400">Log Out</p>
+                <p className="text-xs text-[var(--c-text-muted)]">Safely end your current session</p>
+              </div>
+            </div>
+            <BiExit className="text-red-400 group-hover:translate-x-1 transition" size={18} />
+          </div>
+        </div>
+      </section>
+    </section>
   )
 }
+
+export default Account;

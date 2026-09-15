@@ -1,86 +1,274 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* ─── Theme CSS Custom Properties ─── */
+/* ─── Default Theme Variables (Midnight Neon) ─── */
 :root {
-  /* Backgrounds */
-  --c-app: #ffffff;
-  --c-panel: #f1f5f9;
-  --c-inset: #e2e8f0;
-  --c-elevated: #94a3b8;
-  --c-field: #cbd5e1;
-  --c-chatbg: #f8fafc;
-  --c-bubble: #e2e8f0;
-  --c-subtle: rgba(0, 0, 0, 0.04);
-  --c-hovered: #e2e8f0;
+  --c-app-bg: #090d16;
+  --c-panel-bg: rgba(15, 23, 42, 0.85);
+  --c-panel-border: rgba(255, 255, 255, 0.08);
+  --c-chat-bg: #0b111e;
+  --c-bubble-me-bg: linear-gradient(135deg, #00f0ff 0%, #0088ff 100%);
+  --c-bubble-me-text: #050b14;
+  --c-bubble-them-bg: rgba(30, 41, 59, 0.9);
+  --c-bubble-them-text: #f1f5f9;
+  --c-accent: #00f0ff;
+  --c-accent-hover: #38bdf8;
+  --c-accent-glow: rgba(0, 240, 255, 0.35);
+  --c-text-primary: #f8fafc;
+  --c-text-secondary: #cbd5e1;
+  --c-text-muted: #64748b;
+  --c-input-bg: rgba(15, 23, 42, 0.7);
+  --c-card-hover: rgba(30, 41, 59, 0.6);
+  --c-gradient-glow: radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.15), transparent 70%);
 
-  /* Text */
-  --c-heading: #0f172a;
-  --c-body: #334155;
-  --c-label: #64748b;
-  --c-hint: #6b7280;
-  --c-link: #2563eb;
-
-  /* Borders */
-  --c-divider: #cbd5e1;
-  --c-edge: rgba(0, 0, 0, 0.10);
-
-  /* Misc */
-  --c-avatarbg: #cbd5e1;
-}
-
-.dark {
-  /* Backgrounds */
-  --c-app: #0f172a;
-  --c-panel: #1e293b;
-  --c-inset: #334155;
-  --c-elevated: #475569;
-  --c-field: #64748b;
-  --c-chatbg: #1f2937;
-  --c-bubble: #334155;
-  --c-subtle: rgba(235, 235, 235, 0.05);
-  --c-hovered: #334155;
-
-  /* Text */
-  --c-heading: #ffffff;
-  --c-body: #e2e8f0;
-  --c-label: #cbd5e1;
-  --c-hint: #d1d5db;
-  --c-link: #93c5fd;
-
-  /* Borders */
-  --c-divider: #4b5563;
+  /* Tailwind legacy tokens */
+  --c-app: var(--c-app-bg);
+  --c-panel: var(--c-panel-bg);
+  --c-inset: var(--c-input-bg);
+  --c-elevated: #334155;
+  --c-field: #475569;
+  --c-chatbg: var(--c-chat-bg);
+  --c-bubble: var(--c-bubble-them-bg);
+  --c-subtle: rgba(255, 255, 255, 0.04);
+  --c-hovered: var(--c-card-hover);
+  --c-heading: var(--c-text-primary);
+  --c-body: var(--c-text-secondary);
+  --c-label: var(--c-text-muted);
+  --c-hint: #94a3b8;
+  --c-link: var(--c-accent);
+  --c-divider: var(--c-panel-border);
   --c-edge: rgba(255, 255, 255, 0.1);
-
-  /* Misc */
-  --c-avatarbg: #374151;
+  --c-avatarbg: #1e293b;
 }
 
-/* Register as Tailwind v4 color tokens (inline = keep as CSS var references) */
+/* ─── 1. MIDNIGHT NEON (Default Dark) ─── */
+[data-theme="midnight"] {
+  --c-app-bg: #080c14;
+  --c-panel-bg: rgba(15, 23, 42, 0.85);
+  --c-panel-border: rgba(0, 240, 255, 0.15);
+  --c-chat-bg: #0b111e;
+  --c-bubble-me-bg: linear-gradient(135deg, #00f0ff 0%, #0088ff 100%);
+  --c-bubble-me-text: #050b14;
+  --c-bubble-them-bg: rgba(30, 41, 59, 0.95);
+  --c-bubble-them-text: #f1f5f9;
+  --c-accent: #00f0ff;
+  --c-accent-hover: #38bdf8;
+  --c-accent-glow: rgba(0, 240, 255, 0.35);
+  --c-text-primary: #f8fafc;
+  --c-text-secondary: #cbd5e1;
+  --c-text-muted: #64748b;
+  --c-input-bg: rgba(15, 23, 42, 0.7);
+  --c-card-hover: rgba(30, 41, 59, 0.7);
+  --c-gradient-glow: radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.18), transparent 70%);
+}
+
+/* ─── 2. EMERALD GLASS ─── */
+[data-theme="emerald"] {
+  --c-app-bg: #04140d;
+  --c-panel-bg: rgba(6, 32, 22, 0.85);
+  --c-panel-border: rgba(16, 185, 129, 0.18);
+  --c-chat-bg: #061c13;
+  --c-bubble-me-bg: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --c-bubble-me-text: #02180f;
+  --c-bubble-them-bg: rgba(13, 44, 32, 0.95);
+  --c-bubble-them-text: #ecfdf5;
+  --c-accent: #10b981;
+  --c-accent-hover: #34d399;
+  --c-accent-glow: rgba(16, 185, 129, 0.4);
+  --c-text-primary: #f0fdf4;
+  --c-text-secondary: #a7f3d0;
+  --c-text-muted: #4ade80;
+  --c-input-bg: rgba(6, 32, 22, 0.75);
+  --c-card-hover: rgba(13, 44, 32, 0.7);
+  --c-gradient-glow: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.2), transparent 70%);
+}
+
+/* ─── 3. CYBERPUNK AMBER ─── */
+[data-theme="cyberpunk"] {
+  --c-app-bg: #0f0717;
+  --c-panel-bg: rgba(24, 13, 36, 0.85);
+  --c-panel-border: rgba(245, 158, 11, 0.2);
+  --c-chat-bg: #140921;
+  --c-bubble-me-bg: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  --c-bubble-me-text: #170901;
+  --c-bubble-them-bg: rgba(36, 19, 54, 0.95);
+  --c-bubble-them-text: #fffbeb;
+  --c-accent: #f59e0b;
+  --c-accent-hover: #fbbf24;
+  --c-accent-glow: rgba(245, 158, 11, 0.4);
+  --c-text-primary: #fffbeb;
+  --c-text-secondary: #fde68a;
+  --c-text-muted: #d97706;
+  --c-input-bg: rgba(24, 13, 36, 0.75);
+  --c-card-hover: rgba(45, 23, 66, 0.7);
+  --c-gradient-glow: radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.2), transparent 70%);
+}
+
+/* ─── 4. AMETHYST GLOW ─── */
+[data-theme="amethyst"] {
+  --c-app-bg: #0a0412;
+  --c-panel-bg: rgba(19, 9, 30, 0.85);
+  --c-panel-border: rgba(168, 85, 247, 0.2);
+  --c-chat-bg: #10061b;
+  --c-bubble-me-bg: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+  --c-bubble-me-text: #ffffff;
+  --c-bubble-them-bg: rgba(33, 16, 50, 0.95);
+  --c-bubble-them-text: #faf5ff;
+  --c-accent: #a855f7;
+  --c-accent-hover: #c084fc;
+  --c-accent-glow: rgba(168, 85, 247, 0.4);
+  --c-text-primary: #faf5ff;
+  --c-text-secondary: #e9d5ff;
+  --c-text-muted: #a855f7;
+  --c-input-bg: rgba(19, 9, 30, 0.75);
+  --c-card-hover: rgba(38, 18, 58, 0.7);
+  --c-gradient-glow: radial-gradient(circle at 50% 0%, rgba(168, 85, 247, 0.22), transparent 70%);
+}
+
+/* ─── 5. SAKURA DUSK ─── */
+[data-theme="sakura"] {
+  --c-app-bg: #12050e;
+  --c-panel-bg: rgba(28, 10, 23, 0.85);
+  --c-panel-border: rgba(236, 72, 153, 0.2);
+  --c-chat-bg: #180714;
+  --c-bubble-me-bg: linear-gradient(135deg, #ec4899 0%, #be185d 100%);
+  --c-bubble-me-text: #ffffff;
+  --c-bubble-them-bg: rgba(43, 16, 36, 0.95);
+  --c-bubble-them-text: #fdf2f8;
+  --c-accent: #ec4899;
+  --c-accent-hover: #f472b6;
+  --c-accent-glow: rgba(236, 72, 153, 0.4);
+  --c-text-primary: #fdf2f8;
+  --c-text-secondary: #fbcfe8;
+  --c-text-muted: #f472b6;
+  --c-input-bg: rgba(28, 10, 23, 0.75);
+  --c-card-hover: rgba(48, 17, 40, 0.7);
+  --c-gradient-glow: radial-gradient(circle at 50% 0%, rgba(236, 72, 153, 0.2), transparent 70%);
+}
+
+/* ─── 6. OCEAN DEEP ─── */
+[data-theme="ocean"] {
+  --c-app-bg: #031017;
+  --c-panel-bg: rgba(5, 25, 35, 0.85);
+  --c-panel-border: rgba(6, 182, 212, 0.2);
+  --c-chat-bg: #041620;
+  --c-bubble-me-bg: linear-gradient(135deg, #06b6d4 0%, #0284c7 100%);
+  --c-bubble-me-text: #02121a;
+  --c-bubble-them-bg: rgba(8, 38, 54, 0.95);
+  --c-bubble-them-text: #ecfeff;
+  --c-accent: #06b6d4;
+  --c-accent-hover: #22d3ee;
+  --c-accent-glow: rgba(6, 182, 212, 0.4);
+  --c-text-primary: #ecfeff;
+  --c-text-secondary: #a5f3fc;
+  --c-text-muted: #06b6d4;
+  --c-input-bg: rgba(5, 25, 35, 0.75);
+  --c-card-hover: rgba(10, 48, 68, 0.7);
+  --c-gradient-glow: radial-gradient(circle at 50% 0%, rgba(6, 182, 212, 0.2), transparent 70%);
+}
+
+/* ─── 7. CLASSIC FROST (LIGHT) ─── */
+[data-theme="light"] {
+  --c-app-bg: #f1f5f9;
+  --c-panel-bg: rgba(255, 255, 255, 0.9);
+  --c-panel-border: rgba(0, 0, 0, 0.08);
+  --c-chat-bg: #f8fafc;
+  --c-bubble-me-bg: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  --c-bubble-me-text: #ffffff;
+  --c-bubble-them-bg: #e2e8f0;
+  --c-bubble-them-text: #0f172a;
+  --c-accent: #2563eb;
+  --c-accent-hover: #3b82f6;
+  --c-accent-glow: rgba(37, 99, 235, 0.25);
+  --c-text-primary: #0f172a;
+  --c-text-secondary: #334155;
+  --c-text-muted: #64748b;
+  --c-input-bg: #ffffff;
+  --c-card-hover: #e2e8f0;
+  --c-gradient-glow: radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.08), transparent 70%);
+}
+
+/* Tailwind v4 theme inline definitions */
 @theme inline {
-  --color-app: var(--c-app);
-  --color-panel: var(--c-panel);
-  --color-inset: var(--c-inset);
-  --color-elevated: var(--c-elevated);
-  --color-field: var(--c-field);
-  --color-chatbg: var(--c-chatbg);
-  --color-bubble: var(--c-bubble);
-  --color-subtle: var(--c-subtle);
-  --color-hovered: var(--c-hovered);
-  --color-heading: var(--c-heading);
-  --color-body: var(--c-body);
-  --color-label: var(--c-label);
-  --color-hint: var(--c-hint);
-  --color-link: var(--c-link);
-  --color-divider: var(--c-divider);
-  --color-edge: var(--c-edge);
-  --color-avatarbg: var(--c-avatarbg);
+  --color-app-bg: var(--c-app-bg);
+  --color-panel-bg: var(--c-panel-bg);
+  --color-panel-border: var(--c-panel-border);
+  --color-chat-bg: var(--c-chat-bg);
+  --color-bubble-me-bg: var(--c-bubble-me-bg);
+  --color-bubble-me-text: var(--c-bubble-me-text);
+  --color-bubble-them-bg: var(--c-bubble-them-bg);
+  --color-bubble-them-text: var(--c-bubble-them-text);
+  --color-accent: var(--c-accent);
+  --color-accent-hover: var(--c-accent-hover);
+  --color-text-primary: var(--c-text-primary);
+  --color-text-secondary: var(--c-text-secondary);
+  --color-text-muted: var(--c-text-muted);
+  --color-input-bg: var(--c-input-bg);
 }
 
-/* Smooth theme transition (applied momentarily during toggle) */
+/* ─── Glassmorphism & UI Utilities ─── */
+.glass-panel {
+  background: var(--c-panel-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--c-panel-border);
+}
+
+.glass-card {
+  background: var(--c-input-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--c-panel-border);
+}
+
+.glow-shadow {
+  box-shadow: 0 0 20px var(--c-accent-glow);
+}
+
+.accent-border {
+  border-color: var(--c-accent);
+}
+
+.accent-bg {
+  background-color: var(--c-accent);
+}
+
+.accent-text {
+  color: var(--c-accent);
+}
+
+/* ─── Custom Scrollbar ─── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--c-panel-border);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--c-accent);
+}
+
+/* ─── Smooth Theme Transition ─── */
 html.theme-transition,
 html.theme-transition *,
 html.theme-transition *::before,
 html.theme-transition *::after {
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease !important;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+body {
+  background-color: var(--c-app-bg);
+  color: var(--c-text-primary);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
 }
