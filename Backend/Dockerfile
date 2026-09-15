@@ -1,26 +1,20 @@
 FROM node:20-slim
 
-# Install build tools and Python required for compiling native modules (mediasoup worker)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 \
-    python3-pip \
-    python-is-python3 \
-    build-essential \
-    ca-certificates \
- && ln -sf /usr/bin/python3 /usr/bin/python \
- && rm -rf /var/lib/apt/lists/*
-
-# Configure environment for mediasoup worker build
-ENV PYTHON=python3
-ENV PIP_BREAK_SYSTEM_PACKAGES=1
-
 # Set working directory
 WORKDIR /usr/src/app
+
+# Pre-install official prebuilt mediasoup-worker binary to eliminate heavy C++ compilation and avoid Out-Of-Memory (OOM) crashes
+ADD https://github.com/versatica/mediasoup/releases/download/3.19.2/mediasoup-worker-3.19.2-linux-x64-kernel6.tgz /tmp/mediasoup-worker.tgz
+RUN tar -xzf /tmp/mediasoup-worker.tgz -C /usr/local/bin/ \
+ && chmod +x /usr/local/bin/mediasoup-worker \
+ && rm /tmp/mediasoup-worker.tgz
+
+ENV MEDIASOUP_WORKER_BIN="/usr/local/bin/mediasoup-worker"
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies (production only)
+# Install dependencies (production only) - skips compiling mediasoup worker
 RUN npm install --omit=dev
 
 # Copy application source code

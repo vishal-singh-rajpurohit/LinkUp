@@ -33,6 +33,15 @@ jobs:
             git reset --hard origin/production-ec2
             git pull origin production-ec2
 
+            # Ensure 2GB swap space is enabled to prevent OOM killer (exit code 137) during builds
+            if [ $(swapon --show | wc -l) -le 1 ]; then
+              echo "Configuring swap space to prevent memory exhaustion..."
+              sudo fallocate -l 2G /swapfile 2>/dev/null || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
+              sudo chmod 600 /swapfile
+              sudo mkswap /swapfile
+              sudo swapon /swapfile
+            fi
+
             # Generate production .env file dynamically on the server from GitHub Secrets
             cat << EOF > .env
             PORT=${{ secrets.PORT }}
@@ -56,6 +65,12 @@ jobs:
             VITE_API_CHAT_SECRET_KEY='${{ secrets.VITE_API_CHAT_SECRET_KEY }}'
             EOF
 
-            # Restart containers safely with the generated environment variables
+            # Stop existing containers
             docker compose -f ./docker-compose.prod.yml down
-            docker compose -f ./docker-compose.prod.yml up --build -d
+
+            # Build sequentially to avoid memory spikes on small EC2 instances
+            docker compose -f ./docker-compose.prod.yml build backend
+            docker compose -f ./docker-compose.prod.yml build frontend
+
+            # Start containers detached
+            docker compose -f ./docker-compose.prod.yml up -d
