@@ -47,7 +47,7 @@ services:
   frontend:
     build:
       context: ./app_pro
-      dockerfile: Dockerfile.prod
+      dockerfile: Dockerfile
       args:
         VITE_BASE_URL: ${VITE_BASE_URL}
         VITE_API_EMOJI_API_KEY: ${VITE_API_EMOJI_API_KEY}

@@ -26,7 +26,7 @@ services:
   frontend:
     build:
       context: ./app_pro
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: linkup-frontend
     ports:
       - "5173:80"

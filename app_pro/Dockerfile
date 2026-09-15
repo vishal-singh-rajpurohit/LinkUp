@@ -1,13 +1,44 @@
-# Use a lightweight Nginx web server to serve static assets
+
+# Build Stage
+FROM node:20-alpine AS builder
+
+WORKDIR /usr/src/app
+
+ARG VITE_BASE_URL
+ARG VITE_API_EMOJI_API_KEY
+ARG VITE_API
+ARG VITE_API_
+ARG VITE_API_CHAT_SECRET_KEY
+
+# Make them available as environment variables during build time
+ENV VITE_BASE_URL=$VITE_BASE_URL
+ENV VITE_API_EMOJI_API_KEY=$VITE_API_EMOJI_API_KEY
+ENV VITE_API=$VITE_API
+ENV VITE_API_=$VITE_API_
+ENV VITE_API_CHAT_SECRET_KEY=$VITE_API_CHAT_SECRET_KEY
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies (including devDependencies required for Vite build)
+RUN npm install
+
+# Copy application source code
+COPY . .
+
+# Build the application
+RUN npm run build
+
+# Production Stage
 FROM nginx:alpine
 
-# Copy pre-built production assets from the local dist directory to Nginx html directory
-COPY dist /usr/share/nginx/html
+# Copy built static assets from build stage
+COPY --from=builder /usr/src/app/dist /usr/share/nginx/html
 
 # Copy custom Nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port 80
+# Expose port 80 (will be mapped to 5173 via Docker Compose)
 EXPOSE 80
 
 # Run Nginx in foreground
