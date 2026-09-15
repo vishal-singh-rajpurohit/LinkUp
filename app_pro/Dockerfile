@@ -1,45 +1,35 @@
-
-# Build Stage
+# Stage 1: Build React Application
 FROM node:20-alpine AS builder
 
 WORKDIR /usr/src/app
 
+# Declare build arguments
 ARG VITE_BASE_URL
 ARG VITE_API_EMOJI_API_KEY
 ARG VITE_API
 ARG VITE_API_
 ARG VITE_API_CHAT_SECRET_KEY
 
-# Make them available as environment variables during build time
 ENV VITE_BASE_URL=$VITE_BASE_URL
 ENV VITE_API_EMOJI_API_KEY=$VITE_API_EMOJI_API_KEY
 ENV VITE_API=$VITE_API
 ENV VITE_API_=$VITE_API_
 ENV VITE_API_CHAT_SECRET_KEY=$VITE_API_CHAT_SECRET_KEY
 
-# Copy package files
+# Copy dependency definitions first
 COPY package*.json ./
 
-# Install dependencies (including devDependencies required for Vite build)
+# Install packages
 RUN npm install
 
-# Copy application source code
+# Now copy the rest of the frontend source code
 COPY . .
 
-# Build the application
+# Build static assets
 RUN npm run build
 
-# Production Stage
+# Stage 2: Serve with Nginx
 FROM nginx:alpine
-
-# Copy built static assets from build stage
 COPY --from=builder /usr/src/app/dist /usr/share/nginx/html
-
-# Copy custom Nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Expose port 80 (will be mapped to 5173 via Docker Compose)
 EXPOSE 80
-
-# Run Nginx in foreground
 CMD ["nginx", "-g", "daemon off;"]
