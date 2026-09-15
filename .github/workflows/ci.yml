@@ -29,6 +29,8 @@ jobs:
 
           script: |
             cd /home/ubuntu/LinkUp
+            git config pull.rebase false
+            git reset --hard origin/production-ec2
             git pull origin production-ec2
 
             # Generate production .env file dynamically on the server from GitHub Secrets
