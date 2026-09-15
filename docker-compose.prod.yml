@@ -46,7 +46,7 @@ services:
 
   frontend:
     build:
-      context: ./app_pro
+      context: .
       dockerfile: Dockerfile
       args:
         VITE_BASE_URL: ${VITE_BASE_URL}
