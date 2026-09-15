@@ -1,0 +1,16 @@
+node_modules
+.git
+.gitignore
+README.md
+Dockerfile
+.env
+.sample.env
+src
+public
+tsconfig.app.json
+tsconfig.json
+tsconfig.node.json
+vite.config.ts
+eslint.config.js
+package.json
+package-lock.json

@@ -1,0 +1,46 @@
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: linkup-mongodb-prod
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data-prod:/data/db
+    networks:
+      - linkup-network
+
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: linkup-backend-prod
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./Backend/.env
+    depends_on:
+      - mongodb
+    networks:
+      - linkup-network
+
+  frontend:
+    build:
+      context: ./app_pro
+      dockerfile: Dockerfile
+    container_name: linkup-frontend-prod
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    depends_on:
+      - backend
+    networks:
+      - linkup-network
+
+volumes:
+  mongo-data-prod:
+
+networks:
+  linkup-network:
+    driver: bridge
