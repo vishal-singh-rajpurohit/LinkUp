@@ -28,7 +28,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
 
           script: |
-            cd /home/ubuntu/Linkup
+            cd /home/ubuntu/LinkUp
             git pull origin production-ec2
 
             # Generate production .env file dynamically on the server from GitHub Secrets
