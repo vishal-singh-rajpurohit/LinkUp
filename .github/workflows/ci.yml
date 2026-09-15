@@ -1,10 +1,59 @@
 name: Deploy on EC2
 
 on:
-    push:
-        branches: -prod
+  push:
+    branches: [production-ec2]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
 
 jobs:
-    collect-env:
-        name: collect-env
-        runs-on: ubuntu-latest
+  deploy:
+    name: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy Via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+
+          script: |
+            cd /home/ubuntu/Linkup
+            git pull origin production-ec2
+
+            # Generate production .env file dynamically on the server from GitHub Secrets
+            cat << EOF > .env
+            PORT=${{ secrets.PORT }}
+            ATLAS_LINK='${{ secrets.ATLAS_LINK }}'
+            ACCESS_TOKEN_SECRET='${{ secrets.ACCESS_TOKEN_SECRET }}'
+            ACCESS_TOKEN_EXPIRY=${{ secrets.ACCESS_TOKEN_EXPIRY }}
+            REFRESH_TOKEN_SECRET='${{ secrets.REFRESH_TOKEN_SECRET }}'
+            REFRESH_TOKEN_EXPIRY=${{ secrets.REFRESH_TOKEN_EXPIRY }}
+            CORS_ORIGIN='${{ secrets.CORS_ORIGIN }}'
+            CORS_ORIGIN_1='${{ secrets.CORS_ORIGIN_1 }}'
+            CORS_ORIGIN_2='${{ secrets.CORS_ORIGIN_2 }}'
+            CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+            CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+            CLOUDINARY_NAME=${{ secrets.CLOUDINARY_NAME }}
+            GEO_API=${{ secrets.GEO_API }}
+            CHAT_SECRET_KEY='${{ secrets.CHAT_SECRET_KEY }}'
+            VITE_BASE_URL=${{ secrets.VITE_BASE_URL }}
+            VITE_API_EMOJI_API_KEY=${{ secrets.VITE_API_EMOJI_API_KEY }}
+            VITE_API=${{ secrets.VITE_API }}
+            VITE_API_=${{ secrets.VITE_API_ }}
+            VITE_API_CHAT_SECRET_KEY='${{ secrets.VITE_API_CHAT_SECRET_KEY }}'
+            EOF
+
+            # Restart containers safely with the generated environment variables
+            docker compose -f ./docker-compose.prod.yml down
+            docker compose -f ./docker-ec2-compose.prod.yml up --build -d
