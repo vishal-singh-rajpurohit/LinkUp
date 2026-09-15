@@ -58,4 +58,4 @@ jobs:
 
             # Restart containers safely with the generated environment variables
             docker compose -f ./docker-compose.prod.yml down
-            docker compose -f ./docker-ec2-compose.prod.yml up --build -d
+            docker compose -f ./docker-compose.prod.yml up --build -d
