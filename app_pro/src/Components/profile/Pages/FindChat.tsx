@@ -1,79 +1,91 @@
+import { FaFileAlt, FaImage, FaVideo, FaMusic } from 'react-icons/fa'
 import { FaCirclePlay } from 'react-icons/fa6'
-// import x from '../../../assets/no_dp.png'
 import { useState } from 'react'
-
-// // Load if not found
-// const NoContent = () => {
-//     return (
-//         <h1 className='text-white font-bold font-stretch-125%'>No media found of this type</h1>
-//     )
-// }
-
-
-// Applicable for images, docs, gifs, and videos
-// const Media = () => {
-//     return (
-//         <div className="grid grid-cols-5 gap-0.5 items-center justify-center overflow-y-scroll">
-//             <div className="h-[6rem] max-w-full border-1">
-//                 <img src={x} alt="" className='h-full w-auto' />
-//             </div>
-//         </div>
-//     )
-// }
 
 const AudioSingle = () => {
     return (
-        <div className="grid grid-cols-[2fr_8fr] w-[15rem] h-[4rem] gap-2 items-center justify-center bg-orange-400 rounded-lg">
-            <div className="w-full flex items-center justify-center h-full">
-                <FaCirclePlay size={25} cursor="pointer" />
-            </div>
-            <div className="h-full w-full flex flex-col justify-evenly overflow-hidden px-1">
-                <p className="truncate overflow-hidden whitespace-nowrap text-ellipsis text-sm w-full">
-                    Be Khayali. By - Arijit Singhk akdjfka adkfj
+        <div className="glass-card p-3 rounded-2xl border border-white/10 flex items-center gap-3 hover:bg-white/10 transition shadow-md">
+            <button type="button" className="p-3 rounded-xl accent-bg text-black shadow-md cursor-pointer hover:scale-105 transition">
+                <FaCirclePlay size={20} />
+            </button>
+            <div className="flex-1 min-w-0">
+                <p className="truncate text-xs font-bold text-[var(--c-text-primary)]">
+                    Audio Attachment.mp3
                 </p>
-                <div className="flex w-full justify-between flex-col">
-                    <div className=' w-full flex text-[13px] justify-between'>
-                        <div className="player-timer">1:28</div>
-                        <div className="duration">3:01</div>
-                    </div>
-                    <div className="bg-amber-600 w-full h-2 relative">
-                        <div className="h-full w-[50%] bg-amber-800"></div>
-                    </div>
+                <div className="flex items-center justify-between text-[10px] text-[var(--c-text-muted)] mt-1">
+                    <span>1:28</span>
+                    <span>3:01</span>
+                </div>
+                <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mt-1">
+                    <div className="h-full w-[45%] accent-bg rounded-full"></div>
                 </div>
             </div>
         </div>
     )
 }
 
-const Audio = () => {
+const MediaGrid = ({ type }: { type: string }) => {
+    if (type === 'audio') {
+        return (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4">
+                <AudioSingle />
+                <AudioSingle />
+                <AudioSingle />
+                <AudioSingle />
+            </div>
+        );
+    }
+
     return (
-        <div className="grid items-center flex-col gap-4 justify-start overflow-y-scroll p-2 " style={{ scrollbarWidth: 'none' }}>
-            <AudioSingle />
-            <AudioSingle />
-            <AudioSingle />
-            <AudioSingle />
+        <div className="flex flex-col items-center justify-center p-12 text-center text-[var(--c-text-muted)] space-y-2">
+            <div className="p-4 rounded-full bg-white/5 border border-white/10 text-[var(--c-text-muted)]">
+                {type === 'photo' && <FaImage size={28} />}
+                {type === 'video' && <FaVideo size={28} />}
+                {type === 'docs' && <FaFileAlt size={28} />}
+                {type === 'gif' && <FaMusic size={28} />}
+            </div>
+            <p className="text-sm font-semibold text-[var(--c-text-primary)] capitalize">No {type} media found</p>
+            <p className="text-xs">Media shared in this chat will appear here automatically.</p>
         </div>
-    )
+    );
 }
 
 const FindChat = () => {
-
     const [medType, setMedType] = useState<string>('photo');
 
+    const tabs = [
+        { id: 'photo', label: 'Photos' },
+        { id: 'gif', label: 'GIFs' },
+        { id: 'video', label: 'Videos' },
+        { id: 'audio', label: 'Audio' },
+        { id: 'docs', label: 'Docs' }
+    ];
+
     return (
-        <section className="h-full flex flex-col items-center w-full">
-            <section className="w-[90%] h-[98%] py-2 gap-5 flex flex-col justify-center items-center">
-                <section className={`bg-slate-700 rounded-md overflow-hidden w-full min-h-[3rem] h-[30%] grid items-center justify-center grid-cols-5 `}>
-                    <div className={`w-full h-full ${medType === "photo" ? "" : "bg-slate-800"} border-r-1 border-r-amber-50  flex items-center text-center justify-center`} onClick={() => setMedType('photo')}>Photos</div>
-                    <div className={`w-full h-full ${medType === "gif" ? "" : "bg-slate-800"} border-r-1 border-r-amber-50  flex items-center text-center justify-center`} onClick={() => setMedType('gif')}>Gifs</div>
-                    <div className={`w-full h-full ${medType === "video" ? "" : "bg-slate-800"} border-r-1 border-r-amber-50  flex items-center text-center justify-center`} onClick={() => setMedType('video')}>Videos</div>
-                    <div className={`w-full h-full ${medType === "audio" ? "" : "bg-slate-800"} border-r-1 border-r-amber-50  flex items-center text-center justify-center`} onClick={() => setMedType('audio')}>Audio</div>
-                    <div className={`w-full h-full ${medType === "docs" ? "" : "bg-slate-800"} flex items-center text-center justify-center`} onClick={() => setMedType('docs')}>Docs</div>
-                </section>
-                <section className="bg-slate-700 rounded-md w-full min-h-[80vh] text-center overflow-hidden" style={{ scrollbarWidth: 'none' }}>
-                    {/* <Media /> */}
-                    <Audio />
-                </section>
+        <section className="h-full flex flex-col items-center w-full p-4">
+            <section className="w-full max-w-4xl space-y-4">
+                {/* Media Filter Tabs */}
+                <div className="glass-panel p-1.5 rounded-2xl border border-white/10 grid grid-cols-5 gap-1 text-xs font-bold shadow-lg">
+                    {tabs.map((tab) => (
+                        <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => setMedType(tab.id)}
+                            className={`py-2 rounded-xl transition cursor-pointer text-center ${
+                                medType === tab.id
+                                    ? 'accent-bg text-black shadow-md font-extrabold'
+                                    : 'text-[var(--c-text-muted)] hover:text-[var(--c-text-primary)] hover:bg-white/5'
+                            }`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Media Container */}
+                <div className="glass-panel rounded-3xl border border-white/10 min-h-[60vh] shadow-xl overflow-hidden">
+                    <MediaGrid type={medType} />
+                </div>
             </section>
         </section>
     )

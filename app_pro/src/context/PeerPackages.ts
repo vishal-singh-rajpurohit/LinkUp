@@ -3,25 +3,21 @@ class PeerPackages {
     isVideoOn: boolean = true;
     isAudioOn: boolean = true;
     private pendingIceCandidates: RTCIceCandidateInit[] = [];
+
     constructor() {
-        if (!this.peer) {
-            this.isVideoOn = true;
-            this.isAudioOn = true;
-            this.peer = new RTCPeerConnection({
-                iceServers: [
-                    {
-                        urls: [
-                            "stun:stun.l.google.com:19302",
-                            "stun:global.stun.twilio.com:3478",
-                        ],
-                    },
-                ],
-            })
-        }
+        this.initPeer();
     }
 
-    private async createPeer() {
-        return new RTCPeerConnection({
+    initPeer(): RTCPeerConnection {
+        if (this.peer) {
+            try {
+                this.peer.close();
+            } catch { }
+        }
+        this.isVideoOn = true;
+        this.isAudioOn = true;
+        this.pendingIceCandidates = [];
+        this.peer = new RTCPeerConnection({
             iceServers: [
                 {
                     urls: [
@@ -31,31 +27,42 @@ class PeerPackages {
                 },
             ],
         });
+        return this.peer;
     }
 
-    async setVideo(trigger: boolean){
+    setVideo(trigger: boolean, localStream?: MediaStream | null) {
         this.isVideoOn = trigger;
+        if (localStream) {
+            localStream.getVideoTracks().forEach((track) => {
+                track.enabled = trigger;
+            });
+        }
     }
 
-    async setAudio(trigger: boolean){
+    setAudio(trigger: boolean, localStream?: MediaStream | null) {
         this.isAudioOn = trigger;
+        if (localStream) {
+            localStream.getAudioTracks().forEach((track) => {
+                track.enabled = trigger;
+            });
+        }
     }
+
     async createOffer() {
         if (this.peer) {
             const offer = await this.peer.createOffer();
-            await this.peer.setLocalDescription(new RTCSessionDescription(offer))
+            await this.peer.setLocalDescription(new RTCSessionDescription(offer));
             return offer;
         }
     }
 
     async getAnswer(offer: RTCSessionDescriptionInit) {
         if (this.peer) {
-
             await this.peer.setRemoteDescription(new RTCSessionDescription(offer));
             await this.flushPendingCandidates();
             const ans = await this.peer.createAnswer();
             await this.peer.setLocalDescription(new RTCSessionDescription(ans));
-            return ans
+            return ans;
         }
     }
 
@@ -72,7 +79,11 @@ class PeerPackages {
                 this.pendingIceCandidates.push(candidate);
                 return;
             }
-            await this.peer.addIceCandidate(new RTCIceCandidate(candidate))
+            try {
+                await this.peer.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (err) {
+                console.error("Error adding ice candidate:", err);
+            }
         }
     }
 
@@ -81,35 +92,36 @@ class PeerPackages {
         while (this.pendingIceCandidates.length) {
             const candidate = this.pendingIceCandidates.shift();
             if (!candidate) continue;
-            await this.peer.addIceCandidate(new RTCIceCandidate(candidate));
+            try {
+                await this.peer.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (err) {
+                console.error("Error flushing candidate:", err);
+            }
         }
     }
 
     async resetPeer() {
-        if (!this.peer) return;
+        if (this.peer) {
+            this.peer.getSenders().forEach((sender) => {
+                try {
+                    sender.track?.stop();
+                    this.peer?.removeTrack(sender);
+                } catch { }
+            });
 
-        this.peer.getSenders().forEach(sender => {
+            this.peer.getReceivers().forEach((receiver) => {
+                try {
+                    receiver.track?.stop();
+                } catch { }
+            });
+
             try {
-                sender.track?.stop();
-                this.peer?.removeTrack(sender);
+                this.peer.close();
             } catch { }
-        });
-
-        this.peer.getReceivers().forEach(receiver => {
-            try {
-                receiver.track?.stop();
-            } catch { }
-        });
-
-        try {
-            this.peer.close();
-        } catch { }
-
+        }
 
         this.peer = null;
-        this.createPeer();
-        this.isAudioOn = true;
-        this.isVideoOn = true;
+        this.initPeer();
     }
 }
 

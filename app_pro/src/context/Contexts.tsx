@@ -5,8 +5,11 @@ import type { Socket } from "socket.io-client";
 export interface appContextTypes {
     selectToTalk: (id: string) => void;
     isAdmin: boolean;
-    messageFormData: FormData
-    handelFile: (files: FileList | null) => void;
+    messageFormData: FormData;
+    selectedFile: File | null;
+    filePreview: string | null;
+    handelFile: (files: FileList | File[] | File | null, explicitType?: string) => void;
+    clearSelectedFile: () => void;
 }
 
 export const AppContext = createContext<appContextTypes | null>(null);
@@ -14,17 +17,21 @@ export const AppContext = createContext<appContextTypes | null>(null);
 
 export interface WSCTypes {
     socket: Socket | null;
-    makeACall: () => void,
-    answerVideoCall: () => void,
-    denayCall: () => void,
-    createAnswer: () => void,
-    clearCall: () => void,
+    makeACall: () => void;
+    answerVideoCall: () => void;
+    denayCall: () => void;
+    createAnswer: () => void;
+    clearCall: () => void;
+    toggleAudio: () => void;
+    toggleVideo: () => void;
+    isAudioOn: boolean;
+    isVideoOn: boolean;
     video: {
-        localVideoRef: RefObject<HTMLVideoElement | null>,
-        remoteVideoRef: RefObject<HTMLVideoElement | null>,
-        localStreamRef: RefObject<MediaStream | null>,
-        remoteStream: MediaStream | null,
-    }
+        localVideoRef: RefObject<HTMLVideoElement | null>;
+        remoteVideoRef: RefObject<HTMLVideoElement | null>;
+        localStreamRef: RefObject<MediaStream | null>;
+        remoteStream: MediaStream | null;
+    };
 }
 
 export const WSContext = createContext<WSCTypes | null>(null);

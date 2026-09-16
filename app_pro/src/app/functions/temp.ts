@@ -315,11 +315,16 @@ function uploadingMediaFunc(state: initialStateTypes, action: PayloadAction<{ ne
 
 function uploadedMediaFunc(state: initialStateTypes, action: PayloadAction<{ newMsg: groupMssageType, contactId: string }>) {
     if (state.selectedContact._id !== action.payload.contactId) return;
-    const prevMessages = state.selectedContact.messages?.filter((val) => val._id !== action.payload.newMsg._id)
-    state.selectedContact.messages = [
-        ...(prevMessages || []),
-        action.payload.newMsg
-    ]
+    if (!state.selectedContact.messages) {
+        state.selectedContact.messages = [action.payload.newMsg];
+        return;
+    }
+    const index = state.selectedContact.messages.findIndex((val) => val._id === action.payload.newMsg._id);
+    if (index !== -1) {
+        state.selectedContact.messages[index] = action.payload.newMsg;
+    } else {
+        state.selectedContact.messages.push(action.payload.newMsg);
+    }
 }
 
 function delMessage(state: initialStateTypes, action: PayloadAction<{ messageId: string; contactId: string; }>) {

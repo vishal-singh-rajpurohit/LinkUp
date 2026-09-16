@@ -3,12 +3,10 @@ import { ContactList } from "./subComponents/Contact"
 
 function Home() {
     return (
-        <>
-            <section className="w-[100vw] h-[100vh] overflow-y-auto flex justify-center md:grid md:grid-cols-[4fr_6fr] lg:grid-cols-[3fr_7fr]">
-                <ContactList />
-                <ChatArea />
-            </section>
-        </>
+        <section className="w-screen h-screen overflow-hidden flex justify-center md:grid md:grid-cols-[3.8fr_6.2fr] lg:grid-cols-[3fr_7fr] bg-[var(--c-app-bg)] text-[var(--c-text-primary)] transition-colors duration-300">
+            <ContactList />
+            <ChatArea />
+        </section>
     )
 }
 

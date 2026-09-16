@@ -583,59 +583,53 @@ function newMessage(state: initialTypes, action: PayloadAction<{ newMsg: groupMs
 }
 
 function messageMediaSentFunc(state: initialTypes, action: PayloadAction<{ newMsg: groupMssageType, contactId: string }>) {
-    const toUpdateContact = state.contacts.filter((val) => val._id === action.payload.contactId);
-    // Checking in groups
-    if (toUpdateContact.length) {
-        const poppedMsgArray = toUpdateContact[0].messages?.filter((val) => val._id !== action.payload.newMsg._id)
-        toUpdateContact[0].messages = [
-            ...(poppedMsgArray || []),
-            action.payload.newMsg
-        ]
-
-        state.contacts = [
-            ...(toUpdateContact),
-            ...(state.contacts.filter((val) => val._id !== action.payload.contactId)),
-        ]
-    }
-    else {
-        const toUpdateContact = state.groups.filter((val) => val._id === action.payload.contactId)
-        // Checking in groups
-        if (toUpdateContact.length) {
-            const poppedMsgArray = toUpdateContact[0].messages?.filter((val) => val._id !== action.payload.newMsg._id)
-
-            toUpdateContact[0].messages = [
-                ...(poppedMsgArray || []),
-                action.payload.newMsg
-            ]
-
-            state.groups = [
-                ...(toUpdateContact),
-                ...(state.groups.filter((val) => val._id !== action.payload.contactId)),
-            ]
-
-        }
-        else {
-            const toUpdateContact = state.safer.filter((val) => val._id === action.payload.contactId)
-            // Checking in Archieved
-            if (toUpdateContact.length) {
-                const poppedMsgArray = toUpdateContact[0].messages?.filter((val) => val._id !== action.payload.newMsg._id)
-
-                toUpdateContact[0].messages = [
-                    ...(poppedMsgArray || []),
-                    action.payload.newMsg
-                ]
-
-                state.contacts = [
-                    ...(toUpdateContact),
-                    ...(state.safer.filter((val) => val._id !== action.payload.contactId)),
-                ]
+    const contact = state.contacts.find((val) => val._id === action.payload.contactId);
+    if (contact) {
+        if (contact.messages) {
+            const index = contact.messages.findIndex((val) => val._id === action.payload.newMsg._id);
+            if (index !== -1) {
+                contact.messages[index] = action.payload.newMsg;
+            } else {
+                contact.messages.push(action.payload.newMsg);
             }
-            else {
-                throw new Error('Invalid contact id')
-            }
+        } else {
+            contact.messages = [action.payload.newMsg];
         }
+        contact.lastMessage = action.payload.newMsg.message || "Attachment";
+        return;
     }
 
+    const group = state.groups.find((val) => val._id === action.payload.contactId);
+    if (group) {
+        if (group.messages) {
+            const index = group.messages.findIndex((val) => val._id === action.payload.newMsg._id);
+            if (index !== -1) {
+                group.messages[index] = action.payload.newMsg;
+            } else {
+                group.messages.push(action.payload.newMsg);
+            }
+        } else {
+            group.messages = [action.payload.newMsg];
+        }
+        group.lastMessage = action.payload.newMsg.message || "Attachment";
+        return;
+    }
+
+    const saferContact = state.safer.find((val) => val._id === action.payload.contactId);
+    if (saferContact) {
+        if (saferContact.messages) {
+            const index = saferContact.messages.findIndex((val) => val._id === action.payload.newMsg._id);
+            if (index !== -1) {
+                saferContact.messages[index] = action.payload.newMsg;
+            } else {
+                saferContact.messages.push(action.payload.newMsg);
+            }
+        } else {
+            saferContact.messages = [action.payload.newMsg];
+        }
+        saferContact.lastMessage = action.payload.newMsg.message || "Attachment";
+        return;
+    }
 }
 
 function delMessage(state: initialTypes, action: PayloadAction<{ messageId: string; contactId: string; isGroup: boolean }>) {

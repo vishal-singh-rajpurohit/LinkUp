@@ -96,7 +96,9 @@ const newSchema = new Schema(
 );
 
 newSchema.pre('save', async function (next){
-  this.message = await encryptMessage(this.message)
+  if (this.isModified('message') && typeof this.message === 'string') {
+    this.message = await encryptMessage(this.message)
+  }
   next()
 })
 

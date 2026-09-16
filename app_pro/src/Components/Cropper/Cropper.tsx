@@ -1,6 +1,5 @@
-import { useRef, useState, type SetStateAction } from 'react';
-import { CircleStencil } from 'react-advanced-cropper';
-import { Cropper } from 'react-advanced-cropper';
+import React, { useRef, useState, type SetStateAction } from 'react';
+import { CircleStencil, Cropper } from 'react-advanced-cropper';
 import 'react-advanced-cropper/dist/style.css';
 import { updateAvatar, updateGroupAvatar } from '../../app/functions/auth';
 import { useAppDispatch } from '../../app/hooks';
@@ -14,12 +13,12 @@ interface MyCropperRef {
     getCanvas: () => HTMLCanvasElement;
 }
 
-function Loading({ open }: {
-    open: boolean;
-}) {
+function Loading({ open }: { open: boolean }) {
+    if (!open) return null;
     return (
-        <div className={`fixed z-50 inset-0 ${open ? 'flex' : 'hidden'} flex-col bg-[#59339945] items-center justify-center p-2`}>
-            <AiOutlineLoading3Quarters size={40} color='#9644e2' className='animate-spin' />
+        <div className="fixed z-50 inset-0 flex flex-col bg-black/80 backdrop-blur-md items-center justify-center p-4">
+            <AiOutlineLoading3Quarters size={44} className="accent-text animate-spin mb-2" />
+            <span className="text-xs font-bold text-[var(--c-text-primary)]">Processing Image...</span>
         </div>
     )
 }
@@ -80,28 +79,32 @@ export const SampleCropper = ({ open, image, setImage }: {
         }
     }
 
+    if (!open) return null;
+
     return (
         <>
             <Loading open={loading} />
-            <section className={`fixed z-40 inset-0 ${open ? 'flex' : 'hidden'} flex-col bg-slate-700 items-center justify-center p-2`}>
-                <div className="w-full max-w-screen-lg h-full max-h-screen flex flex-col rounded-lg overflow-hidden bg-slate-900 shadow-lg">
-                    {/* Top Bar */}
-                    <div className="w-full flex gap-2 justify-end items-center p-2 bg-slate-950">
-                        <button
-                            className="px-4 py-1 bg-green-500 hover:bg-green-600 text-white text-sm rounded-md transition-all duration-200"
-                            onClick={onCrop}
-                        >
-                            Crop
-                        </button>
-                        <button
-                            className="px-4 py-1 bg-green-500 hover:bg-green-600 text-white text-sm rounded-md transition-all duration-200"
-                            onClick={CropAndSave}
-                        >
-                            Save
-                        </button>
+            <section className="fixed z-40 inset-0 flex flex-col bg-black/80 backdrop-blur-md items-center justify-center p-4 animate-in fade-in duration-200">
+                <div className="w-full max-w-2xl h-[85vh] flex flex-col rounded-3xl overflow-hidden glass-panel border border-white/15 shadow-2xl">
+                    <div className="w-full flex justify-between items-center px-6 py-4 border-b border-white/10">
+                        <h3 className="text-sm font-bold text-[var(--c-text-primary)]">Crop Profile Avatar</h3>
+                        <div className="flex gap-2">
+                            <button
+                                className="px-4 py-1.5 bg-white/10 hover:bg-white/15 text-white font-semibold text-xs rounded-xl transition cursor-pointer"
+                                onClick={onCrop}
+                            >
+                                Preview
+                            </button>
+                            <button
+                                className="px-5 py-1.5 accent-bg text-black font-extrabold text-xs rounded-xl shadow-md hover:brightness-110 transition cursor-pointer"
+                                onClick={CropAndSave}
+                            >
+                                Save Avatar
+                            </button>
+                        </div>
                     </div>
 
-                    <div className="flex-1 min-h-0">
+                    <div className="flex-1 min-h-0 bg-slate-950/80 p-4">
                         <Cropper
                             ref={cropperRef}
                             src={image}
@@ -113,7 +116,6 @@ export const SampleCropper = ({ open, image, setImage }: {
                 </div>
             </section>
         </>
-
     );
 };
 
@@ -176,28 +178,32 @@ export const SampleCropper2 = ({ open, image, setImage, contactId }: {
         }
     }
 
+    if (!open) return null;
+
     return (
         <>
             <Loading open={loading} />
-            <section className={`fixed z-40 inset-0 ${open ? 'flex' : 'hidden'} flex-col bg-slate-700 items-center justify-center p-2`}>
-                <div className="w-full max-w-screen-lg h-full max-h-screen flex flex-col rounded-lg overflow-hidden bg-slate-900 shadow-lg">
-                    {/* Top Bar */}
-                    <div className="w-full flex gap-2 justify-end items-center p-2 bg-slate-950">
-                        <button
-                            className="px-4 py-1 bg-green-500 hover:bg-green-600 text-white text-sm rounded-md transition-all duration-200"
-                            onClick={onCrop}
-                        >
-                            Crop
-                        </button>
-                        <button
-                            className="px-4 py-1 bg-green-500 hover:bg-green-600 text-white text-sm rounded-md transition-all duration-200"
-                            onClick={CropAndSave}
-                        >
-                            Save
-                        </button>
+            <section className="fixed z-40 inset-0 flex flex-col bg-black/80 backdrop-blur-md items-center justify-center p-4 animate-in fade-in duration-200">
+                <div className="w-full max-w-2xl h-[85vh] flex flex-col rounded-3xl overflow-hidden glass-panel border border-white/15 shadow-2xl">
+                    <div className="w-full flex justify-between items-center px-6 py-4 border-b border-white/10">
+                        <h3 className="text-sm font-bold text-[var(--c-text-primary)]">Crop Group Logo</h3>
+                        <div className="flex gap-2">
+                            <button
+                                className="px-4 py-1.5 bg-white/10 hover:bg-white/15 text-white font-semibold text-xs rounded-xl transition cursor-pointer"
+                                onClick={onCrop}
+                            >
+                                Preview
+                            </button>
+                            <button
+                                className="px-5 py-1.5 accent-bg text-black font-extrabold text-xs rounded-xl shadow-md hover:brightness-110 transition cursor-pointer"
+                                onClick={CropAndSave}
+                            >
+                                Save Logo
+                            </button>
+                        </div>
                     </div>
 
-                    <div className="flex-1 min-h-0">
+                    <div className="flex-1 min-h-0 bg-slate-950/80 p-4">
                         <Cropper
                             ref={cropperRef}
                             src={image}
@@ -209,7 +215,6 @@ export const SampleCropper2 = ({ open, image, setImage, contactId }: {
                 </div>
             </section>
         </>
-
     );
 };
 
@@ -274,28 +279,32 @@ export const SampleCropper3 = ({ open, setOpen, image, setImage, setPiblicId }: 
         }
     }
 
+    if (!open) return null;
+
     return (
         <>
             <Loading open={loading} />
-            <section className={`fixed z-40 inset-0 ${open ? 'flex' : 'hidden'} flex-col bg-slate-700 items-center justify-center p-2`}>
-                <div className="w-full max-w-screen-lg h-full max-h-screen flex flex-col rounded-lg overflow-hidden bg-slate-900 shadow-lg">
-                    {/* Top Bar */}
-                    <div className="w-full flex gap-2 justify-end items-center p-2 bg-slate-950">
-                        <button
-                            className="px-4 py-1 bg-green-500 hover:bg-green-600 text-white text-sm rounded-md transition-all duration-200"
-                            onClick={onCrop}
-                        >
-                            Crop
-                        </button>
-                        <button
-                            className="px-4 py-1 bg-green-500 hover:bg-green-600 text-white text-sm rounded-md transition-all duration-200"
-                            onClick={CropAndSave}
-                        >
-                            Save
-                        </button>
+            <section className="fixed z-40 inset-0 flex flex-col bg-black/80 backdrop-blur-md items-center justify-center p-4 animate-in fade-in duration-200">
+                <div className="w-full max-w-2xl h-[85vh] flex flex-col rounded-3xl overflow-hidden glass-panel border border-white/15 shadow-2xl">
+                    <div className="w-full flex justify-between items-center px-6 py-4 border-b border-white/10">
+                        <h3 className="text-sm font-bold text-[var(--c-text-primary)]">Crop Image Attachment</h3>
+                        <div className="flex gap-2">
+                            <button
+                                className="px-4 py-1.5 bg-white/10 hover:bg-white/15 text-white font-semibold text-xs rounded-xl transition cursor-pointer"
+                                onClick={onCrop}
+                            >
+                                Preview
+                            </button>
+                            <button
+                                className="px-5 py-1.5 accent-bg text-black font-extrabold text-xs rounded-xl shadow-md hover:brightness-110 transition cursor-pointer"
+                                onClick={CropAndSave}
+                            >
+                                Save Attachment
+                            </button>
+                        </div>
                     </div>
 
-                    <div className="flex-1 min-h-0">
+                    <div className="flex-1 min-h-0 bg-slate-950/80 p-4">
                         <Cropper
                             ref={cropperRef}
                             src={image}
@@ -307,6 +316,5 @@ export const SampleCropper3 = ({ open, setOpen, image, setImage, setPiblicId }: 
                 </div>
             </section>
         </>
-
     );
 };

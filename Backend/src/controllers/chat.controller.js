@@ -44,7 +44,7 @@ const sendMessage = asyncHandler(async (req, resp) => {
     userId: myUser._id,
     pending: contain_files,
     hasAttechment: contain_files,
-    attechmentType: contain_files && fileType,
+    attechmentType: contain_files ? (fileType || "img") : "",
     attechmentId: null,
     attechmentLink: "",
     callId: null,
@@ -229,11 +229,11 @@ const sendMessage = asyncHandler(async (req, resp) => {
         },
       };
 
+      emiterSocket(req, myUser.socketId, chatEventEnumNew.NEW_MESSAGE, {
+        newMessage: messageObject,
+        contactId: contact._id,
+      });
       if (recivers.length) {
-        emiterSocket(req, myUser.socketId, chatEventEnumNew.NEW_MESSAGE, {
-          newMessage: messageObject,
-          contactId: contact._id,
-        });
         for (let reciver of recivers[0].member) {
           emiterSocket(req, reciver.socketId, chatEventEnumNew.NEW_MESSAGE, {
             newMessage: messageObject,
@@ -244,11 +244,28 @@ const sendMessage = asyncHandler(async (req, resp) => {
     }
   }
 
-  if(newMessage.pending){
-    emiterSocket(req, user.socketId, chatEventEnumNew.SENDING_MEDIA, {
-        newMessage: newMessage,
-        contactId: contact._id,
-      })
+  if (newMessage.pending) {
+    const pendingMsgObject = {
+      _id: newMessage._id,
+      message: newMessage.message,
+      hasAttechment: newMessage.hasAttechment,
+      pending: true,
+      attechmentLink: "",
+      attechmentType: newMessage.attechmentType,
+      isCall: false,
+      callType: "",
+      createdAt: newMessage.createdAt,
+      readBy: [],
+      sender: {
+        _id: myUser._id,
+        searchTag: myUser.searchTag,
+        avatar: myUser.avatar,
+      },
+    };
+    emiterSocket(req, myUser.socketId || user.socketId, chatEventEnumNew.SENDING_MEDIA, {
+      newMessage: pendingMsgObject,
+      contactId: contact._id,
+    });
   }
 
   resp
@@ -268,10 +285,10 @@ const uploadAttechment = asyncHandler(async (req, resp) => {
     throw new ApiError(401, "Unautharized User");
   }
   const myUser = await User.findById(user._id);
-  if (!myUser._id) {
+  if (!myUser || !myUser._id) {
     throw new ApiError(501, "Unautharized Request");
   }
-  const path = req.file.path;
+  const path = req.file?.path;
   if (!path) {
     throw new ApiError(400, "Files not found");
   }
@@ -280,7 +297,7 @@ const uploadAttechment = asyncHandler(async (req, resp) => {
   if (!contactId || !messageId) {
     throw new ApiError(400, "data not found");
   }
-  const message = await Message.findByIdAndUpdate(messageId);
+  const message = await Message.findById(messageId);
   if (!message) {
     throw new ApiError(400, "Message not found");
   }
@@ -288,10 +305,19 @@ const uploadAttechment = asyncHandler(async (req, resp) => {
   if (!file_type || !link || !public_id) {
     throw new ApiError(501, "Error in Uploading Media");
   }
+
+  let finalFileType = fileType;
+  if (!finalFileType || finalFileType === "undefined" || finalFileType === "null") {
+    if (file_type === 'video') finalFileType = 'vid';
+    else if (file_type === 'image') finalFileType = 'img';
+    else if (file_type === 'audio') finalFileType = 'audio';
+    else finalFileType = 'doc';
+  }
+
   const attechment = new Attachment({
     messageId: message._id,
     contactId: message.contactId,
-    fileType: fileType,
+    fileType: finalFileType,
     link: link,
     public_id: public_id,
   });
@@ -299,6 +325,7 @@ const uploadAttechment = asyncHandler(async (req, resp) => {
   if (!attechment) {
     throw new ApiError(400, "attechment not saved");
   }
+
   message.hasAttechment = true;
   message.pending = false;
   message.attechmentLink = attechment.link;
@@ -306,17 +333,31 @@ const uploadAttechment = asyncHandler(async (req, resp) => {
   message.attechmentId = attechment._id;
   await message.save();
 
-  const updatedMessage = await Message.findById(message._id)
-
-  if(!updatedMessage){
-    throw new ApiError(400, "updated message not found")
+  const contact = await Contact.findById(contactId);
+  if (!contact) {
+    throw new ApiError(404, "Contact not found");
   }
 
-  const contact = await Contact.findById(contactId);
+  const messageObject = {
+    _id: message._id,
+    message: message.message,
+    hasAttechment: message.hasAttechment,
+    pending: message.pending,
+    attechmentLink: message.attechmentLink,
+    attechmentType: message.attechmentType,
+    isCall: message.isCall,
+    callType: message.callType,
+    createdAt: message.createdAt,
+    readBy: message.readBy || [],
+    sender: {
+      _id: myUser._id,
+      searchTag: myUser.searchTag,
+      avatar: myUser.avatar,
+    },
+  };
 
   if (!contact.isGroup) {
-    // If not an group chat than you have to send details of message along with userId
-
+    // If not a group chat, send message details along with userId
     const reciver = await Contact.aggregate([
       {
         $match: {
@@ -356,7 +397,6 @@ const uploadAttechment = asyncHandler(async (req, resp) => {
       {
         $unwind: "$member.user",
       },
-
       {
         $group: {
           _id: "$_id",
@@ -387,18 +427,17 @@ const uploadAttechment = asyncHandler(async (req, resp) => {
     ]);
 
     emiterSocket(req, myUser.socketId, chatEventEnumNew.SENT_MEDIA, {
-      newMessage: updatedMessage,
+      newMessage: messageObject,
       contactId: contact._id,
     });
     if (reciver.length) {
-      // Working on this
       emiterSocket(req, reciver[0].socketId, chatEventEnumNew.NEW_MESSAGE, {
-        newMessage: updatedMessage,
+        newMessage: messageObject,
         contactId: contact._id,
       });
     }
   } else {
-    // IF Group Chat
+    // If Group Chat
     const recivers = await Contact.aggregate([
       {
         $match: {
@@ -460,28 +499,11 @@ const uploadAttechment = asyncHandler(async (req, resp) => {
       },
     ]);
 
-    const messageObject = {
-      _id: message._id,
-      message: message.message,
-      hasAttechment: message.hasAttechment,
-      pending: message.pending,
-      attechmentLink: message.attechmentLink,
-      attechmentType: message.attechmentType,
-      isCall: message.isCall,
-      callType: message.callType,
-      createdAt: message.createdAt,
-      sender: {
-        _id: myUser._id,
-        searchTag: myUser.searchTag,
-        avatar: myUser.avatar,
-      },
-    };
-
+    emiterSocket(req, myUser.socketId, chatEventEnumNew.SENT_MEDIA, {
+      newMessage: messageObject,
+      contactId: contact._id,
+    });
     if (recivers.length) {
-      emiterSocket(req, myUser.socketId, chatEventEnumNew.SENT_MEDIA, {
-        newMessage: messageObject,
-        contactId: contact._id,
-      });
       for (let reciver of recivers[0].member) {
         emiterSocket(req, reciver.socketId, chatEventEnumNew.NEW_MESSAGE, {
           newMessage: messageObject,
@@ -491,14 +513,12 @@ const uploadAttechment = asyncHandler(async (req, resp) => {
     }
   }
 
-  emiterSocket(req, req)
-
   resp
     .status(200)
     .json(
       new ApiResponse(
         200,
-        { message: message },
+        { message: messageObject },
         "File Uploaded and message updated"
       )
     );

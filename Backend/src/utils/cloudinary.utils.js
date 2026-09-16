@@ -34,20 +34,25 @@ async function uploadToCloudinary(path) {
 async function uploadRawToCloudinary(path) {
   try {
     const upload = await cloudinary.uploader.upload(path, {
-      resource_type: "raw",
+      resource_type: "auto",
       folder: "documents",
     });
 
-    fs.unlinkSync(path);
+    if (fs.existsSync(path)) {
+      fs.unlinkSync(path);
+    }
 
     return {
-      file_type : upload.type,
-      link: upload.url,
+      file_type: upload.resource_type || upload.type || "raw",
+      link: upload.secure_url || upload.url,
       public_id: upload.public_id,
     };
   } catch (error) {
-    fs.unlinkSync(path);
-    throw new ApiError(500, "Error in Upload on cloudinary");
+    if (fs.existsSync(path)) {
+      fs.unlinkSync(path);
+    }
+    console.error("Cloudinary upload error:", error);
+    throw new ApiError(500, `Error in Upload on cloudinary: ${error?.message || error}`);
   }
 }
 

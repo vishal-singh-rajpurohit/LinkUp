@@ -4,6 +4,8 @@ const conn = require("./db/conn");
 
 let port = process.env.PORT;
 
+console.log('the ATLAS_LINK: ', process.env.ATLAS_LINK);
+
 conn()
   .then(() => {
     server.on("error", (error) => {
