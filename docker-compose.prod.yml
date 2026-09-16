@@ -1,19 +1,4 @@
 services:
-  mongodb:
-    image: mongo:8.0.30
-    container_name: linkup-mongodb-prod
-    restart: unless-stopped
-    volumes:
-      - mongo-data-prod:/data/db
-    healthcheck:
-      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    networks:
-      - linkup-network
-
   backend:
     build:
       context: ./Backend
