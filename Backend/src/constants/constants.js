@@ -22,7 +22,17 @@ const chatEventEnumNew = {
 
   MESSAGE_DELETE_EVENT: 'messageDeleted',
   SOCKET_ERROR_EVENT: 'socketError',
-  NEW_MESSAGE: "message"
+  NEW_MESSAGE: "message",
+
+  APPROACHED_TALK: "apprached_to_talk",
+  NEW_GROUP_CHAT: "created_room",
+  KICKED_OUT_MEMBER: "cickout_member",
+  KICKED_OUT_YOU: "you_member",
+  MESSAGE_DELETED: "del_message",
+  SENDING_MEDIA: "sending_media",
+  SENT_MEDIA: "sent_media",
+  OFFLINE_CALLER: "offline_caller",
+  CANCELLED_VIDEO_CALL: "cancelled-before-answer",
 }
 
 const CallEventEnum = {

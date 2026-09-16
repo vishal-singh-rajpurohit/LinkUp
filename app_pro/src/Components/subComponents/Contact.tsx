@@ -73,10 +73,11 @@ export const ContactItem = ({ _id, searchTag, avatar, lastMessage = "start talki
                     { withCredentials: true }
                 )
 
-                window.location.reload();
-                disp(saveContact({ newChat: resp.data.data.newContact }));
-                disp(setSearching({ trigger: false }));
-                talk(resp.data.data.newContact._id);
+                if (resp.data?.data?.newContact) {
+                    disp(saveContact({ newChat: resp.data.data.newContact }));
+                    disp(setSearching({ trigger: false }));
+                    talk(resp.data.data.newContact._id);
+                }
 
             } catch (error) { }
         } else {
