@@ -169,31 +169,39 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
       throw new ApiError(400, "Error while getting user details");
     }
 
-    // Send to the end user
-    if (reciver.online) {
-      const emitPayload = {
-        lastMessage: "Just Connected to you",
-        isBlocked: false,
-        updatedAt: new Date(),
-        socketId: newContact._id,
-        member: {
-          _id: memberOne._id,
-          isArchieved: false,
-          user: {
-            _id: myUser._id,
-            searchTag: myUser.searchTag,
-            socketId: myUser.socketId,
-            email: myUser.email,
-            avatar: myUser.avatar,
-            online: myUser.online,
-          },
+    // Send to the end user (receiver)
+    const reciverEmitPayload = {
+      _id: newContact._id,
+      lastMessage: "Just Connected to you",
+      isBlocked: false,
+      updatedAt: new Date(),
+      socketId: newContact._id,
+      member: {
+        _id: memberOne._id,
+        isArchieved: false,
+        user: {
+          _id: myUser._id,
+          userName: myUser.userName,
+          searchTag: myUser.searchTag,
+          socketId: myUser.socketId,
+          email: myUser.email,
+          avatar: myUser.avatar,
+          online: myUser.online,
         },
-      };
+      },
+    };
+
+    emiterSocket(req, reciver._id.toString(), chatEventEnumNew.APPROACHED_TALK, {
+      newContact: reciverEmitPayload,
+    });
+    if (reciver.socketId) {
       emiterSocket(req, reciver.socketId, chatEventEnumNew.APPROACHED_TALK, {
-        newContact: emitPayload,
+        newContact: reciverEmitPayload,
       });
     }
-    const emitPayload = {
+
+    // Send to caller (myUser)
+    const myEmitPayload = {
       _id: newContact._id,
       lastMessage: "You Approached",
       isBlocked: false,
@@ -204,6 +212,7 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
         isArchieved: false,
         user: {
           _id: reciver._id,
+          userName: reciver.userName,
           searchTag: reciver.searchTag,
           socketId: reciver.socketId,
           email: reciver.email,
@@ -212,15 +221,21 @@ const createOneOnOneChat = asyncHandler(async (req, resp) => {
         },
       },
     };
-    emiterSocket(req, myUser.socketId, chatEventEnumNew.APPROACHED_TALK, {
-      newContact: emitPayload,
+
+    emiterSocket(req, myUser._id.toString(), chatEventEnumNew.APPROACHED_TALK, {
+      newContact: myEmitPayload,
     });
+    if (myUser.socketId) {
+      emiterSocket(req, myUser.socketId, chatEventEnumNew.APPROACHED_TALK, {
+        newContact: myEmitPayload,
+      });
+    }
 
     resp
       .status(200)
-      .json(new ApiResponse(200, {}, "Contact created successfully"));
+      .json(new ApiResponse(200, { newContact: myEmitPayload }, "Contact created successfully"));
   } catch (error) {
-    console.log("error is; ",error.message)
+    console.log("error is; ", error.message)
     throw new ApiError(400, "Error while creating contacts: ");
   }
 });
@@ -417,7 +432,15 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
     }
 
     for (let member of newGroupDetails[0].members) {
-      if (member.user.online) {
+      emiterSocket(
+        req,
+        member.user._id.toString(),
+        chatEventEnumNew.NEW_GROUP_CHAT,
+        {
+          newGroupDetails: newGroupDetails[0],
+        }
+      );
+      if (member.user.socketId) {
         emiterSocket(
           req,
           member.user.socketId,
@@ -433,7 +456,7 @@ const crateGroupChat = asyncHandler(async (req, resp) => {
       new ApiResponse(
         200,
         {
-          // newGroupDetails: newGroupDetails[0]
+          newGroupDetails: newGroupDetails[0]
         },
         "Group created successfully"
       )
@@ -578,7 +601,7 @@ const searchContacts = asyncHandler(async (req, resp) => {
           "Here are search contacts"
         )
       );
-  } catch (error) {}
+  } catch (error) { }
 });
 
 /**
@@ -885,7 +908,7 @@ const addToGroup = asyncHandler(async (req, resp) => {
         emiterSocket(req, reciver.socketId, chatEventEnumNew.NEW_GROUP_CHAT, {
           newGroupDetails: groupDetails[0],
         });
-      } else {}
+      } else { }
     }
   }
 
@@ -1175,7 +1198,7 @@ const joinChat = asyncHandler(async (req, resp) => {
       });
     }
 
-    const {} = req.body;
+    const { } = req.body;
   } catch (error) {
     throw new ApiError(500, "Error in join room event");
   }

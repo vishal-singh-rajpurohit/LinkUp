@@ -309,6 +309,9 @@ export interface newChatTypes {
 function newContact(state: initialTypes, action: PayloadAction<{
     newChat: newChatTypes
 }>) {
+    if (!action.payload?.newChat?._id) return;
+    const exists = state.contacts.some((item) => item._id === action.payload.newChat._id);
+    if (exists) return;
 
     const newContact: contactTypes = {
         _id: action.payload.newChat._id,
@@ -316,14 +319,14 @@ function newContact(state: initialTypes, action: PayloadAction<{
         isBlocked: action.payload.newChat.isBlocked,
         roomId: action.payload.newChat.socketId,
         time: action.payload.newChat.updatedAt,
-        userId: action.payload.newChat.member.user._id,
-        avatar: action.payload.newChat.member.user.avatar,
+        userId: action.payload.newChat.member?.user?._id,
+        avatar: action.payload.newChat.member?.user?.avatar,
         isArchieved: false,
-        socketId: action.payload.newChat.member.user.socketId,
-        searchTag: action.payload.newChat.member.user.searchTag,
-        userName: action.payload.newChat.member.user.userName,
-        email: action.payload.newChat.member.user.email,
-        isOnline: action.payload.newChat.member.user.online,
+        socketId: action.payload.newChat.member?.user?.socketId,
+        searchTag: action.payload.newChat.member?.user?.searchTag,
+        userName: action.payload.newChat.member?.user?.userName,
+        email: action.payload.newChat.member?.user?.email,
+        isOnline: action.payload.newChat.member?.user?.online,
         messages: []
     }
 
@@ -337,6 +340,10 @@ function newContact(state: initialTypes, action: PayloadAction<{
 function newGroup(state: initialTypes, action: PayloadAction<{
     newChat: groupsResp
 }>) {
+    if (!action.payload?.newChat?._id) return;
+    const exists = state.groups.some((item) => item._id === action.payload.newChat._id);
+    if (exists) return;
+
     const members: groupMemberTypes[] = []
 
     action.payload.newChat.members.forEach((mem) => {

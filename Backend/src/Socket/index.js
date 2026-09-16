@@ -128,6 +128,7 @@ const starterSocketIo = async (io) => {
       }
 
       user.socketId = socket.id;
+      user.online = true;
       await user.save();
       socket.user = user;
       socket.userId = user._id.toString();
