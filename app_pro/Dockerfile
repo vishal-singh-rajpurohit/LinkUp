@@ -26,6 +26,8 @@ RUN npm install
 COPY . .
 
 # Build static assets
+ENV NODE_OPTIONS="--max-old-space-size=1536"
+
 RUN npm run build
 
 # Stage 2: Serve with Nginx
