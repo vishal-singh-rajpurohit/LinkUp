@@ -1,6 +1,6 @@
 services:
   mongodb:
-    image: mongo:latest
+    image: mongo:8.0.30
     container_name: linkup-mongodb-prod
     restart: unless-stopped
     volumes:
