@@ -3,8 +3,9 @@ name: Deploy to EC2
 on:
   push:
     branches:
-      - main
-      - master
+      - production-ec2
+  merge_group:
+    branches:
       - production-ec2
   workflow_dispatch:
 
