@@ -1,76 +1,91 @@
-name: Deploy on EC2
+name: Deploy to EC2
 
 on:
   push:
-    branches: [production-ec2]
+    branches:
+      - main
+      - master
+      - production-ec2
   workflow_dispatch:
 
 permissions:
   contents: read
-  packages: write
-
-env:
-  REGISTRY: ghcr.io
 
 jobs:
   deploy:
-    name: deploy
+    name: Deploy Application to EC2
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Deploy Via SSH
+      - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-
+          host: ${{ secrets.EC2_HOST || secrets.SSH_HOST }}
+          username: ${{ secrets.EC2_USER || secrets.USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY || secrets.SSH_KEY }}
+          port: ${{ secrets.EC2_PORT || secrets.SSH_PORT || 22 }}
+          script_stop: true
           script: |
-            cd /home/ubuntu/LinkUp
-            git config pull.rebase false
-            git reset --hard origin/production-ec2
-            git pull origin production-ec2
+            set -e
 
-            # Ensure 2GB swap space is enabled to prevent OOM killer (exit code 137) during builds
+            # Project directory path on EC2 server
+            APP_DIR="${{ secrets.EC2_APP_DIR || '/home/ubuntu/LinkUp' }}"
+
+            echo "Navigating to application directory: $APP_DIR"
+            if [ ! -d "$APP_DIR" ]; then
+              echo "Error: Directory $APP_DIR does not exist on EC2 server."
+              exit 1
+            fi
+            cd "$APP_DIR"
+
+            # Pull latest changes without overwriting local untracked files like .env
+            echo "Fetching latest changes from Git repository..."
+            git config pull.rebase false
+            git fetch origin
+            git checkout ${{ github.ref_name }}
+            git reset --hard origin/${{ github.ref_name }}
+
+            # Verify environment file configuration on EC2
+            if [ -f ".env" ]; then
+              echo "✅ Existing .env file found on server. Retaining server environment properties."
+            elif [ -f ".env.example" ]; then
+              echo "⚠️ .env not found on server! Creating initial .env from .env.example..."
+              cp .env.example .env
+            else
+              echo "⚠️ Warning: No .env or .env.example found on server."
+            fi
+
+            # Ensure 2GB swap space is enabled to prevent OOM killer during builds
             if [ $(swapon --show | wc -l) -le 1 ]; then
-              echo "Configuring swap space to prevent memory exhaustion..."
+              echo "Configuring 2GB swap space to prevent memory exhaustion..."
               sudo fallocate -l 2G /swapfile 2>/dev/null || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
               sudo chmod 600 /swapfile
               sudo mkswap /swapfile
               sudo swapon /swapfile
             fi
 
-            # Generate production .env file dynamically on the server from GitHub Secrets
-            cat << EOF > .env
-            PORT=${{ secrets.PORT }}
-            ATLAS_LINK='${{ secrets.ATLAS_LINK }}'
-            ACCESS_TOKEN_SECRET='${{ secrets.ACCESS_TOKEN_SECRET }}'
-            ACCESS_TOKEN_EXPIRY=${{ secrets.ACCESS_TOKEN_EXPIRY }}
-            REFRESH_TOKEN_SECRET='${{ secrets.REFRESH_TOKEN_SECRET }}'
-            REFRESH_TOKEN_EXPIRY=${{ secrets.REFRESH_TOKEN_EXPIRY }}
-            CORS_ORIGIN='${{ secrets.CORS_ORIGIN }}'
-            CORS_ORIGIN_1='${{ secrets.CORS_ORIGIN_1 }}'
-            CORS_ORIGIN_2='${{ secrets.CORS_ORIGIN_2 }}'
-            CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
-            CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
-            CLOUDINARY_NAME=${{ secrets.CLOUDINARY_NAME }}
-            GEO_API=${{ secrets.GEO_API }}
-            CHAT_SECRET_KEY='${{ secrets.CHAT_SECRET_KEY }}'
-            VITE_BASE_URL=${{ secrets.VITE_BASE_URL }}
-            VITE_API_EMOJI_API_KEY=${{ secrets.VITE_API_EMOJI_API_KEY }}
-            VITE_API=${{ secrets.VITE_API }}
-            VITE_API_=${{ secrets.VITE_API_ }}
-            VITE_API_CHAT_SECRET_KEY='${{ secrets.VITE_API_CHAT_SECRET_KEY }}'
-            EOF
+            # Stop existing containers cleanly
+            echo "Stopping active containers..."
+            docker compose -f ./docker-compose.prod.yml down --remove-orphans || true
 
-            # Stop existing containers
-            docker compose -f ./docker-compose.prod.yml down
+            # Build backend and frontend images sequentially to manage RAM on EC2
+            echo "Building Backend image..."
+            docker compose --env-file .env -f ./docker-compose.prod.yml build backend
 
-            # Build sequentially to avoid memory spikes on small EC2 instances
-            docker compose -f ./docker-compose.prod.yml build backend
-            docker compose -f ./docker-compose.prod.yml build frontend
+            echo "Building Frontend image..."
+            docker compose --env-file .env -f ./docker-compose.prod.yml build frontend
 
-            # Start containers detached
-            docker compose -f ./docker-compose.prod.yml up -d
+            # Start containers in production mode
+            echo "Starting production services..."
+            docker compose --env-file .env -f ./docker-compose.prod.yml up -d
+
+            # Clean up dangling build artifacts to save disk space
+            echo "Pruning dangling docker images..."
+            docker image prune -f
+
+            # Verify container health
+            echo "Container Statuses:"
+            docker compose -f ./docker-compose.prod.yml ps
+            echo "🚀 LinkUp deployment completed successfully!"

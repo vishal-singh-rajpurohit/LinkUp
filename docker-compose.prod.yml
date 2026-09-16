@@ -3,7 +3,6 @@ services:
     image: mongo:latest
     container_name: linkup-mongodb-prod
     restart: unless-stopped
-
     volumes:
       - mongo-data-prod:/data/db
     healthcheck:
@@ -22,7 +21,10 @@ services:
     container_name: linkup-backend-prod
     restart: unless-stopped
     ports:
-      - "${PORT:-5000}:5000" # Secured in production; reverse-proxied through frontend Nginx.
+      - "${PORT:-5000}:5000"
+    env_file:
+      - path: .env
+        required: false
     environment:
       ATLAS_LINK: ${ATLAS_LINK}
       PORT: ${PORT:-5000}
@@ -57,7 +59,7 @@ services:
     container_name: linkup-frontend-prod
     restart: unless-stopped
     ports:
-      - "8081:80"
+      - "${FRONTEND_PORT:-8081}:80"
     depends_on:
       - backend
     networks:
