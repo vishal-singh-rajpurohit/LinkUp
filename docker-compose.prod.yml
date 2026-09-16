@@ -25,9 +25,6 @@ services:
       CLOUDINARY_NAME: ${CLOUDINARY_NAME}
       GEO_API: ${GEO_API}
       CHAT_SECRET_KEY: ${CHAT_SECRET_KEY}
-    depends_on:
-      mongodb:
-        condition: service_healthy
     networks:
       - linkup-network
 
